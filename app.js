@@ -496,9 +496,15 @@ function scheduleNext(progress, rating) {
   const intervalMap = {
     hard: 0,
     medium: Math.max(1, Math.round((progress.interval || 1) * 1.8)),
-    easy: currentLevel === 0 ? 1 : Math.max(2, Math.round((progress.interval || 1) * 2.6))
+    easy: currentLevel === 0 ? 1 : Math.max(2, Math.round((progress.interval || 1) * 2.6)),
+    mastered: Math.max(30, Math.round((progress.interval || 1) * 4))
   };
-  const level = rating === "hard" ? Math.max(0, currentLevel - 1) : Math.min(5, currentLevel + (rating === "easy" ? 1 : 0.5));
+  const level =
+    rating === "hard"
+      ? Math.max(0, currentLevel - 1)
+      : rating === "mastered"
+        ? 5
+        : Math.min(5, currentLevel + (rating === "easy" ? 1 : 0.5));
   const interval = intervalMap[rating];
   const dueAt = startOfToday() + interval * DAY;
   return { level, interval, dueAt };
@@ -562,6 +568,7 @@ function renderWordList() {
 }
 
 function getStatus(progress) {
+  if (progress.level >= 5) return { label: "完全掌握", className: "mastered" };
   if (progress.wrong > 0 && progress.level < 4) return { label: "错词", className: "wrong" };
   if (progress.level >= 4) return { label: "已掌握", className: "mastered" };
   if (progress.seen > 0) return { label: "学习中", className: "" };
@@ -597,7 +604,7 @@ function renderProgress() {
         .slice(0, 12)
         .map((item) => {
           const time = new Date(item.at).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-          const label = item.rating === "easy" ? "记住" : item.rating === "medium" ? "模糊" : "忘了";
+          const label = item.rating === "mastered" ? "完全掌握" : item.rating === "easy" ? "记住" : item.rating === "medium" ? "模糊" : "忘了";
           return `<div class="history-item"><span>${escapeHtml(item.term)}</span><strong>${label}</strong><span>${time}</span></div>`;
         })
         .join("")

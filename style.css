@@ -314,7 +314,7 @@ textarea {
 
 .review-actions {
   display: grid;
-  grid-template-columns: 1.1fr repeat(3, 1fr);
+  grid-template-columns: 1.05fr repeat(4, 1fr);
   gap: 10px;
   margin-top: 8px;
 }
@@ -338,6 +338,10 @@ textarea {
 
 .rate-button.easy {
   background: var(--accent-2);
+}
+
+.rate-button.mastered {
+  background: #2947a9;
 }
 
 .is-hidden {
