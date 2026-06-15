@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#176b87" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="背单词" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>背单词</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Vocabulary Trainer</p>
+          <h1>背单词</h1>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button is-hidden" id="installButton" title="安装到桌面" aria-label="安装到桌面">
+            <span aria-hidden="true">＋</span>
+          </button>
+          <button class="icon-button" id="resetTodayButton" title="重置今日队列" aria-label="重置今日队列">
+            <span aria-hidden="true">↻</span>
+          </button>
+          <button class="icon-button" id="exportButton" title="导出数据" aria-label="导出数据">
+            <span aria-hidden="true">⇩</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="学习统计">
+        <div class="stat-tile">
+          <span>今日待复习</span>
+          <strong id="dueCount">0</strong>
+        </div>
+        <div class="stat-tile">
+          <span>词库总数</span>
+          <strong id="totalCount">0</strong>
+        </div>
+        <div class="stat-tile">
+          <span>掌握词数</span>
+          <strong id="masteredCount">0</strong>
+        </div>
+        <div class="stat-tile">
+          <span>今日正确率</span>
+          <strong id="accuracyToday">0%</strong>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="主导航">
+        <button class="tab is-active" data-view="studyView">复习</button>
+        <button class="tab" data-view="libraryView">词库</button>
+        <button class="tab" data-view="progressView">进度</button>
+      </nav>
+
+      <main>
+        <section id="studyView" class="view is-active">
+          <div class="study-layout">
+            <aside class="study-panel">
+              <div class="field">
+                <label for="studyMode">模式</label>
+                <div class="segmented" id="studyMode">
+                  <button class="segment is-active" data-mode="meaning">英译中</button>
+                  <button class="segment" data-mode="spelling">拼写</button>
+                  <button class="segment" data-mode="reverse">中译英</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="queueType">队列</label>
+                <select id="queueType">
+                  <option value="due">今日复习</option>
+                  <option value="new">未学单词</option>
+                  <option value="all">全部混合</option>
+                  <option value="wrong">错词优先</option>
+                </select>
+              </div>
+              <button class="primary-button" id="startButton">开始</button>
+            </aside>
+
+            <section class="review-stage" aria-live="polite">
+              <div class="review-card" id="reviewCard">
+                <p class="queue-label" id="queueLabel">准备开始</p>
+                <h2 id="promptText">选择队列后开始复习</h2>
+                <p class="subtle-text" id="promptHint">当前词库已内置你的首批单词。</p>
+                <div class="answer-box is-hidden" id="answerBox">
+                  <span id="answerText"></span>
+                </div>
+                <form class="spell-form is-hidden" id="spellForm">
+                  <input id="spellInput" autocomplete="off" spellcheck="false" placeholder="输入英文" />
+                  <button type="submit">检查</button>
+                </form>
+                <p class="feedback" id="feedbackText"></p>
+                <div class="review-actions">
+                  <button class="ghost-button" id="showAnswerButton">显示答案</button>
+                  <button class="rate-button hard" data-rating="hard">忘了</button>
+                  <button class="rate-button medium" data-rating="medium">模糊</button>
+                  <button class="rate-button easy" data-rating="easy">记住</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="libraryView" class="view">
+          <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="搜索单词或释义" />
+            <select id="statusFilter">
+              <option value="all">全部状态</option>
+              <option value="new">未学</option>
+              <option value="learning">学习中</option>
+              <option value="mastered">已掌握</option>
+              <option value="wrong">错词</option>
+            </select>
+          </div>
+
+          <div class="library-layout">
+            <section class="word-list" id="wordList" aria-label="词库列表"></section>
+            <aside class="editor-panel">
+              <h2>添加单词</h2>
+              <form id="addWordForm">
+                <label>
+                  单词
+                  <input id="newTerm" required />
+                </label>
+                <label>
+                  释义
+                  <input id="newMeaning" required />
+                </label>
+                <label>
+                  例句
+                  <textarea id="newExample" rows="3"></textarea>
+                </label>
+                <button class="primary-button" type="submit">添加</button>
+              </form>
+              <h2>批量导入</h2>
+              <textarea id="bulkImport" rows="6" placeholder="每行：word, 释义"></textarea>
+              <button class="ghost-button wide" id="importButton">导入</button>
+            </aside>
+          </div>
+        </section>
+
+        <section id="progressView" class="view">
+          <div class="progress-grid">
+            <div class="progress-panel">
+              <h2>记忆分布</h2>
+              <div class="bars" id="levelBars"></div>
+            </div>
+            <div class="progress-panel">
+              <h2>最近记录</h2>
+              <div class="history-list" id="historyList"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
