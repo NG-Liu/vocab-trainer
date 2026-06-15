@@ -328,6 +328,10 @@ textarea {
   background: var(--bad);
 }
 
+.rate-button.hard.next {
+  background: var(--accent);
+}
+
 .rate-button.medium {
   background: var(--warn);
 }

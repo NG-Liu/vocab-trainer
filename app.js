@@ -158,6 +158,7 @@ let currentQueue = [];
 let currentIndex = -1;
 let currentMode = "meaning";
 let answerShown = false;
+let awaitingHardAdvance = false;
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -357,6 +358,7 @@ function buildQueue(type) {
 }
 
 function renderCurrentCard() {
+  awaitingHardAdvance = false;
   const word = currentQueue[currentIndex];
   const hasWord = Boolean(word);
   toggleReviewControls(hasWord);
@@ -397,9 +399,14 @@ function renderCurrentCard() {
 }
 
 function toggleReviewControls(enabled) {
-  els.showAnswerButton.disabled = !enabled;
+  els.showAnswerButton.disabled = !enabled || awaitingHardAdvance;
   els.rateButtons.forEach((button) => {
-    button.disabled = !enabled;
+    const isHardButton = button.dataset.rating === "hard";
+    button.disabled = !enabled || (awaitingHardAdvance && !isHardButton);
+    if (isHardButton) {
+      button.textContent = awaitingHardAdvance ? "下一个" : "忘了";
+      button.classList.toggle("next", awaitingHardAdvance);
+    }
   });
 }
 
@@ -437,6 +444,25 @@ function rateCurrent(rating) {
   const word = currentQueue[currentIndex];
   if (!word) return;
 
+  if (rating === "hard" && awaitingHardAdvance) {
+    advanceToNext();
+    return;
+  }
+
+  recordRating(word, rating);
+
+  if (rating === "hard") {
+    revealAnswer();
+    awaitingHardAdvance = true;
+    els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
+    toggleReviewControls(true);
+    return;
+  }
+
+  advanceToNext();
+}
+
+function recordRating(word, rating) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
   const next = scheduleNext(progress, rating);
@@ -456,7 +482,10 @@ function rateCurrent(rating) {
   });
   state.history = state.history.slice(0, 80);
   saveState();
+  renderAll();
+}
 
+function advanceToNext() {
   currentIndex += 1;
   renderAll();
   renderCurrentCard();
