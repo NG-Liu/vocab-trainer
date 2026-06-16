@@ -247,9 +247,12 @@ function bindEvents() {
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // The app still works without offline caching.
-    });
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => registration.update())
+      .catch(() => {
+        // The app still works without offline caching.
+      });
   });
 }
 
@@ -423,6 +426,10 @@ function renderCurrentCard() {
 function isPendingHard(word) {
   if (!word || currentQueueType !== "due") return false;
   return getTodaySession().pendingHardId === word.id;
+}
+
+function normalizeText(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function toggleReviewControls(enabled) {
