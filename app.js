@@ -150,7 +150,7 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 let deferredInstallPrompt = null;
@@ -365,6 +365,7 @@ function buildQueue(type) {
 
   const filtered = state.words.filter((word) => {
     const progress = getProgress(word.id);
+    if (type === "unmastered") return progress.level < 4;
     if (type === "new") return progress.seen === 0;
     if (type === "wrong") return progress.wrong > 0;
     if (type === "all") return true;
@@ -426,7 +427,7 @@ function renderCurrentCard() {
     if (currentQueueType === "due") {
       els.queueLabel.textContent = "今日复习已完成";
       els.promptText.textContent = "今天的 50 个已经背完";
-      els.promptHint.textContent = "可以切换到未学单词继续背新词。";
+      els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
     } else {
       els.queueLabel.textContent = "没有待复习单词";
       els.promptText.textContent = "当前队列清空了";
@@ -644,7 +645,8 @@ function renderProgress() {
     ["未学", (p) => p.seen === 0],
     ["初识", (p) => p.seen > 0 && p.level < 2],
     ["熟悉", (p) => p.level >= 2 && p.level < 4],
-    ["掌握", (p) => p.level >= 4]
+    ["掌握", (p) => p.level >= 4],
+    ["完全掌握", (p) => p.level >= 5]
   ].map(([label, test]) => {
     const count = state.words.filter((word) => test(getProgress(word.id))).length;
     return { label, count };
