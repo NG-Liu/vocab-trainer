@@ -150,7 +150,7 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "7";
+const APP_VERSION = "8";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 let deferredInstallPrompt = null;
@@ -167,6 +167,9 @@ const els = {
   masteredCount: document.querySelector("#masteredCount"),
   accuracyToday: document.querySelector("#accuracyToday"),
   installButton: document.querySelector("#installButton"),
+  installSheet: document.querySelector("#installSheet"),
+  installMessage: document.querySelector("#installMessage"),
+  closeInstallSheet: document.querySelector("#closeInstallSheet"),
   resetTodayButton: document.querySelector("#resetTodayButton"),
   exportButton: document.querySelector("#exportButton"),
   tabs: document.querySelectorAll(".tab"),
@@ -225,6 +228,7 @@ function bindEvents() {
   els.importButton.addEventListener("click", importBulkWords);
   els.exportButton.addEventListener("click", exportData);
   els.installButton.addEventListener("click", installApp);
+  els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.resetTodayButton.addEventListener("click", () => {
     state.todaySession = null;
     saveState();
@@ -236,12 +240,11 @@ function bindEvents() {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    els.installButton.classList.remove("is-hidden");
   });
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
-    els.installButton.classList.add("is-hidden");
+    showInstallSheet("已添加到桌面。");
   });
 }
 
@@ -258,11 +261,29 @@ function registerServiceWorker() {
 }
 
 async function installApp() {
-  if (!deferredInstallPrompt) return;
+  if (!deferredInstallPrompt) {
+    showInstallSheet(getManualInstallMessage());
+    return;
+  }
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
-  els.installButton.classList.add("is-hidden");
+}
+
+function showInstallSheet(message) {
+  els.installMessage.textContent = message;
+  els.installSheet.classList.remove("is-hidden");
+}
+
+function closeInstallSheet() {
+  els.installSheet.classList.add("is-hidden");
+}
+
+function getManualInstallMessage() {
+  const ua = navigator.userAgent || "";
+  const isApple = /iPhone|iPad|iPod/i.test(ua);
+  if (isApple) return "在 Safari 打开本页，点击分享按钮，然后选择“添加到主屏幕”。";
+  return "请打开浏览器菜单，选择“安装应用”或“添加到主屏幕”。";
 }
 
 function loadState() {

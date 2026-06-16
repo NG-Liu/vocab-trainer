@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-title" content="背单词" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>背单词</title>
-    <link rel="manifest" href="manifest.webmanifest?v=7" />
-    <link rel="icon" href="icon.svg?v=7" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=7" />
-    <link rel="stylesheet" href="style.css?v=7" />
+    <link rel="manifest" href="manifest.webmanifest?v=8" />
+    <link rel="icon" href="icon.svg?v=8" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=8" />
+    <link rel="stylesheet" href="style.css?v=8" />
   </head>
   <body>
     <div class="app-shell">
@@ -21,8 +21,9 @@
           <h1>背单词</h1>
         </div>
         <div class="header-actions">
-          <button class="icon-button is-hidden" id="installButton" title="安装到桌面" aria-label="安装到桌面">
+          <button class="install-button" id="installButton" title="下载到手机桌面" aria-label="下载到手机桌面">
             <span aria-hidden="true">＋</span>
+            <span>桌面图标</span>
           </button>
           <button class="icon-button" id="resetTodayButton" title="重置今日队列" aria-label="重置今日队列">
             <span aria-hidden="true">↻</span>
@@ -148,6 +149,16 @@
       </main>
     </div>
 
-    <script src="app.js?v=7"></script>
+    <div class="install-sheet is-hidden" id="installSheet" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+      <div class="install-panel">
+        <button class="icon-button close-button" id="closeInstallSheet" aria-label="关闭">
+          <span aria-hidden="true">×</span>
+        </button>
+        <h2 id="installTitle">添加到手机桌面</h2>
+        <p id="installMessage">如果没有弹出安装窗口，请用浏览器菜单里的“添加到主屏幕”。</p>
+      </div>
+    </div>
+
+    <script src="app.js?v=8"></script>
   </body>
 </html>
