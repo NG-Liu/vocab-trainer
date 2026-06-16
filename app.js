@@ -150,7 +150,7 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "8";
+const APP_VERSION = "9";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 let deferredInstallPrompt = null;
@@ -230,10 +230,7 @@ function bindEvents() {
   els.installButton.addEventListener("click", installApp);
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.resetTodayButton.addEventListener("click", () => {
-    state.todaySession = null;
-    saveState();
-    currentQueue = [];
-    currentIndex = -1;
+    els.queueType.value = "due";
     startSession();
   });
 
@@ -426,9 +423,15 @@ function renderCurrentCard() {
   flashReviewCard();
 
   if (!hasWord) {
-    els.queueLabel.textContent = "没有待复习单词";
-    els.promptText.textContent = "今天的队列清空了";
-    els.promptHint.textContent = "可以切换到未学单词或全部混合继续练。";
+    if (currentQueueType === "due") {
+      els.queueLabel.textContent = "今日复习已完成";
+      els.promptText.textContent = "今天的 50 个已经背完";
+      els.promptHint.textContent = "可以切换到未学单词继续背新词。";
+    } else {
+      els.queueLabel.textContent = "没有待复习单词";
+      els.promptText.textContent = "当前队列清空了";
+      els.promptHint.textContent = "可以切换到其他队列继续练。";
+    }
     els.answerBox.classList.add("is-hidden");
     els.feedbackText.textContent = "";
     return;
