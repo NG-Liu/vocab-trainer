@@ -181,6 +181,7 @@ h2 {
 
 .study-panel,
 .editor-panel,
+.submit-panel,
 .progress-panel {
   padding: 18px;
   border: 1px solid var(--line);
@@ -189,7 +190,8 @@ h2 {
 }
 
 .field,
-.editor-panel label {
+.editor-panel label,
+.submit-form label {
   display: grid;
   gap: 8px;
   margin-bottom: 16px;
@@ -449,6 +451,36 @@ textarea {
 .editor-panel h2 + form,
 .editor-panel h2 + textarea {
   margin-top: 0;
+}
+
+.submit-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 560px);
+}
+
+.submit-panel {
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.submit-form {
+  display: grid;
+  gap: 2px;
+}
+
+.submit-status {
+  min-height: 24px;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.submit-status.is-success {
+  color: var(--accent-2);
+}
+
+.submit-status.is-error {
+  color: var(--bad);
 }
 
 .progress-grid {

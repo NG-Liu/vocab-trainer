@@ -150,9 +150,10 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
+const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 let deferredInstallPrompt = null;
 
 const state = loadState();
@@ -192,6 +193,12 @@ const els = {
   newExample: document.querySelector("#newExample"),
   bulkImport: document.querySelector("#bulkImport"),
   importButton: document.querySelector("#importButton"),
+  submitForm: document.querySelector("#submitForm"),
+  submitBookName: document.querySelector("#submitBookName"),
+  submitEmail: document.querySelector("#submitEmail"),
+  submitFile: document.querySelector("#submitFile"),
+  submitButton: document.querySelector("#submitButton"),
+  submitStatus: document.querySelector("#submitStatus"),
   levelBars: document.querySelector("#levelBars"),
   historyList: document.querySelector("#historyList")
 };
@@ -227,6 +234,7 @@ function bindEvents() {
 
   els.importButton.addEventListener("click", importBulkWords);
   els.exportButton.addEventListener("click", exportData);
+  els.submitForm.addEventListener("submit", submitVocabularyFile);
   els.installButton.addEventListener("click", installApp);
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.resetTodayButton.addEventListener("click", () => {
@@ -703,6 +711,77 @@ function importBulkWords() {
     addWord(term, rest.join(" ").trim() || "待补充释义");
   });
   els.bulkImport.value = "";
+}
+
+async function submitVocabularyFile(event) {
+  event.preventDefault();
+  const endpoint = getSubmissionEndpoint();
+  const bookName = els.submitBookName.value.trim();
+  const email = els.submitEmail.value.trim();
+  const file = els.submitFile.files[0];
+
+  if (!endpoint) {
+    setSubmissionStatus("提交后端还没有配置，先部署后端并填写 submission-config.js。", "error");
+    return;
+  }
+  if (!bookName || !email || !file) {
+    setSubmissionStatus("请填写词本名称、邮箱并选择 txt 文件。", "error");
+    return;
+  }
+  if (!isTxtFile(file)) {
+    setSubmissionStatus("这里只接收 .txt 文件。", "error");
+    return;
+  }
+  if (file.size > SUBMISSION_MAX_FILE_SIZE) {
+    setSubmissionStatus("文件不能超过 1 MB。", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("bookName", bookName);
+  formData.append("email", email);
+  formData.append("file", file, file.name);
+
+  els.submitButton.disabled = true;
+  setSubmissionStatus("正在提交到待审核目录...", "");
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      body: formData
+    });
+    const result = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(result.message || "提交失败，请稍后再试。");
+    }
+    els.submitForm.reset();
+    setSubmissionStatus(`提交成功，编号：${result.id || "pending"}`, "success");
+  } catch (error) {
+    setSubmissionStatus(error.message || "提交失败，请稍后再试。", "error");
+  } finally {
+    els.submitButton.disabled = false;
+  }
+}
+
+function getSubmissionEndpoint() {
+  return String(window.VOCAB_SUBMISSION_ENDPOINT || "").trim();
+}
+
+function isTxtFile(file) {
+  return Boolean(file && /\.txt$/i.test(file.name));
+}
+
+function setSubmissionStatus(message, type) {
+  els.submitStatus.textContent = message;
+  els.submitStatus.className = `submit-status${type ? ` is-${type}` : ""}`;
+}
+
+async function readJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
 }
 
 function exportData() {
