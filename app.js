@@ -150,7 +150,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "14";
+const APP_VERSION = "15";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const TEST_BOOK_ID = "test";
@@ -578,7 +578,8 @@ function buildQueue(type) {
     return item.dueAt <= today;
   });
 
-  return filtered.sort(byNeed).slice(0, 40);
+  const sorted = filtered.sort(byNeed);
+  return type === "unmastered" ? sorted : sorted.slice(0, 40);
 }
 
 function buildTodayQueue() {
