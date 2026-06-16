@@ -150,7 +150,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "13";
+const APP_VERSION = "14";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const TEST_BOOK_ID = "test";
@@ -375,7 +375,7 @@ function normalizeState(parsed, fallback) {
     if (!value.books[DEFAULT_BOOK_ID]) value.books[DEFAULT_BOOK_ID] = getDefaultBook();
     return {
       books: value.books,
-      currentBookId: value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID
+      currentBookId: isBuiltInBookId(value.currentBookId) && value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID
     };
   }
   if (Array.isArray(value.words)) {
@@ -436,6 +436,12 @@ function seedBookWords(book, words) {
 function ensureBooks() {
   if (!state.books) state.books = {};
   let changed = false;
+  Object.keys(state.books).forEach((bookId) => {
+    if (!isBuiltInBookId(bookId)) {
+      delete state.books[bookId];
+      changed = true;
+    }
+  });
   BOOK_DEFINITIONS.forEach((definition) => {
     if (!state.books[definition.id]) {
       state.books[definition.id] = createBook(definition.id, definition.name);
@@ -459,18 +465,17 @@ function ensureBooks() {
   if (changed) saveState();
 }
 
+function isBuiltInBookId(bookId) {
+  return BOOK_DEFINITIONS.some((definition) => definition.id === bookId);
+}
+
 function ensureCurrentBook() {
   ensureBooks();
   return state.books[state.currentBookId];
 }
 
 function getSelectableBooks() {
-  const knownIds = new Set(BOOK_DEFINITIONS.map((definition) => definition.id));
-  const builtInBooks = BOOK_DEFINITIONS.map((definition) => state.books[definition.id]).filter(Boolean);
-  const extraBooks = Object.values(state.books)
-    .filter((book) => !knownIds.has(book.id))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  return [...builtInBooks, ...extraBooks];
+  return BOOK_DEFINITIONS.map((definition) => state.books[definition.id]).filter(Boolean);
 }
 
 function syncBookSelect() {
