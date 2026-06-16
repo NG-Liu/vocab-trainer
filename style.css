@@ -80,7 +80,25 @@ h2 {
 
 .header-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.book-picker {
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.book-picker label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.book-picker select {
+  height: 42px;
 }
 
 .icon-button {

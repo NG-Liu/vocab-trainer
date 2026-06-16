@@ -1,4 +1,4 @@
-const STARTER_WORDS = [
+﻿const STARTER_WORDS = [
   ["bankrupt", "破产的；使破产", "The company went bankrupt after years of losses."],
   ["auctioneer", "拍卖师", "The auctioneer opened the bidding at a low price."],
   ["greed", "贪婪", "Greed can cloud good judgment."],
@@ -150,13 +150,49 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "11";
+const APP_VERSION = "12";
+const DEFAULT_BOOK_ID = "default";
+const DEFAULT_BOOK_NAME = "默认单词本";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 let deferredInstallPrompt = null;
 
 const state = loadState();
+Object.defineProperties(state, {
+  words: {
+    get() {
+      return ensureCurrentBook().words;
+    },
+    set(value) {
+      ensureCurrentBook().words = value;
+    }
+  },
+  progress: {
+    get() {
+      return ensureCurrentBook().progress;
+    },
+    set(value) {
+      ensureCurrentBook().progress = value;
+    }
+  },
+  history: {
+    get() {
+      return ensureCurrentBook().history;
+    },
+    set(value) {
+      ensureCurrentBook().history = value;
+    }
+  },
+  todaySession: {
+    get() {
+      return ensureCurrentBook().todaySession;
+    },
+    set(value) {
+      ensureCurrentBook().todaySession = value;
+    }
+  }
+});
 let currentQueue = [];
 let currentIndex = -1;
 let currentQueueType = "due";
@@ -167,6 +203,8 @@ const els = {
   totalCount: document.querySelector("#totalCount"),
   masteredCount: document.querySelector("#masteredCount"),
   accuracyToday: document.querySelector("#accuracyToday"),
+  bookSelect: document.querySelector("#bookSelect"),
+  bookCreateButton: document.querySelector("#bookCreateButton"),
   installButton: document.querySelector("#installButton"),
   installSheet: document.querySelector("#installSheet"),
   installMessage: document.querySelector("#installMessage"),
@@ -206,7 +244,9 @@ const els = {
 init();
 
 function init() {
+  ensureBooks();
   mergeStarterWords();
+  syncBookSelect();
   bindEvents();
   registerServiceWorker();
   renderAll();
@@ -216,6 +256,13 @@ function bindEvents() {
   els.tabs.forEach((tab) => {
     tab.addEventListener("click", () => switchView(tab.dataset.view));
   });
+
+  if (els.bookSelect) {
+    els.bookSelect.addEventListener("change", () => switchBook(els.bookSelect.value));
+  }
+  if (els.bookCreateButton) {
+    els.bookCreateButton.addEventListener("click", createBookPrompt);
+  }
 
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
@@ -292,10 +339,15 @@ function getManualInstallMessage() {
 }
 
 function loadState() {
-  const fallback = { words: [], progress: {}, history: [], todaySession: null };
+  const fallback = {
+    books: {
+      [DEFAULT_BOOK_ID]: getDefaultBook()
+    },
+    currentBookId: DEFAULT_BOOK_ID
+  };
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return parsed && Array.isArray(parsed.words) ? { ...fallback, ...parsed } : fallback;
+    return normalizeState(parsed, fallback);
   } catch {
     return fallback;
   }
@@ -305,18 +357,139 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function normalizeState(parsed, fallback) {
+  const value = parsed && typeof parsed === "object" ? parsed : {};
+  if (value.books && typeof value.books === "object") {
+    if (!value.books[DEFAULT_BOOK_ID]) value.books[DEFAULT_BOOK_ID] = getDefaultBook();
+    return {
+      books: value.books,
+      currentBookId: value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID
+    };
+  }
+  if (Array.isArray(value.words)) {
+    return {
+      books: {
+        [DEFAULT_BOOK_ID]: {
+          ...getDefaultBook(),
+          words: value.words,
+          progress: value.progress || {},
+          history: value.history || [],
+          todaySession: value.todaySession || null
+        }
+      },
+      currentBookId: DEFAULT_BOOK_ID
+    };
+  }
+  return fallback;
+}
+
+function getDefaultBook() {
+  return {
+    id: DEFAULT_BOOK_ID,
+    name: DEFAULT_BOOK_NAME,
+    words: [],
+    progress: {},
+    history: [],
+    todaySession: null
+  };
+}
+
+function createBook(id, name) {
+  return {
+    id,
+    name,
+    words: [],
+    progress: {},
+    history: [],
+    todaySession: null
+  };
+}
+
+function ensureBooks() {
+  if (!state.books) state.books = { [DEFAULT_BOOK_ID]: getDefaultBook() };
+  if (!state.books[DEFAULT_BOOK_ID]) state.books[DEFAULT_BOOK_ID] = getDefaultBook();
+  if (!state.currentBookId || !state.books[state.currentBookId]) state.currentBookId = DEFAULT_BOOK_ID;
+}
+
+function ensureCurrentBook() {
+  ensureBooks();
+  return state.books[state.currentBookId];
+}
+
+function syncBookSelect() {
+  if (!els.bookSelect) return;
+  const books = Object.values(state.books).sort((a, b) => a.name.localeCompare(b.name));
+  els.bookSelect.innerHTML = books
+    .map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.name)}</option>`)
+    .join("");
+  els.bookSelect.value = state.currentBookId;
+}
+
+function switchBook(bookId) {
+  if (!state.books[bookId]) return;
+  state.currentBookId = bookId;
+  currentQueue = [];
+  currentIndex = -1;
+  currentQueueType = "due";
+  awaitingHardAdvance = false;
+  saveState();
+  syncBookSelect();
+  renderAll();
+}
+
 function mergeStarterWords() {
-  const existing = new Set(state.words.map((word) => word.id));
+  const book = ensureCurrentBook();
+  const existing = new Set(book.words.map((word) => word.id));
   let changed = false;
   STARTER_WORDS.forEach((word) => {
     if (!existing.has(word.id)) {
-      state.words.push(word);
-      state.progress[word.id] = createProgress();
+      book.words.push(word);
+      book.progress[word.id] = createProgress();
       changed = true;
     }
   });
-  state.words.sort((a, b) => a.term.localeCompare(b.term));
+  book.words.sort((a, b) => a.term.localeCompare(b.term));
   if (changed) saveState();
+}
+
+function createBookPrompt() {
+  const name = prompt("请输入新单词本名称：", "测试单词本");
+  if (!name) return;
+  const cleanName = name.trim();
+  if (!cleanName) return;
+
+  const id = makeId(`${cleanName}-${Date.now()}`).slice(0, 32) || `book-${Date.now()}`;
+  if (state.books[id]) return;
+
+  state.books[id] = createBook(id, cleanName);
+  if (cleanName === "测试单词本") seedTestBook(state.books[id]);
+  state.currentBookId = id;
+  saveState();
+  syncBookSelect();
+  renderAll();
+}
+
+function seedTestBook(book) {
+  const sampleWords = [
+    ["apple", "苹果", "She ate an apple."],
+    ["borrow", "借用；借入", "Can I borrow your pen?"],
+    ["careful", "小心的；仔细的", "Be careful on the stairs."],
+    ["develop", "发展；开发", "They plan to develop a new app."],
+    ["effort", "努力；尝试", "Her effort paid off."],
+    ["frequent", "频繁的", "Frequent updates are needed."],
+    ["gather", "收集；聚集", "We gathered the data."],
+    ["honest", "诚实的", "He gave an honest answer."],
+    ["improve", "改善；提高", "Practice helps improve speed."],
+    ["journey", "旅程；历程", "The journey took two hours."]
+  ];
+  sampleWords.forEach(([term, meaning, example]) => {
+    const wordId = makeId(term);
+    if (!book.words.some((word) => word.id === wordId)) {
+      book.words.push({ id: wordId, term, meaning, example });
+      book.progress[wordId] = createProgress();
+    }
+  });
+  book.words.sort((a, b) => a.term.localeCompare(b.term));
 }
 
 function createProgress() {
@@ -362,22 +535,25 @@ function startSession() {
 }
 
 function buildQueue(type) {
+  const book = ensureCurrentBook();
+  const words = book.words;
+  const progress = book.progress;
   if (type === "due") return buildTodayQueue();
 
   const today = Date.now();
   const byNeed = (a, b) => {
-    const pa = getProgress(a.id);
-    const pb = getProgress(b.id);
+    const pa = progress[a.id] || createProgress();
+    const pb = progress[b.id] || createProgress();
     return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || a.term.localeCompare(b.term);
   };
 
-  const filtered = state.words.filter((word) => {
-    const progress = getProgress(word.id);
-    if (type === "unmastered") return progress.level < 4;
-    if (type === "new") return progress.seen === 0;
-    if (type === "wrong") return progress.wrong > 0;
+  const filtered = words.filter((word) => {
+    const item = progress[word.id] || createProgress();
+    if (type === "unmastered") return item.level < 4;
+    if (type === "new") return item.seen === 0;
+    if (type === "wrong") return item.wrong > 0;
     if (type === "all") return true;
-    return progress.dueAt <= today;
+    return item.dueAt <= today;
   });
 
   return filtered.sort(byNeed).slice(0, 40);
@@ -385,37 +561,39 @@ function buildQueue(type) {
 
 function buildTodayQueue() {
   const session = getTodaySession();
-  return session.queueIds.map((id) => state.words.find((word) => word.id === id)).filter(Boolean);
+  const words = ensureCurrentBook().words;
+  return session.queueIds.map((id) => words.find((word) => word.id === id)).filter(Boolean);
 }
 
 function getTodaySession() {
+  const book = ensureCurrentBook();
   const date = todayKey();
-  if (!state.todaySession || state.todaySession.date !== date) {
-    state.todaySession = createTodaySession(date);
+  if (!book.todaySession || book.todaySession.date !== date) {
+    book.todaySession = createTodaySession(date, book);
     saveState();
-    return state.todaySession;
+    return book.todaySession;
   }
 
-  const validIds = state.todaySession.queueIds.filter((id) => state.words.some((word) => word.id === id));
+  const validIds = book.todaySession.queueIds.filter((id) => book.words.some((word) => word.id === id));
   const maxIndex = validIds.length;
-  const index = Math.min(Math.max(state.todaySession.index || 0, 0), maxIndex);
-  const pendingHardId = validIds[index] === state.todaySession.pendingHardId ? state.todaySession.pendingHardId : null;
+  const index = Math.min(Math.max(book.todaySession.index || 0, 0), maxIndex);
+  const pendingHardId = validIds[index] === book.todaySession.pendingHardId ? book.todaySession.pendingHardId : null;
 
-  if (validIds.length !== state.todaySession.queueIds.length || index !== state.todaySession.index || pendingHardId !== state.todaySession.pendingHardId) {
-    state.todaySession = { ...state.todaySession, queueIds: validIds, index, pendingHardId };
+  if (validIds.length !== book.todaySession.queueIds.length || index !== book.todaySession.index || pendingHardId !== book.todaySession.pendingHardId) {
+    book.todaySession = { ...book.todaySession, queueIds: validIds, index, pendingHardId };
     saveState();
   }
 
-  return state.todaySession;
+  return book.todaySession;
 }
 
-function createTodaySession(date) {
+function createTodaySession(date, book = ensureCurrentBook()) {
   const today = Date.now();
-  const queueIds = state.words
-    .filter((word) => getProgress(word.id).dueAt <= today)
+  const queueIds = book.words
+    .filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today)
     .sort((a, b) => {
-      const pa = getProgress(a.id);
-      const pb = getProgress(b.id);
+      const pa = book.progress[a.id] || createProgress();
+      const pb = book.progress[b.id] || createProgress();
       return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || a.term.localeCompare(b.term);
     })
     .slice(0, TODAY_REVIEW_LIMIT)
@@ -527,14 +705,15 @@ function recordRating(word, rating) {
     lastReviewed: Date.now()
   });
 
-  state.history.unshift({
+  const book = ensureCurrentBook();
+  book.history.unshift({
     id: word.id,
     term: word.term,
     rating,
     correct,
     at: Date.now()
   });
-  state.history = state.history.slice(0, 80);
+  book.history = book.history.slice(0, 80);
   saveState();
   renderAll();
 }
@@ -582,8 +761,9 @@ function scheduleNext(progress, rating) {
 }
 
 function getProgress(id) {
-  if (!state.progress[id]) state.progress[id] = createProgress();
-  return state.progress[id];
+  const book = ensureCurrentBook();
+  if (!book.progress[id]) book.progress[id] = createProgress();
+  return book.progress[id];
 }
 
 function renderAll() {
@@ -594,17 +774,18 @@ function renderAll() {
 
 function renderStats() {
   const today = Date.now();
-  const allDue = state.words.filter((word) => getProgress(word.id).dueAt <= today).length;
-  const session = state.todaySession && state.todaySession.date === todayKey() ? state.todaySession : null;
+  const book = ensureCurrentBook();
+  const allDue = book.words.filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today).length;
+  const session = book.todaySession && book.todaySession.date === todayKey() ? book.todaySession : null;
   const due = session ? Math.max(0, session.queueIds.length - (session.index || 0)) : Math.min(TODAY_REVIEW_LIMIT, allDue);
-  const mastered = state.words.filter((word) => getProgress(word.id).level >= 4).length;
-  const todayHistory = state.history.filter((item) => item.at >= startOfToday());
+  const mastered = book.words.filter((word) => (book.progress[word.id] || createProgress()).level >= 4).length;
+  const todayHistory = book.history.filter((item) => item.at >= startOfToday());
   const accuracy = todayHistory.length
     ? Math.round((todayHistory.filter((item) => item.correct).length / todayHistory.length) * 100)
     : 0;
 
   els.dueCount.textContent = due;
-  els.totalCount.textContent = state.words.length;
+  els.totalCount.textContent = book.words.length;
   els.masteredCount.textContent = mastered;
   els.accuracyToday.textContent = `${accuracy}%`;
 }
@@ -612,7 +793,8 @@ function renderStats() {
 function renderWordList() {
   const query = normalizeText(els.searchInput.value);
   const filter = els.statusFilter.value;
-  const words = state.words.filter((word) => {
+  const book = ensureCurrentBook();
+  const words = book.words.filter((word) => {
     const progress = getProgress(word.id);
     const text = `${word.term} ${word.meaning}`.toLowerCase();
     const matchesQuery = !query || text.includes(query);
@@ -649,6 +831,7 @@ function getStatus(progress) {
 }
 
 function renderProgress() {
+  const book = ensureCurrentBook();
   const buckets = [
     ["未学", (p) => p.seen === 0],
     ["初识", (p) => p.seen > 0 && p.level < 2],
@@ -656,10 +839,10 @@ function renderProgress() {
     ["掌握", (p) => p.level >= 4],
     ["完全掌握", (p) => p.level >= 5]
   ].map(([label, test]) => {
-    const count = state.words.filter((word) => test(getProgress(word.id))).length;
+    const count = book.words.filter((word) => test(getProgress(word.id))).length;
     return { label, count };
   });
-  const total = Math.max(1, state.words.length);
+  const total = Math.max(1, book.words.length);
 
   els.levelBars.innerHTML = buckets
     .map(
@@ -673,8 +856,8 @@ function renderProgress() {
     )
     .join("");
 
-  els.historyList.innerHTML = state.history.length
-    ? state.history
+  els.historyList.innerHTML = book.history.length
+    ? book.history
         .slice(0, 12)
         .map((item) => {
           const time = new Date(item.at).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -690,16 +873,17 @@ function addWord(term, meaning, example = "") {
   const cleanMeaning = meaning.trim();
   if (!cleanTerm || !cleanMeaning) return;
 
+  const book = ensureCurrentBook();
   const id = makeId(cleanTerm);
-  const existing = state.words.find((word) => word.id === id);
+  const existing = book.words.find((word) => word.id === id);
   if (existing) {
     existing.meaning = cleanMeaning;
     existing.example = example.trim();
   } else {
-    state.words.push({ id, term: cleanTerm, meaning: cleanMeaning, example: example.trim() });
-    state.progress[id] = createProgress();
+    book.words.push({ id, term: cleanTerm, meaning: cleanMeaning, example: example.trim() });
+    book.progress[id] = createProgress();
   }
-  state.words.sort((a, b) => a.term.localeCompare(b.term));
+  book.words.sort((a, b) => a.term.localeCompare(b.term));
   saveState();
   renderAll();
 }
