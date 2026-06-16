@@ -1,0 +1,10 @@
+name = "vocab-trainer-submission"
+main = "backend/cloudflare-worker.js"
+compatibility_date = "2026-06-16"
+workers_dev = true
+
+[vars]
+GITHUB_OWNER = "NG-Liu"
+GITHUB_REPO = "vocab-trainer"
+GITHUB_BRANCH = "main"
+ALLOWED_ORIGIN = "https://ng-liu.github.io"

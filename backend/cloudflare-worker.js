@@ -3,14 +3,12 @@ const MAX_FILE_SIZE = 1024 * 1024;
 
 export default {
   async fetch(request, env) {
-    const headers = corsHeaders(env);
-
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers });
+      return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
 
     if (request.method !== "POST") {
-      return json({ message: "Method not allowed" }, 405, headers);
+      return json({ message: "Method not allowed" }, 405, corsHeaders(env));
     }
 
     try {
@@ -20,13 +18,13 @@ export default {
       const file = form.get("file");
 
       if (!bookName || !email || !isEmail(email)) {
-        return json({ message: "请填写词本名称和有效邮箱。" }, 400, headers);
+        return json({ message: "请填写词本名称和有效邮箱。" }, 400, corsHeaders(env));
       }
       if (!(file instanceof File) || !/\.txt$/i.test(file.name)) {
-        return json({ message: "这里只接收 .txt 文件。" }, 400, headers);
+        return json({ message: "这里只接收 .txt 文件。" }, 400, corsHeaders(env));
       }
       if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
-        return json({ message: "文件必须大于 0 且不超过 1 MB。" }, 400, headers);
+        return json({ message: "文件必须大于 0 且不超过 1 MB。" }, 400, corsHeaders(env));
       }
 
       const id = makeSubmissionId();
@@ -48,9 +46,9 @@ export default {
       await putFile(env, `${folder}/source.txt`, bytesToBase64(bytes), `Add vocabulary submission ${id}`);
       await putFile(env, `${folder}/metadata.json`, toBase64(JSON.stringify(metadata, null, 2)), `Add vocabulary submission metadata ${id}`);
 
-      return json({ id, message: "提交成功，等待审核。" }, 201, headers);
+      return json({ id, message: "提交成功，等待审核。" }, 201, corsHeaders(env));
     } catch (error) {
-      return json({ message: "提交失败，请稍后再试。" }, 500, headers);
+      return json({ message: "提交失败，请稍后再试。" }, 500, corsHeaders(env));
     }
   }
 };

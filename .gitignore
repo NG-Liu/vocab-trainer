@@ -1,2 +1,4 @@
 gh-auth*.log
 tunnel.log
+.wrangler/
+wrangler-login*.log
