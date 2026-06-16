@@ -150,9 +150,27 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "12";
+const APP_VERSION = "13";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
+const TEST_BOOK_ID = "test";
+const TEST_BOOK_NAME = "测试单词本";
+const TEST_BOOK_WORDS = [
+  ["apple", "苹果", "She ate an apple."],
+  ["borrow", "借用；借入", "Can I borrow your pen?"],
+  ["careful", "小心的；仔细的", "Be careful on the stairs."],
+  ["develop", "发展；开发", "They plan to develop a new app."],
+  ["effort", "努力；尝试", "Her effort paid off."],
+  ["frequent", "频繁的", "Frequent updates are needed."],
+  ["gather", "收集；聚集", "We gathered the data."],
+  ["honest", "诚实的", "He gave an honest answer."],
+  ["improve", "改善；提高", "Practice helps improve speed."],
+  ["journey", "旅程；历程", "The journey took two hours."]
+].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+const BOOK_DEFINITIONS = [
+  { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
+  { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
+];
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
@@ -204,7 +222,6 @@ const els = {
   masteredCount: document.querySelector("#masteredCount"),
   accuracyToday: document.querySelector("#accuracyToday"),
   bookSelect: document.querySelector("#bookSelect"),
-  bookCreateButton: document.querySelector("#bookCreateButton"),
   installButton: document.querySelector("#installButton"),
   installSheet: document.querySelector("#installSheet"),
   installMessage: document.querySelector("#installMessage"),
@@ -245,7 +262,6 @@ init();
 
 function init() {
   ensureBooks();
-  mergeStarterWords();
   syncBookSelect();
   bindEvents();
   registerServiceWorker();
@@ -260,10 +276,6 @@ function bindEvents() {
   if (els.bookSelect) {
     els.bookSelect.addEventListener("change", () => switchBook(els.bookSelect.value));
   }
-  if (els.bookCreateButton) {
-    els.bookCreateButton.addEventListener("click", createBookPrompt);
-  }
-
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
   els.rateButtons.forEach((button) => {
@@ -405,10 +417,46 @@ function createBook(id, name) {
   };
 }
 
+function seedBookWords(book, words) {
+  const existing = new Set(book.words.map((word) => word.id));
+  let changed = false;
+  words.forEach((word) => {
+    if (!existing.has(word.id)) {
+      book.words.push({ ...word });
+      book.progress[word.id] = createProgress();
+      changed = true;
+    }
+  });
+  if (changed) {
+    book.words.sort((a, b) => a.term.localeCompare(b.term));
+  }
+  return changed;
+}
+
 function ensureBooks() {
-  if (!state.books) state.books = { [DEFAULT_BOOK_ID]: getDefaultBook() };
-  if (!state.books[DEFAULT_BOOK_ID]) state.books[DEFAULT_BOOK_ID] = getDefaultBook();
-  if (!state.currentBookId || !state.books[state.currentBookId]) state.currentBookId = DEFAULT_BOOK_ID;
+  if (!state.books) state.books = {};
+  let changed = false;
+  BOOK_DEFINITIONS.forEach((definition) => {
+    if (!state.books[definition.id]) {
+      state.books[definition.id] = createBook(definition.id, definition.name);
+      changed = true;
+    }
+    const book = state.books[definition.id];
+    if (book.id !== definition.id) {
+      book.id = definition.id;
+      changed = true;
+    }
+    if (book.name !== definition.name) {
+      book.name = definition.name;
+      changed = true;
+    }
+    if (seedBookWords(book, definition.words)) changed = true;
+  });
+  if (!state.currentBookId || !state.books[state.currentBookId]) {
+    state.currentBookId = DEFAULT_BOOK_ID;
+    changed = true;
+  }
+  if (changed) saveState();
 }
 
 function ensureCurrentBook() {
@@ -416,9 +464,18 @@ function ensureCurrentBook() {
   return state.books[state.currentBookId];
 }
 
+function getSelectableBooks() {
+  const knownIds = new Set(BOOK_DEFINITIONS.map((definition) => definition.id));
+  const builtInBooks = BOOK_DEFINITIONS.map((definition) => state.books[definition.id]).filter(Boolean);
+  const extraBooks = Object.values(state.books)
+    .filter((book) => !knownIds.has(book.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return [...builtInBooks, ...extraBooks];
+}
+
 function syncBookSelect() {
   if (!els.bookSelect) return;
-  const books = Object.values(state.books).sort((a, b) => a.name.localeCompare(b.name));
+  const books = getSelectableBooks();
   els.bookSelect.innerHTML = books
     .map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.name)}</option>`)
     .join("");
@@ -450,46 +507,6 @@ function mergeStarterWords() {
   });
   book.words.sort((a, b) => a.term.localeCompare(b.term));
   if (changed) saveState();
-}
-
-function createBookPrompt() {
-  const name = prompt("请输入新单词本名称：", "测试单词本");
-  if (!name) return;
-  const cleanName = name.trim();
-  if (!cleanName) return;
-
-  const id = makeId(`${cleanName}-${Date.now()}`).slice(0, 32) || `book-${Date.now()}`;
-  if (state.books[id]) return;
-
-  state.books[id] = createBook(id, cleanName);
-  if (cleanName === "测试单词本") seedTestBook(state.books[id]);
-  state.currentBookId = id;
-  saveState();
-  syncBookSelect();
-  renderAll();
-}
-
-function seedTestBook(book) {
-  const sampleWords = [
-    ["apple", "苹果", "She ate an apple."],
-    ["borrow", "借用；借入", "Can I borrow your pen?"],
-    ["careful", "小心的；仔细的", "Be careful on the stairs."],
-    ["develop", "发展；开发", "They plan to develop a new app."],
-    ["effort", "努力；尝试", "Her effort paid off."],
-    ["frequent", "频繁的", "Frequent updates are needed."],
-    ["gather", "收集；聚集", "We gathered the data."],
-    ["honest", "诚实的", "He gave an honest answer."],
-    ["improve", "改善；提高", "Practice helps improve speed."],
-    ["journey", "旅程；历程", "The journey took two hours."]
-  ];
-  sampleWords.forEach(([term, meaning, example]) => {
-    const wordId = makeId(term);
-    if (!book.words.some((word) => word.id === wordId)) {
-      book.words.push({ id: wordId, term, meaning, example });
-      book.progress[wordId] = createProgress();
-    }
-  });
-  book.words.sort((a, b) => a.term.localeCompare(b.term));
 }
 
 function createProgress() {
