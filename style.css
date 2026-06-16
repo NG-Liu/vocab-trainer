@@ -177,31 +177,6 @@ h2 {
   font-weight: 700;
 }
 
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f0ede6;
-}
-
-.segment {
-  min-height: 38px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.segment.is-active {
-  background: var(--panel-strong);
-  color: var(--accent);
-  box-shadow: 0 4px 12px rgba(31, 41, 51, 0.08);
-}
-
 select,
 input,
 textarea {
@@ -295,20 +270,6 @@ textarea {
   background: #edf7f2;
   color: #123f31;
   font-size: 1.2rem;
-  font-weight: 800;
-}
-
-.spell-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px;
-  gap: 10px;
-}
-
-.spell-form button {
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  background: var(--accent);
-  color: white;
   font-weight: 800;
 }
 
@@ -510,10 +471,6 @@ textarea {
 
   .tabs {
     overflow-x: auto;
-  }
-
-  .segmented {
-    grid-template-columns: 1fr;
   }
 
   #promptText {

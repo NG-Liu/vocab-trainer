@@ -156,8 +156,6 @@ let deferredInstallPrompt = null;
 const state = loadState();
 let currentQueue = [];
 let currentIndex = -1;
-let currentMode = "meaning";
-let answerShown = false;
 let awaitingHardAdvance = false;
 
 const els = {
@@ -169,7 +167,6 @@ const els = {
   resetTodayButton: document.querySelector("#resetTodayButton"),
   exportButton: document.querySelector("#exportButton"),
   tabs: document.querySelectorAll(".tab"),
-  segments: document.querySelectorAll(".segment"),
   queueType: document.querySelector("#queueType"),
   startButton: document.querySelector("#startButton"),
   queueLabel: document.querySelector("#queueLabel"),
@@ -177,8 +174,6 @@ const els = {
   promptHint: document.querySelector("#promptHint"),
   answerBox: document.querySelector("#answerBox"),
   answerText: document.querySelector("#answerText"),
-  spellForm: document.querySelector("#spellForm"),
-  spellInput: document.querySelector("#spellInput"),
   feedbackText: document.querySelector("#feedbackText"),
   showAnswerButton: document.querySelector("#showAnswerButton"),
   rateButtons: document.querySelectorAll(".rate-button"),
@@ -209,23 +204,10 @@ function bindEvents() {
     tab.addEventListener("click", () => switchView(tab.dataset.view));
   });
 
-  els.segments.forEach((segment) => {
-    segment.addEventListener("click", () => {
-      currentMode = segment.dataset.mode;
-      els.segments.forEach((item) => item.classList.toggle("is-active", item === segment));
-      renderCurrentCard();
-    });
-  });
-
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
   els.rateButtons.forEach((button) => {
     button.addEventListener("click", () => rateCurrent(button.dataset.rating));
-  });
-
-  els.spellForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    checkSpelling();
   });
 
   els.searchInput.addEventListener("input", renderWordList);
@@ -334,7 +316,6 @@ function switchView(viewId) {
 function startSession() {
   currentQueue = buildQueue(els.queueType.value);
   currentIndex = 0;
-  answerShown = false;
   renderCurrentCard();
 }
 
@@ -368,34 +349,17 @@ function renderCurrentCard() {
     els.promptText.textContent = "今天的队列清空了";
     els.promptHint.textContent = "可以切换到未学单词或全部混合继续练。";
     els.answerBox.classList.add("is-hidden");
-    els.spellForm.classList.add("is-hidden");
     els.feedbackText.textContent = "";
     return;
   }
 
-  answerShown = false;
   els.queueLabel.textContent = `${currentIndex + 1} / ${currentQueue.length}`;
   els.feedbackText.textContent = "";
-
-  if (currentMode === "reverse") {
-    els.promptText.textContent = word.meaning;
-    els.promptHint.textContent = "说出或写出对应英文。";
-    els.answerText.textContent = `${word.term}${word.example ? ` · ${word.example}` : ""}`;
-  } else {
-    els.promptText.textContent = word.term;
-    els.promptHint.textContent = word.example || "根据英文回忆中文释义。";
-    els.answerText.textContent = word.meaning;
-  }
-
+  els.promptText.textContent = word.term;
+  els.promptHint.textContent = word.example || "根据英文回忆中文释义。";
+  els.answerText.textContent = word.meaning;
   els.answerBox.classList.add("is-hidden");
-  els.spellForm.classList.toggle("is-hidden", currentMode !== "spelling");
-  els.showAnswerButton.classList.toggle("is-hidden", currentMode === "spelling");
-  els.spellInput.value = "";
-  if (currentMode === "spelling") {
-    els.promptText.textContent = word.meaning;
-    els.promptHint.textContent = "输入英文后检查。";
-    setTimeout(() => els.spellInput.focus(), 0);
-  }
+  els.showAnswerButton.classList.remove("is-hidden");
 }
 
 function toggleReviewControls(enabled) {
@@ -413,27 +377,8 @@ function toggleReviewControls(enabled) {
 function revealAnswer() {
   const word = currentQueue[currentIndex];
   if (!word) return;
-  answerShown = true;
   els.answerBox.classList.remove("is-hidden");
   els.feedbackText.textContent = "";
-}
-
-function checkSpelling() {
-  const word = currentQueue[currentIndex];
-  if (!word) return;
-
-  const typed = normalizeText(els.spellInput.value);
-  const target = normalizeText(word.term);
-  answerShown = true;
-  els.answerText.textContent = `${word.term} · ${word.meaning}`;
-  els.answerBox.classList.remove("is-hidden");
-
-  if (typed === target) {
-    els.feedbackText.textContent = "拼写正确。";
-    rateCurrent("easy");
-  } else {
-    els.feedbackText.textContent = `正确拼写：${word.term}`;
-  }
 }
 
 function normalizeText(value) {

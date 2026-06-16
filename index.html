@@ -63,14 +63,6 @@
           <div class="study-layout">
             <aside class="study-panel">
               <div class="field">
-                <label for="studyMode">模式</label>
-                <div class="segmented" id="studyMode">
-                  <button class="segment is-active" data-mode="meaning">英译中</button>
-                  <button class="segment" data-mode="spelling">拼写</button>
-                  <button class="segment" data-mode="reverse">中译英</button>
-                </div>
-              </div>
-              <div class="field">
                 <label for="queueType">队列</label>
                 <select id="queueType">
                   <option value="due">今日复习</option>
@@ -90,10 +82,6 @@
                 <div class="answer-box is-hidden" id="answerBox">
                   <span id="answerText"></span>
                 </div>
-                <form class="spell-form is-hidden" id="spellForm">
-                  <input id="spellInput" autocomplete="off" spellcheck="false" placeholder="输入英文" />
-                  <button type="submit">检查</button>
-                </form>
                 <p class="feedback" id="feedbackText"></p>
                 <div class="review-actions">
                   <button class="ghost-button" id="showAnswerButton">显示答案</button>
