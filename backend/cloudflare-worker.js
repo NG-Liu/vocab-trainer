@@ -48,7 +48,15 @@ export default {
 
       return json({ id, message: "提交成功，等待审核。" }, 201, corsHeaders(env));
     } catch (error) {
-      return json({ message: "提交失败，请稍后再试。" }, 500, corsHeaders(env));
+      console.error("Submission failed", error);
+      return json(
+        {
+          message: "提交失败，请稍后再试。",
+          detail: error instanceof Error ? error.message : String(error)
+        },
+        500,
+        corsHeaders(env)
+      );
     }
   }
 };
@@ -68,6 +76,7 @@ async function putFile(env, path, content, message) {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
       "User-Agent": "vocab-submission-worker",
       "X-GitHub-Api-Version": "2022-11-28"
     },
@@ -79,7 +88,8 @@ async function putFile(env, path, content, message) {
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub write failed: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`GitHub write failed: ${response.status} ${errorText}`);
   }
 }
 
