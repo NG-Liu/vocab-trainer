@@ -150,6 +150,7 @@ const STARTER_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
+const APP_VERSION = "7";
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 let deferredInstallPrompt = null;
@@ -248,7 +249,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("./sw.js")
+      .register(`./sw.js?v=${APP_VERSION}`)
       .then((registration) => registration.update())
       .catch(() => {
         // The app still works without offline caching.
@@ -401,6 +402,7 @@ function renderCurrentCard() {
   const hasWord = Boolean(word);
   awaitingHardAdvance = isPendingHard(word);
   toggleReviewControls(hasWord);
+  flashReviewCard();
 
   if (!hasWord) {
     els.queueLabel.textContent = "没有待复习单词";
@@ -421,6 +423,13 @@ function renderCurrentCard() {
     els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
   }
   els.showAnswerButton.classList.remove("is-hidden");
+}
+
+function flashReviewCard() {
+  const card = document.querySelector("#reviewCard");
+  if (!card) return;
+  card.classList.remove("is-advancing");
+  window.requestAnimationFrame(() => card.classList.add("is-advancing"));
 }
 
 function isPendingHard(word) {
