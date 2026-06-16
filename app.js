@@ -151,11 +151,13 @@ const STARTER_WORDS = [
 
 const STORAGE_KEY = "wordTrainer.v1";
 const DAY = 24 * 60 * 60 * 1000;
+const TODAY_REVIEW_LIMIT = 50;
 let deferredInstallPrompt = null;
 
 const state = loadState();
 let currentQueue = [];
 let currentIndex = -1;
+let currentQueueType = "due";
 let awaitingHardAdvance = false;
 
 const els = {
@@ -223,6 +225,8 @@ function bindEvents() {
   els.exportButton.addEventListener("click", exportData);
   els.installButton.addEventListener("click", installApp);
   els.resetTodayButton.addEventListener("click", () => {
+    state.todaySession = null;
+    saveState();
     currentQueue = [];
     currentIndex = -1;
     startSession();
@@ -258,10 +262,10 @@ async function installApp() {
 }
 
 function loadState() {
-  const fallback = { words: [], progress: {}, history: [] };
+  const fallback = { words: [], progress: {}, history: [], todaySession: null };
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return parsed && Array.isArray(parsed.words) ? parsed : fallback;
+    return parsed && Array.isArray(parsed.words) ? { ...fallback, ...parsed } : fallback;
   } catch {
     return fallback;
   }
@@ -307,6 +311,13 @@ function startOfToday() {
   return date.getTime();
 }
 
+function todayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function switchView(viewId) {
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === viewId));
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("is-active", view.id === viewId));
@@ -314,12 +325,15 @@ function switchView(viewId) {
 }
 
 function startSession() {
-  currentQueue = buildQueue(els.queueType.value);
-  currentIndex = 0;
+  currentQueueType = els.queueType.value;
+  currentQueue = buildQueue(currentQueueType);
+  currentIndex = currentQueueType === "due" ? getTodaySession().index : 0;
   renderCurrentCard();
 }
 
 function buildQueue(type) {
+  if (type === "due") return buildTodayQueue();
+
   const today = Date.now();
   const byNeed = (a, b) => {
     const pa = getProgress(a.id);
@@ -338,10 +352,51 @@ function buildQueue(type) {
   return filtered.sort(byNeed).slice(0, 40);
 }
 
+function buildTodayQueue() {
+  const session = getTodaySession();
+  return session.queueIds.map((id) => state.words.find((word) => word.id === id)).filter(Boolean);
+}
+
+function getTodaySession() {
+  const date = todayKey();
+  if (!state.todaySession || state.todaySession.date !== date) {
+    state.todaySession = createTodaySession(date);
+    saveState();
+    return state.todaySession;
+  }
+
+  const validIds = state.todaySession.queueIds.filter((id) => state.words.some((word) => word.id === id));
+  const maxIndex = validIds.length;
+  const index = Math.min(Math.max(state.todaySession.index || 0, 0), maxIndex);
+  const pendingHardId = validIds[index] === state.todaySession.pendingHardId ? state.todaySession.pendingHardId : null;
+
+  if (validIds.length !== state.todaySession.queueIds.length || index !== state.todaySession.index || pendingHardId !== state.todaySession.pendingHardId) {
+    state.todaySession = { ...state.todaySession, queueIds: validIds, index, pendingHardId };
+    saveState();
+  }
+
+  return state.todaySession;
+}
+
+function createTodaySession(date) {
+  const today = Date.now();
+  const queueIds = state.words
+    .filter((word) => getProgress(word.id).dueAt <= today)
+    .sort((a, b) => {
+      const pa = getProgress(a.id);
+      const pb = getProgress(b.id);
+      return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || a.term.localeCompare(b.term);
+    })
+    .slice(0, TODAY_REVIEW_LIMIT)
+    .map((word) => word.id);
+
+  return { date, queueIds, index: 0, pendingHardId: null };
+}
+
 function renderCurrentCard() {
-  awaitingHardAdvance = false;
   const word = currentQueue[currentIndex];
   const hasWord = Boolean(word);
+  awaitingHardAdvance = isPendingHard(word);
   toggleReviewControls(hasWord);
 
   if (!hasWord) {
@@ -358,8 +413,16 @@ function renderCurrentCard() {
   els.promptText.textContent = word.term;
   els.promptHint.textContent = word.example || "根据英文回忆中文释义。";
   els.answerText.textContent = word.meaning;
-  els.answerBox.classList.add("is-hidden");
+  els.answerBox.classList.toggle("is-hidden", !awaitingHardAdvance);
+  if (awaitingHardAdvance) {
+    els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
+  }
   els.showAnswerButton.classList.remove("is-hidden");
+}
+
+function isPendingHard(word) {
+  if (!word || currentQueueType !== "due") return false;
+  return getTodaySession().pendingHardId === word.id;
 }
 
 function toggleReviewControls(enabled) {
@@ -381,10 +444,6 @@ function revealAnswer() {
   els.feedbackText.textContent = "";
 }
 
-function normalizeText(value) {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
 function rateCurrent(rating) {
   const word = currentQueue[currentIndex];
   if (!word) return;
@@ -397,6 +456,7 @@ function rateCurrent(rating) {
   recordRating(word, rating);
 
   if (rating === "hard") {
+    markTodaySessionPendingHard(word.id);
     revealAnswer();
     awaitingHardAdvance = true;
     els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
@@ -432,8 +492,25 @@ function recordRating(word, rating) {
 
 function advanceToNext() {
   currentIndex += 1;
+  saveTodaySessionPosition();
   renderAll();
   renderCurrentCard();
+}
+
+function saveTodaySessionPosition() {
+  if (currentQueueType !== "due") return;
+  const session = getTodaySession();
+  session.index = Math.min(currentIndex, session.queueIds.length);
+  session.pendingHardId = null;
+  saveState();
+}
+
+function markTodaySessionPendingHard(wordId) {
+  if (currentQueueType !== "due") return;
+  const session = getTodaySession();
+  session.index = Math.min(currentIndex, session.queueIds.length);
+  session.pendingHardId = wordId;
+  saveState();
 }
 
 function scheduleNext(progress, rating) {
@@ -468,7 +545,9 @@ function renderAll() {
 
 function renderStats() {
   const today = Date.now();
-  const due = state.words.filter((word) => getProgress(word.id).dueAt <= today).length;
+  const allDue = state.words.filter((word) => getProgress(word.id).dueAt <= today).length;
+  const session = state.todaySession && state.todaySession.date === todayKey() ? state.todaySession : null;
+  const due = session ? Math.max(0, session.queueIds.length - (session.index || 0)) : Math.min(TODAY_REVIEW_LIMIT, allDue);
   const mastered = state.words.filter((word) => getProgress(word.id).level >= 4).length;
   const todayHistory = state.history.filter((item) => item.at >= startOfToday());
   const accuracy = todayHistory.length
