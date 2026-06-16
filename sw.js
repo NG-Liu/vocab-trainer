@@ -1,17 +1,17 @@
-const CACHE_NAME = "word-trainer-v16";
+const CACHE_NAME = "word-trainer-v17";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=16",
-  "./app.js?v=16",
-  "./submission-config.js?v=16",
-  "./manifest.webmanifest?v=16",
-  "./icon.svg?v=16"
+  "./style.css?v=17",
+  "./app.js?v=17",
+  "./submission-config.js?v=17",
+  "./manifest.webmanifest?v=17",
+  "./icon.svg?v=17"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: "reload" }))))
   );
   self.skipWaiting();
 });

@@ -150,7 +150,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "16";
+const APP_VERSION = "17";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const TEST_BOOK_ID = "test";
@@ -653,7 +653,7 @@ function renderCurrentCard() {
     return;
   }
 
-  els.queueLabel.textContent = `${currentIndex + 1} / ${currentQueue.length}`;
+  els.queueLabel.textContent = getCurrentQueueLabel();
   els.feedbackText.textContent = "";
   els.promptText.textContent = word.term;
   els.promptHint.textContent = word.example || "根据英文回忆中文释义。";
@@ -691,6 +691,15 @@ function toggleReviewControls(enabled) {
       button.classList.toggle("next", awaitingHardAdvance);
     }
   });
+}
+
+function getCurrentQueueLabel() {
+  const position = currentIndex + 1;
+  if (currentQueueType === "due") return `${position} / ${currentQueue.length}`;
+  if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
+  if (currentQueueType === "new") return `未学单词：第 ${position} 个`;
+  if (currentQueueType === "wrong") return `错词优先：第 ${position} 个`;
+  return `第 ${position} 个`;
 }
 
 function revealAnswer() {
