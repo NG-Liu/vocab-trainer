@@ -150,7 +150,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "15";
+const APP_VERSION = "16";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const TEST_BOOK_ID = "test";
@@ -175,6 +175,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 let deferredInstallPrompt = null;
+let isReloadingForUpdate = false;
 
 const state = loadState();
 Object.defineProperties(state, {
@@ -314,6 +315,11 @@ function bindEvents() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (isReloadingForUpdate) return;
+    isReloadingForUpdate = true;
+    window.location.reload();
+  });
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register(`./sw.js?v=${APP_VERSION}`)
