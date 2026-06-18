@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "21";
+const APP_VERSION = "22";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -235,6 +235,34 @@ const INTEGRAL_BOOK_WORDS = [
   { id: "wallis-pi-sin", term: "\\int_0^{\\pi}\\sin^n x\\,dx", meaning: "= \\begin{cases}2\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{2}{3}\\cdot1, & n>1\\text{ 且 }n\\text{ 为奇数}\\\\[4pt]2\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{1}{2}\\cdot\\frac{\\pi}{2}, & n\\text{ 为正偶数}\\end{cases}", example: "Wallis 公式 2；也就是前一个公式再乘 2" },
   { id: "wallis-2pi", term: "\\int_0^{2\\pi}\\sin^n x\\,dx=\\int_0^{2\\pi}\\cos^n x\\,dx", meaning: "= \\begin{cases}0, & n\\text{ 为正奇数}\\\\[4pt]4\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{1}{2}\\cdot\\frac{\\pi}{2}, & n\\text{ 为正偶数}\\end{cases}", example: "Wallis 公式 3；整周期上奇次幂为 0，偶次幂用偶数公式" }
 ];
+const THEOREM_BOOK_ID = "mean-value-theorems";
+const THEOREM_BOOK_NAME = "高数中值定理";
+const THEOREM_BOOK_WORDS = [
+  {
+    id: "rolle",
+    term: "\\text{罗尔定理}",
+    meaning: "\\text{若 }f(x)\\text{ 在 }[a,b]\\text{ 上连续，在 }(a,b)\\text{ 内可导，且 }f(a)=f(b),\\\\[4pt]\\text{则存在 }\\xi\\in(a,b),\\text{ 使 }f'(\\xi)=0.",
+    example: "条件：连续；可导；两端点函数值相等"
+  },
+  {
+    id: "rolle-generalized",
+    term: "\\text{推广的罗尔定理}",
+    meaning: "\\text{若 }f(x)\\text{ 在 }(a,b)\\text{ 内可导，且 }\\lim_{x\\to a^+}f(x)=\\lim_{x\\to b^-}f(x)=A,\\\\[4pt]\\text{则在 }(a,b)\\text{ 内至少存在一点 }\\xi,\\text{ 使 }f'(\\xi)=0.",
+    example: "其中区间(a,b)可以是有限区间也可以是无穷区间；A 可以是有限数也可以是无穷大"
+  },
+  {
+    id: "lagrange",
+    term: "\\text{拉格朗日中值定理}",
+    meaning: "\\text{若 }f(x)\\text{ 在 }[a,b]\\text{ 上连续，在 }(a,b)\\text{ 内可导，}\\\\[4pt]\\text{则存在 }\\xi\\in(a,b),\\text{ 使 }f'(\\xi)=\\frac{f(b)-f(a)}{b-a}.",
+    example: "也可写成 f(b)-f(a)=f'(\\xi)(b-a)；常用导函数值控制函数值的变化"
+  },
+  {
+    id: "cauchy",
+    term: "\\text{柯西中值定理}",
+    meaning: "\\text{若 }f(x),g(x)\\text{ 在 }[a,b]\\text{ 上连续，在 }(a,b)\\text{ 内可导，且 }g'(x)\\neq0,\\\\[4pt]\\text{则存在 }\\xi\\in(a,b),\\text{ 使 }\\frac{f(b)-f(a)}{g(b)-g(a)}=\\frac{f'(\\xi)}{g'(\\xi)}.",
+    example: "参数方程表达；左右两边对应同一个 \\xi"
+  }
+];
 const TEST_BOOK_ID = "test";
 const TEST_BOOK_NAME = "测试单词本";
 const TEST_BOOK_WORDS = [
@@ -252,8 +280,10 @@ const TEST_BOOK_WORDS = [
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: INTEGRAL_BOOK_ID, name: INTEGRAL_BOOK_NAME, words: INTEGRAL_BOOK_WORDS },
+  { id: THEOREM_BOOK_ID, name: THEOREM_BOOK_NAME, words: THEOREM_BOOK_WORDS },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
+const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID]);
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
@@ -1120,7 +1150,7 @@ function ensureKatex() {
 }
 
 function isMathBook(book = ensureCurrentBook()) {
-  return book.id === INTEGRAL_BOOK_ID;
+  return MATH_BOOK_IDS.has(book.id);
 }
 
 function renderCardFace(element, value, mathBook, mode) {
