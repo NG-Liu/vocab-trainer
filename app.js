@@ -196,38 +196,38 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "19";
+const APP_VERSION = "20";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
 const INTEGRAL_BOOK_NAME = "高数积分公式";
 const INTEGRAL_BOOK_WORDS = [
-  { id: "power-rule", term: "∫x^k dx", meaning: "= x^(k+1) / (k+1) + C", example: "k ≠ -1；特例：k = -1 时记 ∫1/x dx = ln|x| + C" },
-  { id: "reciprocal", term: "∫1/x dx", meaning: "= ln|x| + C", example: "对数型基本公式" },
-  { id: "exp-e", term: "∫e^x dx", meaning: "= e^x + C", example: "底数为 e 的指数函数" },
-  { id: "exp-a", term: "∫a^x dx", meaning: "= a^x / ln a + C", example: "a > 0，a ≠ 1" },
-  { id: "sin", term: "∫sin x dx", meaning: "= -cos x + C", example: "正弦原函数是余弦" },
-  { id: "cos", term: "∫cos x dx", meaning: "= sin x + C", example: "余弦原函数是正弦" },
-  { id: "tan", term: "∫tan x dx", meaning: "= -ln|cos x| + C", example: "也可记成 ln|sec x| + C" },
-  { id: "cot", term: "∫cot x dx", meaning: "= ln|sin x| + C", example: "和 tan 一起记" },
-  { id: "sec", term: "∫sec x dx", meaning: "= ln|sec x + tan x| + C", example: "和 sec^2、sec tan 关联记忆" },
-  { id: "csc", term: "∫csc x dx", meaning: "= ln|csc x - cot x| + C", example: "和 csc^2、csc cot 关联记忆" },
-  { id: "sec2", term: "∫sec^2 x dx", meaning: "= tan x + C", example: "(tan x)' = sec^2 x" },
-  { id: "csc2", term: "∫csc^2 x dx", meaning: "= -cot x + C", example: "(cot x)' = -csc^2 x" },
-  { id: "sec-tan", term: "∫sec x tan x dx", meaning: "= sec x + C", example: "(sec x)' = sec x tan x" },
-  { id: "csc-cot", term: "∫csc x cot x dx", meaning: "= -csc x + C", example: "(csc x)' = -csc x cot x" },
-  { id: "arctan", term: "∫1/(1+x^2) dx", meaning: "= arctan x + C", example: "反正切模板" },
-  { id: "arctan-a", term: "∫1/(a^2+x^2) dx", meaning: "= (1/a) arctan(x/a) + C", example: "a > 0" },
-  { id: "arcsin", term: "∫1/√(1-x^2) dx", meaning: "= arcsin x + C", example: "反正弦模板" },
-  { id: "arcsin-a", term: "∫1/√(a^2-x^2) dx", meaning: "= arcsin(x/a) + C", example: "a > 0" },
-  { id: "sqrt-plus", term: "∫1/√(x^2+a^2) dx", meaning: "= ln(x + √(x^2+a^2)) + C", example: "常见 a = 1" },
-  { id: "sqrt-minus", term: "∫1/√(x^2-a^2) dx", meaning: "= ln|x + √(x^2-a^2)| + C", example: "|x| > |a|" },
-  { id: "diff-square", term: "∫1/(x^2-a^2) dx", meaning: "= 1/(2a) ln|(x-a)/(x+a)| + C", example: "也可写成 1/(2a) ln|(x+a)/(x-a)| + C" },
-  { id: "sqrt-quad", term: "∫√(a^2-x^2) dx", meaning: "= (a^2/2)arcsin(x/a) + (x/2)√(a^2-x^2) + C", example: "a > |x| ≥ 0" },
-  { id: "sin2", term: "∫sin^2 x dx", meaning: "= x/2 - sin 2x/4 + C", example: "用 sin^2 x = (1-cos 2x)/2" },
-  { id: "cos2", term: "∫cos^2 x dx", meaning: "= x/2 + sin 2x/4 + C", example: "用 cos^2 x = (1+cos 2x)/2" },
-  { id: "tan2", term: "∫tan^2 x dx", meaning: "= tan x - x + C", example: "用 tan^2 x = sec^2 x - 1" },
-  { id: "cot2", term: "∫cot^2 x dx", meaning: "= -cot x - x + C", example: "用 cot^2 x = csc^2 x - 1" }
+  { id: "power-rule", term: "\\int x^k\\,dx", meaning: "= \\frac{x^{k+1}}{k+1}+C", example: "k \\neq -1；特例：k=-1 时，\\int \\frac{1}{x}\\,dx=\\ln|x|+C" },
+  { id: "reciprocal", term: "\\int \\frac{1}{x}\\,dx", meaning: "= \\ln|x|+C", example: "对数型基本公式" },
+  { id: "exp-e", term: "\\int e^x\\,dx", meaning: "= e^x+C", example: "底数为 e 的指数函数" },
+  { id: "exp-a", term: "\\int a^x\\,dx", meaning: "= \\frac{a^x}{\\ln a}+C", example: "a>0,\\ a\\neq1" },
+  { id: "sin", term: "\\int \\sin x\\,dx", meaning: "= -\\cos x+C", example: "正弦原函数是负余弦" },
+  { id: "cos", term: "\\int \\cos x\\,dx", meaning: "= \\sin x+C", example: "余弦原函数是正弦" },
+  { id: "tan", term: "\\int \\tan x\\,dx", meaning: "= -\\ln|\\cos x|+C", example: "也可记成 \\ln|\\sec x|+C" },
+  { id: "cot", term: "\\int \\cot x\\,dx", meaning: "= \\ln|\\sin x|+C", example: "和 tan 一起记" },
+  { id: "sec", term: "\\int \\sec x\\,dx", meaning: "= \\ln|\\sec x+\\tan x|+C", example: "和 \\sec^2x、\\sec x\\tan x 关联记忆" },
+  { id: "csc", term: "\\int \\csc x\\,dx", meaning: "= \\ln|\\csc x-\\cot x|+C", example: "和 \\csc^2x、\\csc x\\cot x 关联记忆" },
+  { id: "sec2", term: "\\int \\sec^2x\\,dx", meaning: "= \\tan x+C", example: "(\\tan x)'=\\sec^2x" },
+  { id: "csc2", term: "\\int \\csc^2x\\,dx", meaning: "= -\\cot x+C", example: "(\\cot x)'=-\\csc^2x" },
+  { id: "sec-tan", term: "\\int \\sec x\\tan x\\,dx", meaning: "= \\sec x+C", example: "(\\sec x)'=\\sec x\\tan x" },
+  { id: "csc-cot", term: "\\int \\csc x\\cot x\\,dx", meaning: "= -\\csc x+C", example: "(\\csc x)'=-\\csc x\\cot x" },
+  { id: "arctan", term: "\\int \\frac{1}{1+x^2}\\,dx", meaning: "= \\arctan x+C", example: "反正切模板" },
+  { id: "arctan-a", term: "\\int \\frac{1}{a^2+x^2}\\,dx", meaning: "= \\frac{1}{a}\\arctan\\frac{x}{a}+C", example: "a>0" },
+  { id: "arcsin", term: "\\int \\frac{1}{\\sqrt{1-x^2}}\\,dx", meaning: "= \\arcsin x+C", example: "反正弦模板" },
+  { id: "arcsin-a", term: "\\int \\frac{1}{\\sqrt{a^2-x^2}}\\,dx", meaning: "= \\arcsin\\frac{x}{a}+C", example: "a>0" },
+  { id: "sqrt-plus", term: "\\int \\frac{1}{\\sqrt{x^2+a^2}}\\,dx", meaning: "= \\ln\\left(x+\\sqrt{x^2+a^2}\\right)+C", example: "常见 a=1" },
+  { id: "sqrt-minus", term: "\\int \\frac{1}{\\sqrt{x^2-a^2}}\\,dx", meaning: "= \\ln\\left|x+\\sqrt{x^2-a^2}\\right|+C", example: "|x|>|a|" },
+  { id: "diff-square", term: "\\int \\frac{1}{x^2-a^2}\\,dx", meaning: "= \\frac{1}{2a}\\ln\\left|\\frac{x-a}{x+a}\\right|+C", example: "也可写成 \\frac{1}{2a}\\ln\\left|\\frac{x+a}{x-a}\\right|+C" },
+  { id: "sqrt-quad", term: "\\int \\sqrt{a^2-x^2}\\,dx", meaning: "= \\frac{a^2}{2}\\arcsin\\frac{x}{a}+\\frac{x}{2}\\sqrt{a^2-x^2}+C", example: "a>|x|\\ge0" },
+  { id: "sin2", term: "\\int \\sin^2x\\,dx", meaning: "= \\frac{x}{2}-\\frac{\\sin 2x}{4}+C", example: "\\sin^2x=\\frac{1-\\cos 2x}{2}" },
+  { id: "cos2", term: "\\int \\cos^2x\\,dx", meaning: "= \\frac{x}{2}+\\frac{\\sin 2x}{4}+C", example: "\\cos^2x=\\frac{1+\\cos 2x}{2}" },
+  { id: "tan2", term: "\\int \\tan^2x\\,dx", meaning: "= \\tan x-x+C", example: "\\tan^2x=\\sec^2x-1" },
+  { id: "cot2", term: "\\int \\cot^2x\\,dx", meaning: "= -\\cot x-x+C", example: "\\cot^2x=\\csc^2x-1" }
 ];
 const TEST_BOOK_ID = "test";
 const TEST_BOOK_NAME = "测试单词本";
@@ -251,6 +251,8 @@ const BOOK_DEFINITIONS = [
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
+const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
+const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
 let deferredInstallPrompt = null;
 let isReloadingForUpdate = false;
 
@@ -342,6 +344,7 @@ function init() {
   ensureBooks();
   syncBookSelect();
   bindEvents();
+  ensureKatex();
   registerServiceWorker();
   renderAll();
 }
@@ -711,6 +714,7 @@ function createTodaySession(date, book = ensureCurrentBook()) {
 function renderCurrentCard() {
   const word = currentQueue[currentIndex];
   const hasWord = Boolean(word);
+  const mathBook = isMathBook();
   awaitingHardAdvance = isPendingHard(word);
   toggleReviewControls(hasWord);
   flashReviewCard();
@@ -732,9 +736,9 @@ function renderCurrentCard() {
 
   els.queueLabel.textContent = getCurrentQueueLabel();
   els.feedbackText.textContent = "";
-  els.promptText.textContent = word.term;
-  els.promptHint.textContent = word.example || "根据英文回忆中文释义。";
-  els.answerText.textContent = word.meaning;
+  renderCardFace(els.promptText, word.term, mathBook, "display");
+  renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
+  renderCardFace(els.answerText, word.meaning, mathBook, "display");
   els.answerBox.classList.toggle("is-hidden", !awaitingHardAdvance);
   if (awaitingHardAdvance) {
     els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
@@ -928,8 +932,8 @@ function renderWordList() {
       const status = getStatus(progress);
       return `
         <article class="word-row">
-          <div class="word-term">${escapeHtml(word.term)}</div>
-          <div class="word-meaning">${escapeHtml(word.meaning)}</div>
+          <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
+          <div class="word-meaning">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-pill ${status.className}">${status.label}</span>
         </article>
       `;
@@ -1090,6 +1094,72 @@ function exportData() {
   link.download = `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+function ensureKatex() {
+  if (document.querySelector(`link[data-katex="true"]`)) return;
+  const style = document.createElement("link");
+  style.rel = "stylesheet";
+  style.href = KATEX_CSS_URL;
+  style.dataset.katex = "true";
+  document.head.appendChild(style);
+
+  if (window.katex || document.querySelector(`script[data-katex="true"]`)) return;
+  const script = document.createElement("script");
+  script.src = KATEX_JS_URL;
+  script.defer = true;
+  script.dataset.katex = "true";
+  script.addEventListener("load", () => renderAll());
+  document.head.appendChild(script);
+}
+
+function isMathBook(book = ensureCurrentBook()) {
+  return book.id === INTEGRAL_BOOK_ID;
+}
+
+function renderCardFace(element, value, mathBook, mode) {
+  if (!mathBook) {
+    element.textContent = value;
+    return;
+  }
+  if (mode === "text") {
+    element.innerHTML = renderMathTextBlock(value);
+    return;
+  }
+  element.innerHTML = renderMathBlock(value);
+}
+
+function formatInlineContent(value, mathBook) {
+  if (!mathBook) return escapeHtml(value);
+  return renderMathBlock(value, true);
+}
+
+function renderMathBlock(value, inline = false) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (!window.katex) return `<span class="math-fallback">${escapeHtml(text)}</span>`;
+  try {
+    return window.katex.renderToString(text, {
+      throwOnError: false,
+      displayMode: !inline
+    });
+  } catch {
+    return `<span class="math-fallback">${escapeHtml(text)}</span>`;
+  }
+}
+
+function renderMathTextBlock(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const parts = text.split("；").map((part) => part.trim()).filter(Boolean);
+  return parts
+    .map((part) => {
+      if (part.includes("=") || part.includes("\\int") || part.includes("\\ln") || part.includes("\\sin") || part.includes("\\cos") || part.includes("\\tan") || part.includes("\\cot") || part.includes("\\sec") || part.includes("\\csc") || part.includes("\\sqrt") || part.includes("\\frac") || part.includes("\\arctan") || part.includes("\\arcsin")) {
+        return renderMathBlock(part, true);
+      }
+      return `<span>${escapeHtml(part)}</span>`;
+    })
+    .join("<br>");
 }
 
 function escapeHtml(value) {

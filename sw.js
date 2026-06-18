@@ -1,12 +1,12 @@
-const CACHE_NAME = "word-trainer-v19";
+const CACHE_NAME = "word-trainer-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=19",
-  "./app.js?v=19",
-  "./submission-config.js?v=19",
-  "./manifest.webmanifest?v=19",
-  "./icon.svg?v=19"
+  "./style.css?v=20",
+  "./app.js?v=20",
+  "./submission-config.js?v=20",
+  "./manifest.webmanifest?v=20",
+  "./icon.svg?v=20"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,6 +38,11 @@ self.addEventListener("fetch", (event) => {
       url.pathname.endsWith("/manifest.webmanifest") ||
       url.pathname.endsWith("/icon.svg") ||
       url.pathname.endsWith("/sw.js"));
+
+  if (url.hostname === "cdn.jsdelivr.net") {
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    return;
+  }
 
   if (isAppAsset) {
     event.respondWith(

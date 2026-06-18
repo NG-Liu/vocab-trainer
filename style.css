@@ -313,6 +313,11 @@ textarea {
   letter-spacing: 0;
 }
 
+#promptText .katex-display,
+.answer-box .katex-display {
+  margin: 0;
+}
+
 .subtle-text,
 .feedback {
   min-height: 24px;
@@ -329,6 +334,10 @@ textarea {
   font-weight: 800;
   line-height: 1.5;
   white-space: pre-line;
+}
+
+.math-fallback {
+  font-family: "Times New Roman", serif;
 }
 
 .review-actions {
