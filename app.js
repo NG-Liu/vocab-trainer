@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "24";
+const APP_VERSION = "25";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
