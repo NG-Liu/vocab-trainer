@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "23";
+const APP_VERSION = "24";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -408,7 +408,13 @@ const els = {
   installMessage: document.querySelector("#installMessage"),
   closeInstallSheet: document.querySelector("#closeInstallSheet"),
   resetTodayButton: document.querySelector("#resetTodayButton"),
-  exportButton: document.querySelector("#exportButton"),
+  dataButton: document.querySelector("#dataButton"),
+  dataSheet: document.querySelector("#dataSheet"),
+  closeDataSheet: document.querySelector("#closeDataSheet"),
+  exportBackupButton: document.querySelector("#exportBackupButton"),
+  importBackupButton: document.querySelector("#importBackupButton"),
+  backupInput: document.querySelector("#backupInput"),
+  dataStatus: document.querySelector("#dataStatus"),
   tabs: document.querySelectorAll(".tab"),
   queueType: document.querySelector("#queueType"),
   startButton: document.querySelector("#startButton"),
@@ -474,10 +480,14 @@ function bindEvents() {
   });
 
   els.importButton.addEventListener("click", importBulkWords);
-  els.exportButton.addEventListener("click", exportData);
   els.submitForm.addEventListener("submit", submitVocabularyFile);
   els.installButton.addEventListener("click", installApp);
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
+  els.dataButton.addEventListener("click", openDataSheet);
+  els.closeDataSheet.addEventListener("click", closeDataSheet);
+  els.exportBackupButton.addEventListener("click", downloadBackup);
+  els.importBackupButton.addEventListener("click", () => els.backupInput.click());
+  els.backupInput.addEventListener("change", handleBackupImport);
   els.resetTodayButton.addEventListener("click", () => {
     els.queueType.value = "due";
     startSession();
@@ -528,6 +538,16 @@ function showInstallSheet(message) {
 
 function closeInstallSheet() {
   els.installSheet.classList.add("is-hidden");
+}
+
+function openDataSheet() {
+  setDataStatus("");
+  els.dataSheet.classList.remove("is-hidden");
+}
+
+function closeDataSheet() {
+  els.dataSheet.classList.add("is-hidden");
+  if (els.backupInput) els.backupInput.value = "";
 }
 
 function getManualInstallMessage() {
@@ -1195,6 +1215,75 @@ function exportData() {
   link.download = `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+function downloadBackup() {
+  exportData();
+  setDataStatus("备份已下载到设备。", "success");
+}
+
+async function handleBackupImport(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  try {
+    if (!isJsonFile(file)) {
+      throw new Error("请选择 .json 备份文件。");
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("备份文件过大，请换一个较小的文件。");
+    }
+
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const importedState = normalizeState(parsed, {
+      books: {
+        [DEFAULT_BOOK_ID]: getDefaultBook()
+      },
+      currentBookId: DEFAULT_BOOK_ID
+    });
+    const summary = getBackupSummary(importedState);
+    const confirmed = window.confirm(
+      `将用备份覆盖当前设备数据。\n\n单词本：${summary.books}\n单词数：${summary.words}\n\n继续导入吗？`
+    );
+    if (!confirmed) return;
+
+    replaceState(importedState);
+    ensureBooks();
+    currentQueue = [];
+    currentIndex = -1;
+    currentQueueType = "due";
+    awaitingHardAdvance = false;
+    saveState();
+    syncBookSelect();
+    renderAll();
+    closeDataSheet();
+    setDataStatus("导入完成。", "success");
+  } catch (error) {
+    setDataStatus(error.message || "导入失败，请检查备份文件。", "error");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function replaceState(nextState) {
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, nextState);
+}
+
+function getBackupSummary(backup) {
+  const books = backup && backup.books && typeof backup.books === "object" ? Object.values(backup.books) : [];
+  const words = books.reduce((sum, book) => sum + (Array.isArray(book.words) ? book.words.length : 0), 0);
+  return { books: books.length, words };
+}
+
+function isJsonFile(file) {
+  return Boolean(file && /\.json$/i.test(file.name));
+}
+
+function setDataStatus(message, type) {
+  els.dataStatus.textContent = message;
+  els.dataStatus.className = `submit-status${type ? ` is-${type}` : ""}`;
 }
 
 function ensureKatex() {
