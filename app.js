@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "22";
+const APP_VERSION = "23";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -263,6 +263,70 @@ const THEOREM_BOOK_WORDS = [
     example: "参数方程表达；左右两边对应同一个 \\xi"
   }
 ];
+const TAYLOR_BOOK_ID = "taylor";
+const TAYLOR_BOOK_NAME = "高数泰勒展开";
+const TAYLOR_BOOK_WORDS = [
+  {
+    id: "taylor-general",
+    term: "\\text{泰勒公式}",
+    meaning: "\\text{若 }f(x)\\text{ 在 }x_0\\text{ 的某邻域内有 }n+1\\text{ 阶导数，则 }\\\\[4pt]f(x)=f(x_0)+f'(x_0)(x-x_0)+\\cdots+\\frac{f^{(n)}(x_0)}{n!}(x-x_0)^n+\\frac{f^{(n+1)}(\\xi)}{(n+1)!}(x-x_0)^{n+1}.",
+    example: "\\xi 在 x 与 x_0 之间；余项是拉格朗日型"
+  },
+  {
+    id: "taylor-peano",
+    term: "\\text{泰勒公式的佩亚诺余项}",
+    meaning: "\\text{若 }f(x)\\text{ 在 }x_0\\text{ 处 }n\\text{ 阶可导，则 }\\\\[4pt]f(x)=f(x_0)+f'(x_0)(x-x_0)+\\cdots+\\frac{f^{(n)}(x_0)}{n!}(x-x_0)^n+o\\big((x-x_0)^n\\big).",
+    example: "只要求 x_0 处 n 阶可导；余项写成 o((x-x_0)^n)"
+  },
+  {
+    id: "maclaurin",
+    term: "\\text{麦克劳林公式}",
+    meaning: "\\text{当 }x_0=0\\text{ 时的泰勒公式。}",
+    example: "常用于展开基本函数"
+  },
+  {
+    id: "exp-series",
+    term: "e^x",
+    meaning: "= 1+x+\\frac{x^2}{2!}+\\cdots+\\frac{x^n}{n!}+o(x^n)",
+    example: "记前面每一项都除以阶乘"
+  },
+  {
+    id: "sin-series",
+    term: "\\sin x",
+    meaning: "= x-\\frac{x^3}{3!}+\\cdots+(-1)^n\\frac{x^{2n+1}}{(2n+1)!}+o(x^{2n+1})",
+    example: "只出现奇次幂"
+  },
+  {
+    id: "cos-series",
+    term: "\\cos x",
+    meaning: "= 1-\\frac{x^2}{2!}+\\frac{x^4}{4!}-\\cdots+(-1)^n\\frac{x^{2n}}{(2n)!}+o(x^{2n})",
+    example: "只出现偶次幂"
+  },
+  {
+    id: "geom-series",
+    term: "\\frac{1}{1-x}",
+    meaning: "= 1+x+x^2+\\cdots+x^n+o(x^n)",
+    example: "几何级数展开，要求 |x|<1 时最常用"
+  },
+  {
+    id: "geom-minus",
+    term: "\\frac{1}{1+x}",
+    meaning: "= 1-x+x^2-\\cdots+(-1)^nx^n+o(x^n)",
+    example: "把 x 换成 -x"
+  },
+  {
+    id: "ln-series",
+    term: "\\ln(1+x)",
+    meaning: "= x-\\frac{x^2}{2}+\\frac{x^3}{3}-\\cdots+(-1)^{n-1}\\frac{x^n}{n}+o(x^n)",
+    example: "常和 \\frac{1}{1+x} 对着记"
+  },
+  {
+    id: "binomial-series",
+    term: "\\text{广义二项式}",
+    meaning: "= (1+x)^\\alpha=1+\\alpha x+\\frac{\\alpha(\\alpha-1)}{2!}x^2+\\cdots+\\frac{\\alpha(\\alpha-1)\\cdots(\\alpha-n+1)}{n!}x^n+o(x^n)",
+    example: "记住前 3 项最常用"
+  }
+];
 const TEST_BOOK_ID = "test";
 const TEST_BOOK_NAME = "测试单词本";
 const TEST_BOOK_WORDS = [
@@ -281,9 +345,10 @@ const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: INTEGRAL_BOOK_ID, name: INTEGRAL_BOOK_NAME, words: INTEGRAL_BOOK_WORDS },
   { id: THEOREM_BOOK_ID, name: THEOREM_BOOK_NAME, words: THEOREM_BOOK_WORDS },
+  { id: TAYLOR_BOOK_ID, name: TAYLOR_BOOK_NAME, words: TAYLOR_BOOK_WORDS },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
-const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID]);
+const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
