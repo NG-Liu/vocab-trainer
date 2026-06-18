@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "20";
+const APP_VERSION = "21";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -227,7 +227,13 @@ const INTEGRAL_BOOK_WORDS = [
   { id: "sin2", term: "\\int \\sin^2x\\,dx", meaning: "= \\frac{x}{2}-\\frac{\\sin 2x}{4}+C", example: "\\sin^2x=\\frac{1-\\cos 2x}{2}" },
   { id: "cos2", term: "\\int \\cos^2x\\,dx", meaning: "= \\frac{x}{2}+\\frac{\\sin 2x}{4}+C", example: "\\cos^2x=\\frac{1+\\cos 2x}{2}" },
   { id: "tan2", term: "\\int \\tan^2x\\,dx", meaning: "= \\tan x-x+C", example: "\\tan^2x=\\sec^2x-1" },
-  { id: "cot2", term: "\\int \\cot^2x\\,dx", meaning: "= -\\cot x-x+C", example: "\\cot^2x=\\csc^2x-1" }
+  { id: "cot2", term: "\\int \\cot^2x\\,dx", meaning: "= -\\cot x-x+C", example: "\\cot^2x=\\csc^2x-1" },
+  { id: "exp-sin", term: "\\int e^{ax}\\sin bx\\,dx", meaning: "= \\frac{ae^{ax}\\sin bx-be^{ax}\\cos bx}{a^2+b^2}+C", example: "指数乘三角通用公式；适合直接套用" },
+  { id: "exp-cos", term: "\\int e^{ax}\\cos bx\\,dx", meaning: "= \\frac{ae^{ax}\\cos bx+be^{ax}\\sin bx}{a^2+b^2}+C", example: "指数乘三角通用公式；和 \\int e^{ax}\\sin bx\\,dx 成对记忆" },
+  { id: "interval-recur", term: "\\int_a^b f(x)\\,dx", meaning: "= \\int_a^b f(a+b-x)\\,dx", example: "区间再现公式；f(x) 在 [a,b] 上连续" },
+  { id: "wallis-half", term: "\\int_0^{\\pi/2}\\sin^n x\\,dx=\\int_0^{\\pi/2}\\cos^n x\\,dx", meaning: "= \\begin{cases}\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{2}{3}\\cdot1, & n>1\\text{ 且 }n\\text{ 为奇数}\\\\[4pt]\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{1}{2}\\cdot\\frac{\\pi}{2}, & n\\text{ 为正偶数}\\end{cases}", example: "Wallis 公式 1；\\left[0,\\frac{\\pi}{2}\\right] 上 sin^n 与 cos^n 完全相同" },
+  { id: "wallis-pi-sin", term: "\\int_0^{\\pi}\\sin^n x\\,dx", meaning: "= \\begin{cases}2\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{2}{3}\\cdot1, & n>1\\text{ 且 }n\\text{ 为奇数}\\\\[4pt]2\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{1}{2}\\cdot\\frac{\\pi}{2}, & n\\text{ 为正偶数}\\end{cases}", example: "Wallis 公式 2；也就是前一个公式再乘 2" },
+  { id: "wallis-2pi", term: "\\int_0^{2\\pi}\\sin^n x\\,dx=\\int_0^{2\\pi}\\cos^n x\\,dx", meaning: "= \\begin{cases}0, & n\\text{ 为正奇数}\\\\[4pt]4\\cdot\\frac{n-1}{n}\\cdot\\frac{n-3}{n-2}\\cdots\\frac{1}{2}\\cdot\\frac{\\pi}{2}, & n\\text{ 为正偶数}\\end{cases}", example: "Wallis 公式 3；整周期上奇次幂为 0，偶次幂用偶数公式" }
 ];
 const TEST_BOOK_ID = "test";
 const TEST_BOOK_NAME = "测试单词本";
@@ -1154,7 +1160,7 @@ function renderMathTextBlock(value) {
   const parts = text.split("；").map((part) => part.trim()).filter(Boolean);
   return parts
     .map((part) => {
-      if (part.includes("=") || part.includes("\\int") || part.includes("\\ln") || part.includes("\\sin") || part.includes("\\cos") || part.includes("\\tan") || part.includes("\\cot") || part.includes("\\sec") || part.includes("\\csc") || part.includes("\\sqrt") || part.includes("\\frac") || part.includes("\\arctan") || part.includes("\\arcsin")) {
+      if (part.includes("=") || part.includes("\\int") || part.includes("\\ln") || part.includes("\\sin") || part.includes("\\cos") || part.includes("\\tan") || part.includes("\\cot") || part.includes("\\sec") || part.includes("\\csc") || part.includes("\\sqrt") || part.includes("\\frac") || part.includes("\\arctan") || part.includes("\\arcsin") || part.includes("\\pi") || part.includes("\\begin{cases}") || part.includes("\\cdot")) {
         return renderMathBlock(part, true);
       }
       return `<span>${escapeHtml(part)}</span>`;
