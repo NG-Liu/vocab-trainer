@@ -327,6 +327,8 @@ textarea {
   color: #123f31;
   font-size: 1.2rem;
   font-weight: 800;
+  line-height: 1.5;
+  white-space: pre-line;
 }
 
 .review-actions {

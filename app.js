@@ -196,9 +196,39 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "18";
+const APP_VERSION = "19";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
+const INTEGRAL_BOOK_ID = "integrals";
+const INTEGRAL_BOOK_NAME = "高数积分公式";
+const INTEGRAL_BOOK_WORDS = [
+  { id: "power-rule", term: "∫x^k dx", meaning: "= x^(k+1) / (k+1) + C", example: "k ≠ -1；特例：k = -1 时记 ∫1/x dx = ln|x| + C" },
+  { id: "reciprocal", term: "∫1/x dx", meaning: "= ln|x| + C", example: "对数型基本公式" },
+  { id: "exp-e", term: "∫e^x dx", meaning: "= e^x + C", example: "底数为 e 的指数函数" },
+  { id: "exp-a", term: "∫a^x dx", meaning: "= a^x / ln a + C", example: "a > 0，a ≠ 1" },
+  { id: "sin", term: "∫sin x dx", meaning: "= -cos x + C", example: "正弦原函数是余弦" },
+  { id: "cos", term: "∫cos x dx", meaning: "= sin x + C", example: "余弦原函数是正弦" },
+  { id: "tan", term: "∫tan x dx", meaning: "= -ln|cos x| + C", example: "也可记成 ln|sec x| + C" },
+  { id: "cot", term: "∫cot x dx", meaning: "= ln|sin x| + C", example: "和 tan 一起记" },
+  { id: "sec", term: "∫sec x dx", meaning: "= ln|sec x + tan x| + C", example: "和 sec^2、sec tan 关联记忆" },
+  { id: "csc", term: "∫csc x dx", meaning: "= ln|csc x - cot x| + C", example: "和 csc^2、csc cot 关联记忆" },
+  { id: "sec2", term: "∫sec^2 x dx", meaning: "= tan x + C", example: "(tan x)' = sec^2 x" },
+  { id: "csc2", term: "∫csc^2 x dx", meaning: "= -cot x + C", example: "(cot x)' = -csc^2 x" },
+  { id: "sec-tan", term: "∫sec x tan x dx", meaning: "= sec x + C", example: "(sec x)' = sec x tan x" },
+  { id: "csc-cot", term: "∫csc x cot x dx", meaning: "= -csc x + C", example: "(csc x)' = -csc x cot x" },
+  { id: "arctan", term: "∫1/(1+x^2) dx", meaning: "= arctan x + C", example: "反正切模板" },
+  { id: "arctan-a", term: "∫1/(a^2+x^2) dx", meaning: "= (1/a) arctan(x/a) + C", example: "a > 0" },
+  { id: "arcsin", term: "∫1/√(1-x^2) dx", meaning: "= arcsin x + C", example: "反正弦模板" },
+  { id: "arcsin-a", term: "∫1/√(a^2-x^2) dx", meaning: "= arcsin(x/a) + C", example: "a > 0" },
+  { id: "sqrt-plus", term: "∫1/√(x^2+a^2) dx", meaning: "= ln(x + √(x^2+a^2)) + C", example: "常见 a = 1" },
+  { id: "sqrt-minus", term: "∫1/√(x^2-a^2) dx", meaning: "= ln|x + √(x^2-a^2)| + C", example: "|x| > |a|" },
+  { id: "diff-square", term: "∫1/(x^2-a^2) dx", meaning: "= 1/(2a) ln|(x-a)/(x+a)| + C", example: "也可写成 1/(2a) ln|(x+a)/(x-a)| + C" },
+  { id: "sqrt-quad", term: "∫√(a^2-x^2) dx", meaning: "= (a^2/2)arcsin(x/a) + (x/2)√(a^2-x^2) + C", example: "a > |x| ≥ 0" },
+  { id: "sin2", term: "∫sin^2 x dx", meaning: "= x/2 - sin 2x/4 + C", example: "用 sin^2 x = (1-cos 2x)/2" },
+  { id: "cos2", term: "∫cos^2 x dx", meaning: "= x/2 + sin 2x/4 + C", example: "用 cos^2 x = (1+cos 2x)/2" },
+  { id: "tan2", term: "∫tan^2 x dx", meaning: "= tan x - x + C", example: "用 tan^2 x = sec^2 x - 1" },
+  { id: "cot2", term: "∫cot^2 x dx", meaning: "= -cot x - x + C", example: "用 cot^2 x = csc^2 x - 1" }
+];
 const TEST_BOOK_ID = "test";
 const TEST_BOOK_NAME = "测试单词本";
 const TEST_BOOK_WORDS = [
@@ -215,6 +245,7 @@ const TEST_BOOK_WORDS = [
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
+  { id: INTEGRAL_BOOK_ID, name: INTEGRAL_BOOK_NAME, words: INTEGRAL_BOOK_WORDS },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
 const DAY = 24 * 60 * 60 * 1000;
