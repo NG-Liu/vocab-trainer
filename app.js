@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "31";
+const APP_VERSION = "32";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -398,6 +398,10 @@ let currentIndex = -1;
 let currentQueueType = "due";
 let awaitingHardAdvance = false;
 const expandedLibraryMeaningIdsByBook = Object.create(null);
+let inlineReviewWordId = null;
+let inlineReviewAnswerVisible = false;
+let inlineReviewPendingHard = false;
+let libraryOrderFreeze = null;
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -474,8 +478,16 @@ function bindEvents() {
     button.addEventListener("click", () => rateCurrent(button.dataset.rating));
   });
 
-  els.searchInput.addEventListener("input", renderWordList);
-  els.statusFilter.addEventListener("change", renderWordList);
+  els.searchInput.addEventListener("input", () => {
+    clearInlineReview();
+    clearLibraryOrderFreeze();
+    renderWordList();
+  });
+  els.statusFilter.addEventListener("change", () => {
+    clearInlineReview();
+    clearLibraryOrderFreeze();
+    renderWordList();
+  });
   els.wordList.addEventListener("click", handleWordListClick);
   if (els.toggleAllMeaningsButton) {
     els.toggleAllMeaningsButton.addEventListener("click", toggleAllVisibleLibraryMeanings);
@@ -704,6 +716,8 @@ function syncBookSelect() {
 
 function switchBook(bookId) {
   if (!state.books[bookId]) return;
+  clearInlineReview();
+  clearLibraryOrderFreeze();
   state.currentBookId = bookId;
   currentQueue = [];
   currentIndex = -1;
@@ -759,6 +773,8 @@ function todayKey(date = new Date()) {
 }
 
 function switchView(viewId) {
+  clearInlineReview();
+  clearLibraryOrderFreeze();
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === viewId));
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("is-active", view.id === viewId));
   renderAll();
@@ -911,7 +927,6 @@ function toggleReviewControls(enabled) {
 
 function getCurrentQueueLabel() {
   const position = currentIndex + 1;
-  if (currentQueueType === "single") return "单词复习";
   if (currentQueueType === "due") return `${position} / ${currentQueue.length}`;
   if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
   if (currentQueueType === "new") return `未学单词：第 ${position} 个`;
@@ -964,7 +979,7 @@ function rateCurrent(rating) {
   advanceToNext();
 }
 
-function recordRating(word, rating) {
+function recordRating(word, rating, options = {}) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
   const next = scheduleNext(progress, rating);
@@ -985,19 +1000,11 @@ function recordRating(word, rating) {
   });
   book.history = book.history.slice(0, 80);
   saveState();
-  renderAll();
+  if (options.render !== false) renderAll();
 }
 
 function advanceToNext() {
   currentIndex += 1;
-  if (currentQueueType === "single" && currentIndex >= currentQueue.length) {
-    currentQueue = [];
-    currentIndex = -1;
-    currentQueueType = "due";
-    awaitingHardAdvance = false;
-    switchView("libraryView");
-    return;
-  }
   saveTodaySessionPosition();
   renderAll();
   renderCurrentCard();
@@ -1078,9 +1085,10 @@ function renderWordList() {
       const progress = getProgress(word.id);
       const status = getStatus(progress);
       const expanded = expandedMeaningIds.has(word.id);
+      const inlineOpen = word.id === inlineReviewWordId;
       const meaningId = `meaning-${word.id}`;
-      return `
-        <article class="word-row${expanded ? " is-expanded" : ""}" data-word-id="${escapeHtml(word.id)}">
+      const row = `
+        <article class="word-row${expanded ? " is-expanded" : ""}${inlineOpen ? " is-inline-open" : ""}" data-word-id="${escapeHtml(word.id)}">
           <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
           <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
@@ -1093,12 +1101,42 @@ function renderWordList() {
           >${expanded ? "隐藏" : "显示"}</button>
         </article>
       `;
+      return inlineOpen ? row + renderInlineReviewCard(word) : row;
     })
     .join("");
   updateMeaningBulkButton();
 }
 
+function renderInlineReviewCard(word) {
+  const mathBook = isMathBook();
+  const answerHiddenClass = inlineReviewAnswerVisible ? "" : " is-hidden";
+  const linkHiddenClass = inlineReviewAnswerVisible ? "" : " is-hidden";
+  const hardLabel = inlineReviewPendingHard ? "下一个" : "忘了";
+  const hardClass = inlineReviewPendingHard ? " next" : "";
+  return `
+    <article class="inline-review-card" data-inline-word-id="${escapeHtml(word.id)}">
+      <p class="queue-label">单词复习</p>
+      <h3 class="inline-review-term">${formatInlineContent(word.term, mathBook)}</h3>
+      <p class="subtle-text">${formatInlineContent(word.example || "根据英文回忆中文释义。", mathBook)}</p>
+      <div class="answer-box inline-answer${answerHiddenClass}">
+        <span>${formatInlineContent(word.meaning, mathBook)}</span>
+      </div>
+      <a class="dictionary-link inline-dictionary${linkHiddenClass}" href="${escapeHtml(buildDictionaryUrl(word.term))}" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>
+      <p class="feedback">${inlineReviewPendingHard ? "已加入重点复习，先看一下释义。" : ""}</p>
+      <div class="inline-review-actions">
+        <button class="ghost-button inline-show-answer" type="button"${inlineReviewAnswerVisible || inlineReviewPendingHard ? " disabled" : ""}>显示答案</button>
+        <button class="rate-button hard inline-rate-button${hardClass}" type="button" data-rating="hard">${hardLabel}</button>
+        <button class="rate-button medium inline-rate-button" type="button" data-rating="medium"${inlineReviewPendingHard ? " disabled" : ""}>模糊</button>
+        <button class="rate-button easy inline-rate-button" type="button" data-rating="easy"${inlineReviewPendingHard ? " disabled" : ""}>记住</button>
+        <button class="rate-button mastered inline-rate-button" type="button" data-rating="mastered"${inlineReviewPendingHard ? " disabled" : ""}>完全掌握</button>
+      </div>
+    </article>
+  `;
+}
+
 function getVisibleLibraryWords(book = ensureCurrentBook()) {
+  const frozenWords = getFrozenLibraryWords(book);
+  if (frozenWords) return frozenWords;
   const query = normalizeText(els.searchInput.value);
   const filter = els.statusFilter.value;
   return book.words
@@ -1115,6 +1153,36 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
       return matchesQuery && matchesFilter;
     })
     .sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book.progress));
+}
+
+function getFrozenLibraryWords(book) {
+  const query = normalizeText(els.searchInput.value);
+  const filter = els.statusFilter.value;
+  if (
+    !libraryOrderFreeze ||
+    libraryOrderFreeze.bookId !== book.id ||
+    libraryOrderFreeze.query !== query ||
+    libraryOrderFreeze.filter !== filter
+  ) {
+    return null;
+  }
+  const wordsById = new Map(book.words.map((word) => [word.id, word]));
+  return libraryOrderFreeze.wordIds.map((id) => wordsById.get(id)).filter(Boolean);
+}
+
+function freezeLibraryOrder() {
+  if (libraryOrderFreeze) return;
+  const book = ensureCurrentBook();
+  libraryOrderFreeze = {
+    bookId: book.id,
+    query: normalizeText(els.searchInput.value),
+    filter: els.statusFilter.value,
+    wordIds: getVisibleLibraryWords(book).map((word) => word.id)
+  };
+}
+
+function clearLibraryOrderFreeze() {
+  libraryOrderFreeze = null;
 }
 
 function compareLibraryWordsByUnfamiliarity(a, b, progress) {
@@ -1137,6 +1205,18 @@ function compareLibraryWordsByUnfamiliarity(a, b, progress) {
 
 function handleWordListClick(event) {
   const target = event.target instanceof Element ? event.target : null;
+  const inlineShowAnswerButton = target ? target.closest(".inline-show-answer") : null;
+  if (inlineShowAnswerButton && els.wordList.contains(inlineShowAnswerButton)) {
+    revealInlineAnswer();
+    return;
+  }
+
+  const inlineRateButton = target ? target.closest(".inline-rate-button") : null;
+  if (inlineRateButton && els.wordList.contains(inlineRateButton)) {
+    rateInlineReview(inlineRateButton.dataset.rating);
+    return;
+  }
+
   const button = target ? target.closest(".meaning-toggle-button") : null;
   if (button && els.wordList.contains(button)) {
     const wordId = button.dataset.wordId;
@@ -1145,19 +1225,59 @@ function handleWordListClick(event) {
   }
   const row = target ? target.closest(".word-row[data-word-id]") : null;
   if (!row || !els.wordList.contains(row)) return;
-  startSingleWordReview(row.dataset.wordId);
+  openInlineReview(row.dataset.wordId);
 }
 
-function startSingleWordReview(wordId) {
+function openInlineReview(wordId) {
   const book = ensureCurrentBook();
   const word = book.words.find((item) => item.id === wordId);
   if (!word) return;
-  currentQueue = [word];
-  currentIndex = 0;
-  currentQueueType = "single";
-  awaitingHardAdvance = false;
-  switchView("studyView");
-  renderCurrentCard();
+  inlineReviewWordId = word.id;
+  inlineReviewAnswerVisible = false;
+  inlineReviewPendingHard = false;
+  renderWordList();
+}
+
+function revealInlineAnswer() {
+  if (!inlineReviewWordId) return;
+  inlineReviewAnswerVisible = true;
+  renderWordList();
+}
+
+function rateInlineReview(rating) {
+  const book = ensureCurrentBook();
+  const word = book.words.find((item) => item.id === inlineReviewWordId);
+  if (!word || !rating) return;
+
+  if (rating === "hard" && inlineReviewPendingHard) {
+    closeInlineReview();
+    return;
+  }
+
+  freezeLibraryOrder();
+  recordRating(word, rating, { render: false });
+  renderStats();
+  renderProgress();
+
+  if (rating === "hard") {
+    inlineReviewAnswerVisible = true;
+    inlineReviewPendingHard = true;
+    renderWordList();
+    return;
+  }
+
+  closeInlineReview();
+}
+
+function closeInlineReview() {
+  clearInlineReview();
+  renderWordList();
+}
+
+function clearInlineReview() {
+  inlineReviewWordId = null;
+  inlineReviewAnswerVisible = false;
+  inlineReviewPendingHard = false;
 }
 
 function toggleLibraryMeaning(wordId) {

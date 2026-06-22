@@ -556,6 +556,11 @@ textarea {
   border-color: rgba(37, 99, 235, 0.32);
 }
 
+.word-row.is-inline-open {
+  border-color: rgba(37, 99, 235, 0.56);
+  background: rgba(239, 246, 255, 0.92);
+}
+
 .word-row.is-expanded {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) 14px 72px;
 }
@@ -620,6 +625,45 @@ textarea {
 .meaning-toggle-button:hover {
   filter: brightness(0.98);
   transform: translateY(-1px);
+}
+
+.inline-review-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.26);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.inline-review-card .queue-label,
+.inline-review-card .subtle-text,
+.inline-review-card .feedback {
+  margin: 0;
+}
+
+.inline-review-term {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.inline-answer {
+  min-height: 0;
+  padding: 12px;
+}
+
+.inline-dictionary {
+  justify-self: start;
+  min-height: 40px;
+}
+
+.inline-review-actions {
+  display: grid;
+  grid-template-columns: 1.08fr repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .meaning-bulk-button {
@@ -766,6 +810,14 @@ textarea {
 
   .word-list {
     padding-bottom: 92px;
+  }
+
+  .inline-review-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-dictionary {
+    width: 100%;
   }
 }
 
