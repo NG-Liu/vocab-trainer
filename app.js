@@ -194,7 +194,7 @@
   ["withstand", "v. 承受；抵抗", "The bridge can withstand strong winds."],
   ["impose", "v. 强加；施加；征收", "The government imposed new rules."],
   ["pin down", "v. 确定；限制", "We need to pin down the exact date."],
-  ["templates", "n. 模板；样板", "Use these templates to save time."],
+  ["template", "n. 模板；样板", "Use this template to save time."],
   ["plug into", "v. 接通；接入；利用", "Plug the charger into the socket."],
   ["backbone", "n. 脊梁；骨干", "The volunteers are the backbone of the team."],
   ["narrative", "n. 叙述；故事", "The novel has a powerful narrative."],
@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "33";
+const APP_VERSION = "34";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
