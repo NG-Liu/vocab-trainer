@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "28";
+const APP_VERSION = "29";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -1071,7 +1071,7 @@ function renderWordList() {
       (filter === "mastered" && progress.level >= 4) ||
       (filter === "wrong" && progress.wrong > 0);
     return matchesQuery && matchesFilter;
-  });
+  }).sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book.progress));
 
   els.wordList.innerHTML = words
     .map((word) => {
@@ -1095,6 +1095,24 @@ function renderWordList() {
       `;
     })
     .join("");
+}
+
+function compareLibraryWordsByUnfamiliarity(a, b, progress) {
+  const pa = progress[a.id] || createProgress();
+  const pb = progress[b.id] || createProgress();
+  const aUnseen = pa.seen === 0;
+  const bUnseen = pb.seen === 0;
+  if (aUnseen !== bUnseen) return aUnseen ? 1 : -1;
+  if (aUnseen && bUnseen) return a.term.localeCompare(b.term);
+
+  return (
+    pa.level - pb.level ||
+    pb.wrong - pa.wrong ||
+    pa.correct - pb.correct ||
+    pa.seen - pb.seen ||
+    pa.dueAt - pb.dueAt ||
+    a.term.localeCompare(b.term)
+  );
 }
 
 function handleWordListClick(event) {
