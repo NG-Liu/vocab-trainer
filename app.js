@@ -192,11 +192,46 @@
   ["upright", "adj. 直立的；正直的", "Keep the bottle upright."],
   ["bipedal", "adj. 两足的；双足行走的", "Humans are bipedal animals."],
   ["withstand", "v. 承受；抵抗", "The bridge can withstand strong winds."],
-  ["impose", "v. 强加；施加；征收", "The government imposed new rules."]
+  ["impose", "v. 强加；施加；征收", "The government imposed new rules."],
+  ["pin down", "v. 确定；限制", "We need to pin down the exact date."],
+  ["templates", "n. 模板；样板", "Use these templates to save time."],
+  ["plug into", "v. 接通；接入；利用", "Plug the charger into the socket."],
+  ["backbone", "n. 脊梁；骨干", "The volunteers are the backbone of the team."],
+  ["narrative", "n. 叙述；故事", "The novel has a powerful narrative."],
+  ["confusing", "adj. 令人困惑的", "The instructions are confusing."],
+  ["alien", "adj. 陌生的；n. 外星人", "The new system felt alien to us."],
+  ["metropolitan", "adj. 大都市的", "She works in a metropolitan area."],
+  ["symposium", "n. 研讨会；专题讨论会", "Experts met at a symposium on education."],
+  ["class", "n. 班级；课；阶级", "Our class starts at eight."],
+  ["reluctant", "adj. 不情愿的；勉强的", "He was reluctant to speak in public."],
+  ["toss the coin", "v. 抛硬币决定", "They tossed the coin to decide."],
+  ["resentment", "n. 怨恨；愤懑", "He felt resentment toward the decision."],
+  ["righteous", "adj. 正直的；正义的", "She had a righteous anger about the abuse."],
+  ["indignation", "n. 愤慨；义愤", "Her voice was full of indignation."],
+  ["council", "n. 委员会；议会", "The council approved the plan."],
+  ["supervise", "v. 监督；指导", "A teacher must supervise the lab work."],
+  ["perplex", "v. 使困惑", "The result perplexed the researchers."],
+  ["on the contrary", "adv. 相反", "I thought he would refuse. On the contrary, he agreed."],
+  ["interpretation", "n. 解释；阐释", "Their interpretation of the evidence differed."],
+  ["daily", "adj./adv. 每日的；每天", "She does daily exercises."],
+  ["diligent", "adj. 勤奋的；用功的", "He is a diligent student."],
+  ["plateau", "n. 高原；平稳期", "The project hit a plateau."],
+  ["slack", "adj. 松弛的；懈怠的；n. 懈怠；v. 放松", "Sales were slack in winter."],
+  ["allege", "v. 断言；指称", "Witnesses allege that he lied."],
+  ["diversity", "n. 多样性", "The city values cultural diversity."],
+  ["get round to doing sth", "v. 终于抽出时间做某事", "I finally got round to cleaning my desk."],
+  ["paralysis", "n. 瘫痪；无力", "Fear led to paralysis."],
+  ["colleague", "n. 同事", "I asked a colleague for help."],
+  ["varnish", "n. 清漆；v. 上清漆；粉饰", "The table needs a coat of varnish."],
+  ["underlie", "v. 是...的基础；位于...之下", "Trust underlies every strong team."],
+  ["assume", "v. 假定；认为；承担", "We assume the train is on time."],
+  ["grievance", "n. 委屈；不满；申诉", "The workers filed a grievance."],
+  ["adjoining", "adj. 相邻的；毗连的", "We stayed in an adjoining room."],
+  ["chamber", "n. 房间；议院", "The council met in the main chamber."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "32";
+const APP_VERSION = "33";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
