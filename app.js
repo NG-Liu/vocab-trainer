@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "29";
+const APP_VERSION = "30";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -432,6 +432,7 @@ const els = {
   searchInput: document.querySelector("#searchInput"),
   statusFilter: document.querySelector("#statusFilter"),
   wordList: document.querySelector("#wordList"),
+  toggleAllMeaningsButton: document.querySelector("#toggleAllMeaningsButton"),
   addWordForm: document.querySelector("#addWordForm"),
   newTerm: document.querySelector("#newTerm"),
   newMeaning: document.querySelector("#newMeaning"),
@@ -476,6 +477,9 @@ function bindEvents() {
   els.searchInput.addEventListener("input", renderWordList);
   els.statusFilter.addEventListener("change", renderWordList);
   els.wordList.addEventListener("click", handleWordListClick);
+  if (els.toggleAllMeaningsButton) {
+    els.toggleAllMeaningsButton.addEventListener("click", toggleAllVisibleLibraryMeanings);
+  }
 
   els.addWordForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1056,22 +1060,9 @@ function renderStats() {
 }
 
 function renderWordList() {
-  const query = normalizeText(els.searchInput.value);
-  const filter = els.statusFilter.value;
   const book = ensureCurrentBook();
   const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
-  const words = book.words.filter((word) => {
-    const progress = getProgress(word.id);
-    const text = `${word.term} ${word.meaning}`.toLowerCase();
-    const matchesQuery = !query || text.includes(query);
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "new" && progress.seen === 0) ||
-      (filter === "learning" && progress.seen > 0 && progress.level < 4) ||
-      (filter === "mastered" && progress.level >= 4) ||
-      (filter === "wrong" && progress.wrong > 0);
-    return matchesQuery && matchesFilter;
-  }).sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book.progress));
+  const words = getVisibleLibraryWords(book);
 
   els.wordList.innerHTML = words
     .map((word) => {
@@ -1095,6 +1086,26 @@ function renderWordList() {
       `;
     })
     .join("");
+  updateMeaningBulkButton();
+}
+
+function getVisibleLibraryWords(book = ensureCurrentBook()) {
+  const query = normalizeText(els.searchInput.value);
+  const filter = els.statusFilter.value;
+  return book.words
+    .filter((word) => {
+      const progress = getProgress(word.id);
+      const text = `${word.term} ${word.meaning}`.toLowerCase();
+      const matchesQuery = !query || text.includes(query);
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "new" && progress.seen === 0) ||
+        (filter === "learning" && progress.seen > 0 && progress.level < 4) ||
+        (filter === "mastered" && progress.level >= 4) ||
+        (filter === "wrong" && progress.wrong > 0);
+      return matchesQuery && matchesFilter;
+    })
+    .sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book.progress));
 }
 
 function compareLibraryWordsByUnfamiliarity(a, b, progress) {
@@ -1132,6 +1143,42 @@ function toggleLibraryMeaning(wordId) {
     expandedMeaningIds.add(wordId);
   }
   renderWordList();
+}
+
+function toggleAllVisibleLibraryMeanings() {
+  const book = ensureCurrentBook();
+  const words = getVisibleLibraryWords(book);
+  if (!words.length) return;
+
+  const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
+  const shouldExpand = words.some((word) => !expandedMeaningIds.has(word.id));
+  words.forEach((word) => {
+    if (shouldExpand) {
+      expandedMeaningIds.add(word.id);
+    } else {
+      expandedMeaningIds.delete(word.id);
+    }
+  });
+  renderWordList();
+}
+
+function updateMeaningBulkButton() {
+  const button = els.toggleAllMeaningsButton;
+  if (!button) return;
+  const libraryActive = document.querySelector("#libraryView")?.classList.contains("is-active");
+  const book = ensureCurrentBook();
+  const words = getVisibleLibraryWords(book);
+  if (!libraryActive || !words.length) {
+    button.classList.add("is-hidden");
+    return;
+  }
+
+  const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
+  const allExpanded = words.every((word) => expandedMeaningIds.has(word.id));
+  const label = allExpanded ? "全部隐藏" : "全部显示";
+  button.textContent = label;
+  button.setAttribute("aria-label", label);
+  button.classList.remove("is-hidden");
 }
 
 function getExpandedLibraryMeaningIds(bookId = state.currentBookId) {
