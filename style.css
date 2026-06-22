@@ -548,6 +548,14 @@ textarea {
   background: rgba(255, 255, 255, 0.88);
 }
 
+.word-row[data-word-id] {
+  cursor: pointer;
+}
+
+.word-row[data-word-id]:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
 .word-row.is-expanded {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) 14px 72px;
 }
@@ -606,6 +614,7 @@ textarea {
   font-weight: 800;
   white-space: nowrap;
   transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+  cursor: pointer;
 }
 
 .meaning-toggle-button:hover {

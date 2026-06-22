@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "30";
+const APP_VERSION = "31";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -911,6 +911,7 @@ function toggleReviewControls(enabled) {
 
 function getCurrentQueueLabel() {
   const position = currentIndex + 1;
+  if (currentQueueType === "single") return "单词复习";
   if (currentQueueType === "due") return `${position} / ${currentQueue.length}`;
   if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
   if (currentQueueType === "new") return `未学单词：第 ${position} 个`;
@@ -989,6 +990,14 @@ function recordRating(word, rating) {
 
 function advanceToNext() {
   currentIndex += 1;
+  if (currentQueueType === "single" && currentIndex >= currentQueue.length) {
+    currentQueue = [];
+    currentIndex = -1;
+    currentQueueType = "due";
+    awaitingHardAdvance = false;
+    switchView("libraryView");
+    return;
+  }
   saveTodaySessionPosition();
   renderAll();
   renderCurrentCard();
@@ -1071,7 +1080,7 @@ function renderWordList() {
       const expanded = expandedMeaningIds.has(word.id);
       const meaningId = `meaning-${word.id}`;
       return `
-        <article class="word-row${expanded ? " is-expanded" : ""}">
+        <article class="word-row${expanded ? " is-expanded" : ""}" data-word-id="${escapeHtml(word.id)}">
           <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
           <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
@@ -1129,10 +1138,26 @@ function compareLibraryWordsByUnfamiliarity(a, b, progress) {
 function handleWordListClick(event) {
   const target = event.target instanceof Element ? event.target : null;
   const button = target ? target.closest(".meaning-toggle-button") : null;
-  if (!button || !els.wordList.contains(button)) return;
-  const wordId = button.dataset.wordId;
-  if (!wordId) return;
-  toggleLibraryMeaning(wordId);
+  if (button && els.wordList.contains(button)) {
+    const wordId = button.dataset.wordId;
+    if (wordId) toggleLibraryMeaning(wordId);
+    return;
+  }
+  const row = target ? target.closest(".word-row[data-word-id]") : null;
+  if (!row || !els.wordList.contains(row)) return;
+  startSingleWordReview(row.dataset.wordId);
+}
+
+function startSingleWordReview(wordId) {
+  const book = ensureCurrentBook();
+  const word = book.words.find((item) => item.id === wordId);
+  if (!word) return;
+  currentQueue = [word];
+  currentIndex = 0;
+  currentQueueType = "single";
+  awaitingHardAdvance = false;
+  switchView("studyView");
+  renderCurrentCard();
 }
 
 function toggleLibraryMeaning(wordId) {
