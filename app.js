@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "27";
+const APP_VERSION = "28";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -397,7 +397,7 @@ let currentQueue = [];
 let currentIndex = -1;
 let currentQueueType = "due";
 let awaitingHardAdvance = false;
-let showLibraryMeanings = true;
+const expandedLibraryMeaningIdsByBook = Object.create(null);
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -431,7 +431,6 @@ const els = {
   rateButtons: document.querySelectorAll(".rate-button"),
   searchInput: document.querySelector("#searchInput"),
   statusFilter: document.querySelector("#statusFilter"),
-  meaningToggle: document.querySelector("#meaningToggle"),
   wordList: document.querySelector("#wordList"),
   addWordForm: document.querySelector("#addWordForm"),
   newTerm: document.querySelector("#newTerm"),
@@ -476,12 +475,7 @@ function bindEvents() {
 
   els.searchInput.addEventListener("input", renderWordList);
   els.statusFilter.addEventListener("change", renderWordList);
-  if (els.meaningToggle) {
-    els.meaningToggle.addEventListener("change", () => {
-      showLibraryMeanings = els.meaningToggle.checked;
-      renderWordList();
-    });
-  }
+  els.wordList.addEventListener("click", handleWordListClick);
 
   els.addWordForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1065,6 +1059,7 @@ function renderWordList() {
   const query = normalizeText(els.searchInput.value);
   const filter = els.statusFilter.value;
   const book = ensureCurrentBook();
+  const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
   const words = book.words.filter((word) => {
     const progress = getProgress(word.id);
     const text = `${word.term} ${word.meaning}`.toLowerCase();
@@ -1082,25 +1077,58 @@ function renderWordList() {
     .map((word) => {
       const progress = getProgress(word.id);
       const status = getStatus(progress);
-      const meaningClass = showLibraryMeanings ? "word-meaning" : "word-meaning is-hidden";
-      const rowClass = showLibraryMeanings ? "word-row" : "word-row meaning-hidden";
+      const expanded = expandedMeaningIds.has(word.id);
+      const meaningId = `meaning-${word.id}`;
       return `
-        <article class="${rowClass}">
+        <article class="word-row${expanded ? " is-expanded" : ""}">
           <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
-          <div class="${meaningClass}">${formatInlineContent(word.meaning, isMathBook())}</div>
-          <span class="status-pill ${status.className}">${status.label}</span>
+          <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
+          <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
+          <button
+            class="meaning-toggle-button"
+            type="button"
+            data-word-id="${escapeHtml(word.id)}"
+            aria-controls="${escapeHtml(meaningId)}"
+            aria-expanded="${expanded ? "true" : "false"}"
+          >${expanded ? "隐藏" : "显示"}</button>
         </article>
       `;
     })
     .join("");
 }
 
+function handleWordListClick(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  const button = target ? target.closest(".meaning-toggle-button") : null;
+  if (!button || !els.wordList.contains(button)) return;
+  const wordId = button.dataset.wordId;
+  if (!wordId) return;
+  toggleLibraryMeaning(wordId);
+}
+
+function toggleLibraryMeaning(wordId) {
+  const expandedMeaningIds = getExpandedLibraryMeaningIds();
+  if (expandedMeaningIds.has(wordId)) {
+    expandedMeaningIds.delete(wordId);
+  } else {
+    expandedMeaningIds.add(wordId);
+  }
+  renderWordList();
+}
+
+function getExpandedLibraryMeaningIds(bookId = state.currentBookId) {
+  if (!expandedLibraryMeaningIdsByBook[bookId]) {
+    expandedLibraryMeaningIdsByBook[bookId] = new Set();
+  }
+  return expandedLibraryMeaningIdsByBook[bookId];
+}
+
 function getStatus(progress) {
-  if (progress.level >= 5) return { label: "完全掌握", className: "mastered" };
-  if (progress.wrong > 0 && progress.level < 4) return { label: "错词", className: "wrong" };
-  if (progress.level >= 4) return { label: "已掌握", className: "mastered" };
-  if (progress.seen > 0) return { label: "学习中", className: "" };
-  return { label: "未学", className: "" };
+  if (progress.level >= 5) return { label: "完全掌握", dotClass: "mastered-strong" };
+  if (progress.wrong > 0 && progress.level < 4) return { label: "错词", dotClass: "wrong" };
+  if (progress.level >= 4) return { label: "已掌握", dotClass: "mastered" };
+  if (progress.seen > 0) return { label: "学习中", dotClass: "learning" };
+  return { label: "未学", dotClass: "new" };
 }
 
 function renderProgress() {
