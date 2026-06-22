@@ -519,9 +519,30 @@ textarea {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
+  grid-template-columns: minmax(0, 1fr) 180px 132px;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.toolbar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  color: var(--ink);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.toolbar-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .library-layout {
@@ -545,6 +566,10 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.88);
+}
+
+.word-row.meaning-hidden {
+  grid-template-columns: minmax(150px, 1fr) 120px;
 }
 
 .word-term {
@@ -688,6 +713,10 @@ textarea {
   }
 
   .word-row {
+    grid-template-columns: 1fr;
+  }
+
+  .word-row.meaning-hidden {
     grid-template-columns: 1fr;
   }
 

@@ -196,7 +196,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "26";
+const APP_VERSION = "27";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -397,6 +397,7 @@ let currentQueue = [];
 let currentIndex = -1;
 let currentQueueType = "due";
 let awaitingHardAdvance = false;
+let showLibraryMeanings = true;
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -430,6 +431,7 @@ const els = {
   rateButtons: document.querySelectorAll(".rate-button"),
   searchInput: document.querySelector("#searchInput"),
   statusFilter: document.querySelector("#statusFilter"),
+  meaningToggle: document.querySelector("#meaningToggle"),
   wordList: document.querySelector("#wordList"),
   addWordForm: document.querySelector("#addWordForm"),
   newTerm: document.querySelector("#newTerm"),
@@ -474,6 +476,12 @@ function bindEvents() {
 
   els.searchInput.addEventListener("input", renderWordList);
   els.statusFilter.addEventListener("change", renderWordList);
+  if (els.meaningToggle) {
+    els.meaningToggle.addEventListener("change", () => {
+      showLibraryMeanings = els.meaningToggle.checked;
+      renderWordList();
+    });
+  }
 
   els.addWordForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1074,10 +1082,12 @@ function renderWordList() {
     .map((word) => {
       const progress = getProgress(word.id);
       const status = getStatus(progress);
+      const meaningClass = showLibraryMeanings ? "word-meaning" : "word-meaning is-hidden";
+      const rowClass = showLibraryMeanings ? "word-row" : "word-row meaning-hidden";
       return `
-        <article class="word-row">
+        <article class="${rowClass}">
           <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
-          <div class="word-meaning">${formatInlineContent(word.meaning, isMathBook())}</div>
+          <div class="${meaningClass}">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-pill ${status.className}">${status.label}</span>
         </article>
       `;
