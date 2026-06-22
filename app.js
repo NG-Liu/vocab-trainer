@@ -196,7 +196,8 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "25";
+const APP_VERSION = "26";
+const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -423,6 +424,7 @@ const els = {
   promptHint: document.querySelector("#promptHint"),
   answerBox: document.querySelector("#answerBox"),
   answerText: document.querySelector("#answerText"),
+  dictionaryLink: document.querySelector("#dictionaryLink"),
   feedbackText: document.querySelector("#feedbackText"),
   showAnswerButton: document.querySelector("#showAnswerButton"),
   rateButtons: document.querySelectorAll(".rate-button"),
@@ -841,6 +843,7 @@ function renderCurrentCard() {
   flashReviewCard();
 
   if (!hasWord) {
+    hideDictionaryLink();
     if (currentQueueType === "due") {
       els.queueLabel.textContent = "今日复习已完成";
       els.promptText.textContent = "今天的 50 个已经背完";
@@ -860,8 +863,13 @@ function renderCurrentCard() {
   renderCardFace(els.promptText, word.term, mathBook, "display");
   renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
   renderCardFace(els.answerText, word.meaning, mathBook, "display");
+  if (els.dictionaryLink) {
+    els.dictionaryLink.href = buildDictionaryUrl(word.term);
+  }
   els.answerBox.classList.toggle("is-hidden", !awaitingHardAdvance);
+  hideDictionaryLink();
   if (awaitingHardAdvance) {
+    showDictionaryLink();
     els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
   }
   els.showAnswerButton.classList.remove("is-hidden");
@@ -908,7 +916,22 @@ function revealAnswer() {
   const word = currentQueue[currentIndex];
   if (!word) return;
   els.answerBox.classList.remove("is-hidden");
+  showDictionaryLink();
   els.feedbackText.textContent = "";
+}
+
+function showDictionaryLink() {
+  if (!els.dictionaryLink) return;
+  els.dictionaryLink.classList.remove("is-hidden");
+}
+
+function hideDictionaryLink() {
+  if (!els.dictionaryLink) return;
+  els.dictionaryLink.classList.add("is-hidden");
+}
+
+function buildDictionaryUrl(term) {
+  return `${DICTIONARY_SEARCH_URL}${encodeURIComponent(term.trim())}`;
 }
 
 function rateCurrent(rating) {
