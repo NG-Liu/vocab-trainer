@@ -852,8 +852,10 @@ function switchBook(bookId) {
   currentIndex = -1;
   currentQueueType = "due";
   awaitingHardAdvance = false;
+  els.queueType.value = "due";
   saveState();
   syncBookSelect();
+  startSession();
   renderAll();
 }
 
