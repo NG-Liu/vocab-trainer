@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "36";
+const APP_VERSION = "37";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -391,6 +391,7 @@ const BOOK_DEFINITIONS = [
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY_REVIEW_LIMIT = 50;
+const LIBRARY_BATCH_SIZE = 120;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
@@ -441,6 +442,7 @@ let inlineReviewWordId = null;
 let inlineReviewAnswerVisible = false;
 let inlineReviewPendingHard = false;
 let libraryOrderFreeze = null;
+let libraryVisibleLimit = LIBRARY_BATCH_SIZE;
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -520,11 +522,13 @@ function bindEvents() {
   els.searchInput.addEventListener("input", () => {
     clearInlineReview();
     clearLibraryOrderFreeze();
+    resetLibraryVisibleLimit();
     renderWordList();
   });
   els.statusFilter.addEventListener("change", () => {
     clearInlineReview();
     clearLibraryOrderFreeze();
+    resetLibraryVisibleLimit();
     renderWordList();
   });
   els.wordList.addEventListener("click", handleWordListClick);
@@ -799,6 +803,7 @@ function switchBook(bookId) {
   if (!state.books[bookId]) return;
   clearInlineReview();
   clearLibraryOrderFreeze();
+  resetLibraryVisibleLimit();
   state.currentBookId = bookId;
   currentQueue = [];
   currentIndex = -1;
@@ -1167,8 +1172,9 @@ function renderWordList() {
   }
   const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
   const words = getVisibleLibraryWords(book);
+  const visibleWords = words.slice(0, libraryVisibleLimit);
 
-  els.wordList.innerHTML = words
+  els.wordList.innerHTML = visibleWords
     .map((word) => {
       const progress = getProgress(word.id, book);
       const status = getStatus(progress);
@@ -1191,8 +1197,19 @@ function renderWordList() {
       `;
       return inlineOpen ? row + renderInlineReviewCard(word) : row;
     })
-    .join("");
-  updateMeaningBulkButton();
+    .join("") + renderLibraryFooter(words.length, visibleWords.length);
+  updateMeaningBulkButton(book, visibleWords);
+}
+
+function renderLibraryFooter(totalCount, visibleCount) {
+  if (totalCount <= visibleCount) return "";
+  const remaining = totalCount - visibleCount;
+  return `
+    <div class="library-footer">
+      <div class="library-footer-meta">已显示 ${visibleCount} / ${totalCount}</div>
+      <button class="ghost-button library-load-more" type="button">显示更多 (${Math.min(LIBRARY_BATCH_SIZE, remaining)})</button>
+    </div>
+  `;
 }
 
 function renderInlineReviewCard(word) {
@@ -1274,6 +1291,10 @@ function clearLibraryOrderFreeze() {
   libraryOrderFreeze = null;
 }
 
+function resetLibraryVisibleLimit() {
+  libraryVisibleLimit = LIBRARY_BATCH_SIZE;
+}
+
 function compareLibraryWordsByUnfamiliarity(a, b, book, positions = getBookWordPositions(book)) {
   const progress = book.progress;
   const pa = progress[a.id] || createProgress();
@@ -1295,6 +1316,13 @@ function compareLibraryWordsByUnfamiliarity(a, b, book, positions = getBookWordP
 
 function handleWordListClick(event) {
   const target = event.target instanceof Element ? event.target : null;
+  const loadMoreButton = target ? target.closest(".library-load-more") : null;
+  if (loadMoreButton && els.wordList.contains(loadMoreButton)) {
+    libraryVisibleLimit += LIBRARY_BATCH_SIZE;
+    renderWordList();
+    return;
+  }
+
   const inlineShowAnswerButton = target ? target.closest(".inline-show-answer") : null;
   if (inlineShowAnswerButton && els.wordList.contains(inlineShowAnswerButton)) {
     revealInlineAnswer();
@@ -1382,7 +1410,7 @@ function toggleLibraryMeaning(wordId) {
 
 function toggleAllVisibleLibraryMeanings() {
   const book = ensureCurrentBook();
-  const words = getVisibleLibraryWords(book);
+  const words = getVisibleLibraryWords(book).slice(0, libraryVisibleLimit);
   if (!words.length) return;
 
   const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
@@ -1397,19 +1425,22 @@ function toggleAllVisibleLibraryMeanings() {
   renderWordList();
 }
 
-function updateMeaningBulkButton() {
+function updateMeaningBulkButton(book = ensureCurrentBook(), words = null) {
   const button = els.toggleAllMeaningsButton;
   if (!button) return;
   const libraryActive = document.querySelector("#libraryView")?.classList.contains("is-active");
-  const book = ensureCurrentBook();
-  const words = getVisibleLibraryWords(book);
-  if (!libraryActive || !words.length) {
+  if (!libraryActive) {
+    button.classList.add("is-hidden");
+    return;
+  }
+  const visibleWords = words || getVisibleLibraryWords(book).slice(0, libraryVisibleLimit);
+  if (!visibleWords.length) {
     button.classList.add("is-hidden");
     return;
   }
 
   const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
-  const allExpanded = words.every((word) => expandedMeaningIds.has(word.id));
+  const allExpanded = visibleWords.every((word) => expandedMeaningIds.has(word.id));
   const label = allExpanded ? "全部隐藏" : "全部显示";
   button.textContent = label;
   button.setAttribute("aria-label", label);

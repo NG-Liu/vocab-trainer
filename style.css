@@ -556,6 +556,23 @@ textarea {
   border-color: rgba(37, 99, 235, 0.32);
 }
 
+.library-footer {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 8px 0 18px;
+}
+
+.library-footer-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.library-load-more {
+  min-width: 180px;
+}
+
 .word-row.is-inline-open {
   border-color: rgba(37, 99, 235, 0.56);
   background: rgba(239, 246, 255, 0.92);
