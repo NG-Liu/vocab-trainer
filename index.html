@@ -11,10 +11,10 @@
     <meta name="apple-mobile-web-app-title" content="背单词" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>背单词</title>
-    <link rel="manifest" href="manifest.webmanifest?v=37" />
-    <link rel="icon" href="icon.svg?v=37" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=37" />
-    <link rel="stylesheet" href="style.css?v=37" />
+    <link rel="manifest" href="manifest.webmanifest?v=38" />
+    <link rel="icon" href="icon.svg?v=38" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=38" />
+    <link rel="stylesheet" href="style.css?v=38" />
   </head>
   <body>
     <div class="app-shell">
@@ -80,6 +80,15 @@
                   <option value="new">未学单词</option>
                   <option value="all">全部混合</option>
                   <option value="wrong">错词优先</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="reviewLimit">每日复习量</label>
+                <select id="reviewLimit">
+                  <option value="50">50 个</option>
+                  <option value="100">100 个</option>
+                  <option value="150">150 个</option>
+                  <option value="200">200 个</option>
                 </select>
               </div>
               <button class="primary-button" id="startButton">开始</button>
@@ -213,8 +222,8 @@
 
     <button class="meaning-bulk-button is-hidden" id="toggleAllMeaningsButton" type="button">全部显示</button>
 
-    <script src="submission-config.js?v=37"></script>
-    <script src="core-book-data.js?v=37"></script>
-    <script src="app.js?v=37"></script>
+    <script src="submission-config.js?v=38"></script>
+    <script src="core-book-data.js?v=38"></script>
+    <script src="app.js?v=38"></script>
   </body>
 </html>

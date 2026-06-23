@@ -390,7 +390,8 @@ const BOOK_DEFINITIONS = [
 ];
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 const DAY = 24 * 60 * 60 * 1000;
-const TODAY_REVIEW_LIMIT = 50;
+const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
+const DEFAULT_REVIEW_LIMIT = 50;
 const LIBRARY_BATCH_SIZE = 120;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
@@ -464,6 +465,7 @@ const els = {
   dataStatus: document.querySelector("#dataStatus"),
   tabs: document.querySelectorAll(".tab"),
   queueType: document.querySelector("#queueType"),
+  reviewLimit: document.querySelector("#reviewLimit"),
   startButton: document.querySelector("#startButton"),
   queueLabel: document.querySelector("#queueLabel"),
   promptText: document.querySelector("#promptText"),
@@ -512,6 +514,9 @@ function bindEvents() {
 
   if (els.bookSelect) {
     els.bookSelect.addEventListener("change", () => switchBook(els.bookSelect.value));
+  }
+  if (els.reviewLimit) {
+    els.reviewLimit.addEventListener("change", updateReviewLimit);
   }
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
@@ -625,7 +630,8 @@ function loadState() {
     books: {
       [DEFAULT_BOOK_ID]: getDefaultBook()
     },
-    currentBookId: DEFAULT_BOOK_ID
+    currentBookId: DEFAULT_BOOK_ID,
+    reviewLimit: DEFAULT_REVIEW_LIMIT
   };
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -645,7 +651,8 @@ function normalizeState(parsed, fallback) {
     if (!value.books[DEFAULT_BOOK_ID]) value.books[DEFAULT_BOOK_ID] = getDefaultBook();
     return {
       books: value.books,
-      currentBookId: isBuiltInBookId(value.currentBookId) && value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID
+      currentBookId: isBuiltInBookId(value.currentBookId) && value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID,
+      reviewLimit: normalizeReviewLimit(value.reviewLimit)
     };
   }
   if (Array.isArray(value.words)) {
@@ -659,10 +666,46 @@ function normalizeState(parsed, fallback) {
           todaySession: value.todaySession || null
         }
       },
-      currentBookId: DEFAULT_BOOK_ID
+      currentBookId: DEFAULT_BOOK_ID,
+      reviewLimit: normalizeReviewLimit(value.reviewLimit)
     };
   }
   return fallback;
+}
+
+function normalizeReviewLimit(value) {
+  const limit = Number(value);
+  return REVIEW_LIMIT_OPTIONS.includes(limit) ? limit : DEFAULT_REVIEW_LIMIT;
+}
+
+function getReviewLimit() {
+  state.reviewLimit = normalizeReviewLimit(state.reviewLimit);
+  return state.reviewLimit;
+}
+
+function syncReviewLimitSelect() {
+  if (!els.reviewLimit) return;
+  els.reviewLimit.value = String(getReviewLimit());
+}
+
+function updateReviewLimit() {
+  const nextLimit = normalizeReviewLimit(els.reviewLimit.value);
+  if (state.reviewLimit === nextLimit) return;
+
+  state.reviewLimit = nextLimit;
+  const book = ensureCurrentBook();
+  if (book.todaySession && book.todaySession.date === todayKey()) {
+    book.todaySession = reconcileTodaySession(book.todaySession, book, nextLimit);
+  }
+
+  saveState();
+  renderAll();
+
+  if (currentQueueType === "due" && currentIndex >= 0) {
+    currentQueue = buildTodayQueue();
+    currentIndex = getTodaySession().index;
+    renderCurrentCard();
+  }
 }
 
 function getDefaultBook() {
@@ -909,39 +952,64 @@ function buildTodayQueue() {
 function getTodaySession() {
   const book = ensureCurrentBook();
   const date = todayKey();
+  const reviewLimit = getReviewLimit();
   if (!book.todaySession || book.todaySession.date !== date) {
-    book.todaySession = createTodaySession(date, book);
+    book.todaySession = createTodaySession(date, book, reviewLimit);
     saveState();
     return book.todaySession;
   }
 
-  const validIds = book.todaySession.queueIds.filter((id) => book.words.some((word) => word.id === id));
-  const maxIndex = validIds.length;
-  const index = Math.min(Math.max(book.todaySession.index || 0, 0), maxIndex);
-  const pendingHardId = validIds[index] === book.todaySession.pendingHardId ? book.todaySession.pendingHardId : null;
+  const nextSession = reconcileTodaySession(book.todaySession, book, reviewLimit);
 
-  if (validIds.length !== book.todaySession.queueIds.length || index !== book.todaySession.index || pendingHardId !== book.todaySession.pendingHardId) {
-    book.todaySession = { ...book.todaySession, queueIds: validIds, index, pendingHardId };
+  if (
+    nextSession.limit !== book.todaySession.limit ||
+    nextSession.index !== book.todaySession.index ||
+    nextSession.pendingHardId !== book.todaySession.pendingHardId ||
+    nextSession.queueIds.join("|") !== (book.todaySession.queueIds || []).join("|")
+  ) {
+    book.todaySession = nextSession;
     saveState();
   }
 
   return book.todaySession;
 }
 
-function createTodaySession(date, book = ensureCurrentBook()) {
+function createTodaySession(date, book = ensureCurrentBook(), limit = getReviewLimit()) {
+  const queueIds = getDueWordsForToday(book)
+    .slice(0, limit)
+    .map((word) => word.id);
+
+  return { date, limit, queueIds, index: 0, pendingHardId: null };
+}
+
+function reconcileTodaySession(session, book, limit = getReviewLimit()) {
+  const validWordIds = new Set(book.words.map((word) => word.id));
+  let queueIds = (session.queueIds || []).filter((id) => validWordIds.has(id)).slice(0, limit);
+  const index = Math.min(Math.max(session.index || 0, 0), queueIds.length);
+
+  if (queueIds.length < limit) {
+    const queued = new Set(queueIds);
+    const extraIds = getDueWordsForToday(book)
+      .filter((word) => !queued.has(word.id))
+      .slice(0, limit - queueIds.length)
+      .map((word) => word.id);
+    queueIds = queueIds.concat(extraIds);
+  }
+
+  const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
+  return { ...session, limit, queueIds, index, pendingHardId };
+}
+
+function getDueWordsForToday(book) {
   const today = Date.now();
   const positions = getBookWordPositions(book);
-  const queueIds = book.words
+  return book.words
     .filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today)
     .sort((a, b) => {
       const pa = book.progress[a.id] || createProgress();
       const pb = book.progress[b.id] || createProgress();
       return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || compareWordsForBook(a, b, book, positions);
-    })
-    .slice(0, TODAY_REVIEW_LIMIT)
-    .map((word) => word.id);
-
-  return { date, queueIds, index: 0, pendingHardId: null };
+    });
 }
 
 function renderCurrentCard() {
@@ -956,7 +1024,7 @@ function renderCurrentCard() {
     hideDictionaryLink();
     if (currentQueueType === "due") {
       els.queueLabel.textContent = "今日复习已完成";
-      els.promptText.textContent = "今天的 50 个已经背完";
+      els.promptText.textContent = `今天的 ${getReviewLimit()} 个已经背完`;
       els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
     } else {
       els.queueLabel.textContent = "没有待复习单词";
@@ -1139,6 +1207,7 @@ function getProgress(id, book = ensureCurrentBook()) {
 }
 
 function renderAll() {
+  syncReviewLimitSelect();
   renderStats();
   renderWordList();
   renderProgress();
@@ -1147,9 +1216,10 @@ function renderAll() {
 function renderStats() {
   const today = Date.now();
   const book = ensureCurrentBook();
+  const reviewLimit = getReviewLimit();
   const allDue = book.words.filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today).length;
-  const session = book.todaySession && book.todaySession.date === todayKey() ? book.todaySession : null;
-  const due = session ? Math.max(0, session.queueIds.length - (session.index || 0)) : Math.min(TODAY_REVIEW_LIMIT, allDue);
+  const session = book.todaySession && book.todaySession.date === todayKey() ? getTodaySession() : null;
+  const due = session ? Math.max(0, session.queueIds.length - (session.index || 0)) : Math.min(reviewLimit, allDue);
   const mastered = book.words.filter((word) => (book.progress[word.id] || createProgress()).level >= 4).length;
   const todayHistory = book.history.filter((item) => item.at >= startOfToday());
   const accuracy = todayHistory.length
