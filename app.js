@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "34";
+const APP_VERSION = "35";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -377,8 +377,12 @@ const TEST_BOOK_WORDS = [
   ["improve", "改善；提高", "Practice helps improve speed."],
   ["journey", "旅程；历程", "The journey took two hours."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+const CORE_BOOK_ID = "kaoyan-core";
+const CORE_BOOK_NAME = "考研英语核心词汇";
+const CORE_BOOK_WORDS = (window.CORE_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
+  { id: CORE_BOOK_ID, name: CORE_BOOK_NAME, words: CORE_BOOK_WORDS, sortMode: "sequence" },
   { id: INTEGRAL_BOOK_ID, name: INTEGRAL_BOOK_NAME, words: INTEGRAL_BOOK_WORDS },
   { id: THEOREM_BOOK_ID, name: THEOREM_BOOK_NAME, words: THEOREM_BOOK_WORDS },
   { id: TAYLOR_BOOK_ID, name: TAYLOR_BOOK_NAME, words: TAYLOR_BOOK_WORDS },
@@ -679,7 +683,42 @@ function createBook(id, name) {
   };
 }
 
-function seedBookWords(book, words) {
+function getBookDefinition(bookId) {
+  return BOOK_DEFINITIONS.find((definition) => definition.id === bookId);
+}
+
+function getBookSortMode(bookId) {
+  return getBookDefinition(bookId)?.sortMode || "alpha";
+}
+
+function getBookWordPositions(book) {
+  return new Map(book.words.map((word, index) => [word.id, index]));
+}
+
+function compareWordsForBook(a, b, book, positions = getBookWordPositions(book)) {
+  if (getBookSortMode(book.id) !== "sequence") return a.term.localeCompare(b.term);
+  return (positions.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (positions.get(b.id) ?? Number.MAX_SAFE_INTEGER) || a.term.localeCompare(b.term);
+}
+
+function orderBookWords(book, definition = getBookDefinition(book.id)) {
+  const before = book.words.map((word) => word.id).join("|");
+  if ((definition?.sortMode || "alpha") === "sequence") {
+    const preferredOrder = new Map((definition.words || []).map((word, index) => [word.id, index]));
+    const currentOrder = getBookWordPositions(book);
+    book.words.sort((a, b) => {
+      const aOrder = preferredOrder.has(a.id) ? preferredOrder.get(a.id) : Number.MAX_SAFE_INTEGER;
+      const bOrder = preferredOrder.has(b.id) ? preferredOrder.get(b.id) : Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder || (currentOrder.get(a.id) ?? 0) - (currentOrder.get(b.id) ?? 0) || a.term.localeCompare(b.term);
+    });
+  } else {
+    book.words.sort((a, b) => a.term.localeCompare(b.term));
+  }
+  const after = book.words.map((word) => word.id).join("|");
+  return before !== after;
+}
+
+function seedBookWords(book, definition) {
+  const words = definition.words;
   const existing = new Set(book.words.map((word) => word.id));
   let changed = false;
   words.forEach((word) => {
@@ -689,9 +728,7 @@ function seedBookWords(book, words) {
       changed = true;
     }
   });
-  if (changed) {
-    book.words.sort((a, b) => a.term.localeCompare(b.term));
-  }
+  if (orderBookWords(book, definition)) changed = true;
   return changed;
 }
 
@@ -718,7 +755,7 @@ function ensureBooks() {
       book.name = definition.name;
       changed = true;
     }
-    if (seedBookWords(book, definition.words)) changed = true;
+    if (seedBookWords(book, definition)) changed = true;
   });
   if (!state.currentBookId || !state.books[state.currentBookId]) {
     state.currentBookId = DEFAULT_BOOK_ID;
@@ -728,7 +765,7 @@ function ensureBooks() {
 }
 
 function isBuiltInBookId(bookId) {
-  return BOOK_DEFINITIONS.some((definition) => definition.id === bookId);
+  return Boolean(getBookDefinition(bookId));
 }
 
 function ensureCurrentBook() {
@@ -774,7 +811,7 @@ function mergeStarterWords() {
       changed = true;
     }
   });
-  book.words.sort((a, b) => a.term.localeCompare(b.term));
+  if (orderBookWords(book, getBookDefinition(book.id))) changed = true;
   if (changed) saveState();
 }
 
@@ -829,10 +866,11 @@ function buildQueue(type) {
   if (type === "due") return buildTodayQueue();
 
   const today = Date.now();
+  const positions = getBookWordPositions(book);
   const byNeed = (a, b) => {
     const pa = progress[a.id] || createProgress();
     const pb = progress[b.id] || createProgress();
-    return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || a.term.localeCompare(b.term);
+    return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || compareWordsForBook(a, b, book, positions);
   };
 
   const filtered = words.filter((word) => {
@@ -878,12 +916,13 @@ function getTodaySession() {
 
 function createTodaySession(date, book = ensureCurrentBook()) {
   const today = Date.now();
+  const positions = getBookWordPositions(book);
   const queueIds = book.words
     .filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today)
     .sort((a, b) => {
       const pa = book.progress[a.id] || createProgress();
       const pb = book.progress[b.id] || createProgress();
-      return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || a.term.localeCompare(b.term);
+      return pa.dueAt - pb.dueAt || pb.wrong - pa.wrong || compareWordsForBook(a, b, book, positions);
     })
     .slice(0, TODAY_REVIEW_LIMIT)
     .map((word) => word.id);
@@ -1174,6 +1213,7 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
   if (frozenWords) return frozenWords;
   const query = normalizeText(els.searchInput.value);
   const filter = els.statusFilter.value;
+  const positions = getBookWordPositions(book);
   return book.words
     .filter((word) => {
       const progress = getProgress(word.id);
@@ -1187,7 +1227,7 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
         (filter === "wrong" && progress.wrong > 0);
       return matchesQuery && matchesFilter;
     })
-    .sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book.progress));
+    .sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book, positions));
 }
 
 function getFrozenLibraryWords(book) {
@@ -1220,13 +1260,14 @@ function clearLibraryOrderFreeze() {
   libraryOrderFreeze = null;
 }
 
-function compareLibraryWordsByUnfamiliarity(a, b, progress) {
+function compareLibraryWordsByUnfamiliarity(a, b, book, positions = getBookWordPositions(book)) {
+  const progress = book.progress;
   const pa = progress[a.id] || createProgress();
   const pb = progress[b.id] || createProgress();
   const aUnseen = pa.seen === 0;
   const bUnseen = pb.seen === 0;
   if (aUnseen !== bUnseen) return aUnseen ? 1 : -1;
-  if (aUnseen && bUnseen) return a.term.localeCompare(b.term);
+  if (aUnseen && bUnseen) return compareWordsForBook(a, b, book, positions);
 
   return (
     pa.level - pb.level ||
@@ -1234,7 +1275,7 @@ function compareLibraryWordsByUnfamiliarity(a, b, progress) {
     pa.correct - pb.correct ||
     pa.seen - pb.seen ||
     pa.dueAt - pb.dueAt ||
-    a.term.localeCompare(b.term)
+    compareWordsForBook(a, b, book, positions)
   );
 }
 
@@ -1429,7 +1470,7 @@ function addWord(term, meaning, example = "") {
     book.words.push({ id, term: cleanTerm, meaning: cleanMeaning, example: example.trim() });
     book.progress[id] = createProgress();
   }
-  book.words.sort((a, b) => a.term.localeCompare(b.term));
+  orderBookWords(book, getBookDefinition(book.id));
   saveState();
   renderAll();
 }

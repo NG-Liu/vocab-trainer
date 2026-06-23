@@ -1,12 +1,13 @@
-const CACHE_NAME = "word-trainer-v34";
+const CACHE_NAME = "word-trainer-v35";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=34",
-  "./app.js?v=34",
-  "./submission-config.js?v=34",
-  "./manifest.webmanifest?v=34",
-  "./icon.svg?v=34"
+  "./style.css?v=35",
+  "./core-book-data.js?v=35",
+  "./app.js?v=35",
+  "./submission-config.js?v=35",
+  "./manifest.webmanifest?v=35",
+  "./icon.svg?v=35"
 ];
 
 self.addEventListener("install", (event) => {
@@ -33,6 +34,7 @@ self.addEventListener("fetch", (event) => {
     (url.pathname.endsWith("/") ||
       url.pathname.endsWith("/index.html") ||
       url.pathname.endsWith("/app.js") ||
+      url.pathname.endsWith("/core-book-data.js") ||
       url.pathname.endsWith("/submission-config.js") ||
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/manifest.webmanifest") ||
