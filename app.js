@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "35";
+const APP_VERSION = "36";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -672,10 +672,11 @@ function getDefaultBook() {
   };
 }
 
-function createBook(id, name) {
+function createBook(id, name, sortMode = "alpha") {
   return {
     id,
     name,
+    sortMode,
     words: [],
     progress: {},
     history: [],
@@ -719,16 +720,24 @@ function orderBookWords(book, definition = getBookDefinition(book.id)) {
 
 function seedBookWords(book, definition) {
   const words = definition.words;
+  const sortMode = definition.sortMode || "alpha";
   const existing = new Set(book.words.map((word) => word.id));
   let changed = false;
+  let needsOrdering = false;
+  if (book.sortMode !== sortMode) {
+    book.sortMode = sortMode;
+    changed = true;
+    needsOrdering = true;
+  }
   words.forEach((word) => {
     if (!existing.has(word.id)) {
       book.words.push({ ...word });
       book.progress[word.id] = createProgress();
       changed = true;
+      needsOrdering = true;
     }
   });
-  if (orderBookWords(book, definition)) changed = true;
+  if (needsOrdering && orderBookWords(book, definition)) changed = true;
   return changed;
 }
 
@@ -743,7 +752,7 @@ function ensureBooks() {
   });
   BOOK_DEFINITIONS.forEach((definition) => {
     if (!state.books[definition.id]) {
-      state.books[definition.id] = createBook(definition.id, definition.name);
+      state.books[definition.id] = createBook(definition.id, definition.name, definition.sortMode || "alpha");
       changed = true;
     }
     const book = state.books[definition.id];
@@ -1119,8 +1128,7 @@ function scheduleNext(progress, rating) {
   return { level, interval, dueAt };
 }
 
-function getProgress(id) {
-  const book = ensureCurrentBook();
+function getProgress(id, book = ensureCurrentBook()) {
   if (!book.progress[id]) book.progress[id] = createProgress();
   return book.progress[id];
 }
@@ -1151,12 +1159,18 @@ function renderStats() {
 
 function renderWordList() {
   const book = ensureCurrentBook();
+  const libraryActive = document.querySelector("#libraryView")?.classList.contains("is-active");
+  if (!libraryActive) {
+    els.wordList.innerHTML = "";
+    updateMeaningBulkButton();
+    return;
+  }
   const expandedMeaningIds = getExpandedLibraryMeaningIds(book.id);
   const words = getVisibleLibraryWords(book);
 
   els.wordList.innerHTML = words
     .map((word) => {
-      const progress = getProgress(word.id);
+      const progress = getProgress(word.id, book);
       const status = getStatus(progress);
       const expanded = expandedMeaningIds.has(word.id);
       const inlineOpen = word.id === inlineReviewWordId;
@@ -1216,7 +1230,7 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
   const positions = getBookWordPositions(book);
   return book.words
     .filter((word) => {
-      const progress = getProgress(word.id);
+      const progress = getProgress(word.id, book);
       const text = `${word.term} ${word.meaning}`.toLowerCase();
       const matchesQuery = !query || text.includes(query);
       const matchesFilter =
@@ -1426,7 +1440,7 @@ function renderProgress() {
     ["掌握", (p) => p.level >= 4],
     ["完全掌握", (p) => p.level >= 5]
   ].map(([label, test]) => {
-    const count = book.words.filter((word) => test(getProgress(word.id))).length;
+    const count = book.words.filter((word) => test(getProgress(word.id, book))).length;
     return { label, count };
   });
   const total = Math.max(1, book.words.length);
