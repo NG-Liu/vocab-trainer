@@ -1,0 +1,11 @@
+{
+  "id": "2026-06-26-d8f1c398",
+  "bookName": "测试词本",
+  "email": "test@example.com",
+  "originalFileName": "test.txt",
+  "size": 10,
+  "contentType": "text/plain",
+  "submittedAt": "2026-06-26T14:00:40.674Z",
+  "status": "pending_review",
+  "note": "Raw txt only. Do not process before owner review."
+}
