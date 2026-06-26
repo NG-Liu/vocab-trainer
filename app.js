@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "37";
+const APP_VERSION = "40";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -1018,6 +1018,7 @@ function renderCurrentCard() {
   const word = currentQueue[currentIndex];
   const hasWord = Boolean(word);
   const mathBook = isMathBook();
+  const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
   toggleReviewControls(hasWord);
   flashReviewCard();
@@ -1043,12 +1044,12 @@ function renderCurrentCard() {
   renderCardFace(els.promptText, word.term, mathBook, "display");
   renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
   renderCardFace(els.answerText, word.meaning, mathBook, "display");
-  if (els.dictionaryLink) {
+  if (els.dictionaryLink && dictionaryAllowed) {
     els.dictionaryLink.href = buildDictionaryUrl(word.term);
   }
   els.answerBox.classList.toggle("is-hidden", !awaitingHardAdvance);
   hideDictionaryLink();
-  if (awaitingHardAdvance) {
+  if (awaitingHardAdvance && dictionaryAllowed) {
     showDictionaryLink();
     els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
   }
@@ -1096,18 +1097,22 @@ function revealAnswer() {
   const word = currentQueue[currentIndex];
   if (!word) return;
   els.answerBox.classList.remove("is-hidden");
-  showDictionaryLink();
+  if (shouldShowDictionaryLink()) showDictionaryLink();
   els.feedbackText.textContent = "";
 }
 
 function showDictionaryLink() {
-  if (!els.dictionaryLink) return;
+  if (!els.dictionaryLink || !shouldShowDictionaryLink()) return;
   els.dictionaryLink.classList.remove("is-hidden");
 }
 
 function hideDictionaryLink() {
   if (!els.dictionaryLink) return;
   els.dictionaryLink.classList.add("is-hidden");
+}
+
+function shouldShowDictionaryLink(book = ensureCurrentBook()) {
+  return !isMathBook(book);
 }
 
 function buildDictionaryUrl(term) {
@@ -1286,8 +1291,9 @@ function renderLibraryFooter(totalCount, visibleCount) {
 
 function renderInlineReviewCard(word) {
   const mathBook = isMathBook();
+  const dictionaryAllowed = shouldShowDictionaryLink();
   const answerHiddenClass = inlineReviewAnswerVisible ? "" : " is-hidden";
-  const linkHiddenClass = inlineReviewAnswerVisible ? "" : " is-hidden";
+  const linkHiddenClass = dictionaryAllowed && inlineReviewAnswerVisible ? "" : " is-hidden";
   const hardLabel = inlineReviewPendingHard ? "下一个" : "忘了";
   const hardClass = inlineReviewPendingHard ? " next" : "";
   return `
@@ -1298,7 +1304,7 @@ function renderInlineReviewCard(word) {
       <div class="answer-box inline-answer${answerHiddenClass}">
         <span>${formatInlineContent(word.meaning, mathBook)}</span>
       </div>
-      <a class="dictionary-link inline-dictionary${linkHiddenClass}" href="${escapeHtml(buildDictionaryUrl(word.term))}" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>
+      ${dictionaryAllowed ? `<a class="dictionary-link inline-dictionary${linkHiddenClass}" href="${escapeHtml(buildDictionaryUrl(word.term))}" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>` : ""}
       <p class="feedback">${inlineReviewPendingHard ? "已加入重点复习，先看一下释义。" : ""}</p>
       <div class="inline-review-actions">
         <button class="ghost-button inline-show-answer" type="button"${inlineReviewAnswerVisible || inlineReviewPendingHard ? " disabled" : ""}>显示答案</button>
