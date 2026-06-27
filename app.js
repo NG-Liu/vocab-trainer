@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "44";
+const APP_VERSION = "45";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -820,7 +820,7 @@ function orderBookWords(book, definition = getBookDefinition(book.id)) {
 function seedBookWords(book, definition) {
   const words = definition.words;
   const sortMode = definition.sortMode || "alpha";
-  const existing = new Set(book.words.map((word) => word.id));
+  const existingWords = new Map(book.words.map((word) => [word.id, word]));
   let changed = false;
   let needsOrdering = false;
   if (book.sortMode !== sortMode) {
@@ -829,11 +829,29 @@ function seedBookWords(book, definition) {
     needsOrdering = true;
   }
   words.forEach((word) => {
-    if (!existing.has(word.id)) {
+    const existingWord = existingWords.get(word.id);
+    if (!existingWord) {
       book.words.push({ ...word });
       book.progress[word.id] = createProgress();
       changed = true;
       needsOrdering = true;
+      return;
+    }
+
+    if (
+      existingWord.term !== word.term ||
+      existingWord.meaning !== word.meaning ||
+      existingWord.example !== word.example
+    ) {
+      existingWord.term = word.term;
+      existingWord.meaning = word.meaning;
+      existingWord.example = word.example;
+      changed = true;
+    }
+
+    if (!book.progress[word.id]) {
+      book.progress[word.id] = createProgress();
+      changed = true;
     }
   });
   if (needsOrdering && orderBookWords(book, definition)) changed = true;
