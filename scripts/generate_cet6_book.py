@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pdfplumber
 
+from example_utils import build_entries_with_examples
+
 
 WATERMARK_CHARS = set("教育国际国教方际东新育")
 POS_MARKER_NEEDS_SPACE = re.compile(
@@ -19,16 +21,6 @@ TERM_LINE = re.compile(r"[A-Za-z]")
 TERM_ONLY_LINE = re.compile(r"^[A-Za-z][A-Za-z' -]*$")
 MEANING_ONLY_LINE = re.compile(r"^(?:adj|adv|ad|n|vt|vi|v|prep|conj|pron|num|art|aux|int|a)\.")
 POS_MARKER_RE = re.compile(r"(?:adj|adv|ad|n|vt|vi|v|prep|conj|pron|num|art|aux|int|a)\.")
-WORD_TEMPLATES = [
-    'The word "{term}" appeared in today\'s reading passage.',
-    'We reviewed the word "{term}" in class today.',
-    'The teacher explained "{term}" during the lesson.'
-]
-PHRASE_TEMPLATES = [
-    'The phrase "{term}" appeared in today\'s reading passage.',
-    'We reviewed the phrase "{term}" in class today.',
-    'The teacher explained the phrase "{term}" during the lesson.'
-]
 
 
 def normalize_space(value: str) -> str:
@@ -53,11 +45,6 @@ def normalize_meaning(value: str) -> str:
     text = POS_MARKER_NEEDS_SPACE.sub(" ", text)
     text = POS_MARKER_FOLLOWED_BY_TEXT.sub(r"\1 ", text)
     return normalize_space(text)
-
-
-def build_example(term: str, index: int) -> str:
-    templates = PHRASE_TEMPLATES if (" " in term or "-" in term) else WORD_TEMPLATES
-    return templates[index % len(templates)].format(term=term)
 
 
 def extract_rows(page: pdfplumber.page.Page, bounds: tuple[float, float, float, float]) -> list[tuple[float, str]]:
@@ -137,15 +124,15 @@ def extract_entries(pdf_path: Path) -> list[list[str]]:
                     row_index += 1
                     continue
 
-    entries: list[list[str]] = []
+    rows: list[tuple[str, str]] = []
     seen_terms: set[str] = set()
     for _page_index, _column_index, term, meaning in raw_entries:
         key = term.casefold()
         if key in seen_terms:
             continue
         seen_terms.add(key)
-        entries.append([term, meaning, build_example(term, len(entries))])
-    return entries
+        rows.append((term, meaning))
+    return build_entries_with_examples(rows)
 
 
 def write_output(entries: list[list[str]], output_path: Path) -> None:

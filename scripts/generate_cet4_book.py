@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pdfplumber
 
+from example_utils import build_entries_with_examples
+
 
 POS_MARKER_NEEDS_SPACE = re.compile(
     r"(?<!^)(?<!\s)(?=(?:adj|adv|n|vt|vi|v|prep|conj|pron|num|art|aux)\.)"
@@ -13,16 +15,6 @@ POS_MARKER_NEEDS_SPACE = re.compile(
 POS_MARKER_FOLLOWED_BY_TEXT = re.compile(
     r"((?:adj|adv|n|vt|vi|v|prep|conj|pron|num|art|aux)\.)(?=[^\s])"
 )
-WORD_TEMPLATES = [
-    'The word "{term}" appeared in today\'s reading passage.',
-    'We reviewed the word "{term}" in class today.',
-    'The teacher explained "{term}" during the lesson.'
-]
-PHRASE_TEMPLATES = [
-    'The phrase "{term}" appeared in today\'s reading passage.',
-    'We reviewed the phrase "{term}" in class today.',
-    'The teacher explained the phrase "{term}" during the lesson.'
-]
 
 
 def normalize_space(value: str) -> str:
@@ -39,11 +31,6 @@ def normalize_meaning(value: str) -> str:
     return text
 
 
-def build_example(term: str, index: int) -> str:
-    templates = PHRASE_TEMPLATES if (" " in term or "-" in term) else WORD_TEMPLATES
-    return templates[index % len(templates)].format(term=term)
-
-
 def find_source_pdf(desktop: Path) -> Path:
     for pdf_path in sorted(desktop.glob("*.pdf")):
         try:
@@ -57,7 +44,7 @@ def find_source_pdf(desktop: Path) -> Path:
 
 
 def extract_entries(pdf_path: Path) -> list[list[str]]:
-    rows: list[tuple[int, str, str]] = []
+    rows: list[tuple[str, str]] = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             table = page.extract_table()
@@ -74,17 +61,17 @@ def extract_entries(pdf_path: Path) -> list[list[str]]:
                     continue
                 if not re.search(r"[A-Za-z]", term_text):
                     continue
-                rows.append((int(serial_text), term_text, meaning_text))
+                rows.append((term_text, meaning_text))
 
-    entries: list[list[str]] = []
+    deduped_rows: list[tuple[str, str]] = []
     seen_terms: set[str] = set()
-    for _serial, term, meaning in rows:
+    for term, meaning in rows:
         key = term.casefold()
         if key in seen_terms:
             continue
         seen_terms.add(key)
-        entries.append([term, meaning, build_example(term, len(entries))])
-    return entries
+        deduped_rows.append((term, meaning))
+    return build_entries_with_examples(deduped_rows)
 
 
 def write_output(entries: list[list[str]], output_path: Path) -> None:
