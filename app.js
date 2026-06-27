@@ -227,11 +227,36 @@
   ["assume", "v. 假定；认为；承担", "We assume the train is on time."],
   ["grievance", "n. 委屈；不满；申诉", "The workers filed a grievance."],
   ["adjoining", "adj. 相邻的；毗连的", "We stayed in an adjoining room."],
-  ["chamber", "n. 房间；议院", "The council met in the main chamber."]
+  ["chamber", "n. 房间；议院", "The council met in the main chamber."],
+  ["inconclusive", "adj. 无定论的；不确定的", "The test results were inconclusive."],
+  ["lobby", "v. 游说；n. 大厅", "Several groups lobbied for stricter safety rules."],
+  ["grave", "n. 坟墓；adj. 严重的", "The doctor said his condition was grave."],
+  ["upsetting", "adj. 令人难过的；令人不安的", "It was an upsetting experience for the whole family."],
+  ["enlist", "v. 征募；争取...支持", "The campaign enlisted the support of local volunteers."],
+  ["fumes", "n. 烟雾；废气", "The workers wore masks to avoid breathing the fumes."],
+  ["prudent", "adj. 谨慎的；审慎的", "It would be prudent to save some money for emergencies."],
+  ["paralysis by analysis", "分析过度导致的行动瘫痪", "Too many meetings created paralysis by analysis."],
+  ["steward", "n. 管家；乘务员", "The steward checked the passenger list twice."],
+  ["adequate", "adj. 足够的；合适的", "The room provides adequate storage space."],
+  ["legislative", "adj. 立法的", "The bill faces strong legislative opposition."],
+  ["congress", "n. 国会；代表大会", "Congress is expected to vote next week."],
+  ["incentive", "n. 激励；刺激", "The tax break gave companies an incentive to invest."],
+  ["senator", "n. 参议员", "The senator spoke in favor of the bill."],
+  ["susceptible", "adj. 易受影响的；易患...的", "Young children are more susceptible to infection."],
+  ["hormone", "n. 激素；荷尔蒙", "Stress can affect hormone levels."],
+  ["trigger", "v. 引发；触发；n. 扳机", "The announcement triggered a wave of complaints."],
+  ["reproductive", "adj. 生殖的；繁殖的", "Doctors are studying reproductive health in rural areas."],
+  ["chronic", "adj. 长期的；慢性的", "He receives treatment for chronic back pain."],
+  ["combat", "v. 与...斗争；n. 战斗", "The medicine helps combat infection."],
+  ["domestic", "adj. 国内的；家庭的", "Domestic demand remained strong last quarter."],
+  ["one-shot deal", "一次性交易；一锤子买卖", "The company treated the order as a one-shot deal."],
+  ["devastating", "adj. 毁灭性的；极令人震惊的", "The earthquake had a devastating effect on the town."],
+  ["be obliged to do sth", "不得不做某事；有义务做某事", "We are obliged to follow the court's decision."],
+  ["diffuse", "v. 扩散；散布；缓解", "The government tried to diffuse the tension."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "45";
+const APP_VERSION = "46";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
