@@ -231,7 +231,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "41";
+const APP_VERSION = "42";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -459,7 +459,7 @@ const els = {
   installSheet: document.querySelector("#installSheet"),
   installMessage: document.querySelector("#installMessage"),
   closeInstallSheet: document.querySelector("#closeInstallSheet"),
-  resetTodayButton: document.querySelector("#resetTodayButton"),
+  refreshButton: document.querySelector("#refreshButton"),
   dataButton: document.querySelector("#dataButton"),
   dataSheet: document.querySelector("#dataSheet"),
   closeDataSheet: document.querySelector("#closeDataSheet"),
@@ -560,10 +560,7 @@ function bindEvents() {
   els.exportBackupButton.addEventListener("click", downloadBackup);
   els.importBackupButton.addEventListener("click", () => els.backupInput.click());
   els.backupInput.addEventListener("change", handleBackupImport);
-  els.resetTodayButton.addEventListener("click", () => {
-    els.queueType.value = "due";
-    startSession();
-  });
+  els.refreshButton.addEventListener("click", forceRefreshApp);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -591,6 +588,53 @@ function registerServiceWorker() {
         // The app still works without offline caching.
       });
   });
+}
+
+async function forceRefreshApp() {
+  if (!els.refreshButton || els.refreshButton.disabled) return;
+  els.refreshButton.disabled = true;
+
+  try {
+    const currentUrl = new URL(window.location.href);
+    const scopePath = currentUrl.pathname.replace(/[^/]*$/, "");
+
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const matchingRegistrations = registrations.filter((registration) => {
+        try {
+          return new URL(registration.scope).pathname === scopePath;
+        } catch {
+          return false;
+        }
+      });
+
+      await Promise.all(
+        matchingRegistrations.map(async (registration) => {
+          try {
+            await registration.update();
+          } catch {
+            // Keep going even if update fails.
+          }
+          try {
+            await registration.unregister();
+          } catch {
+            // Keep going even if unregister fails.
+          }
+        })
+      );
+    }
+
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      const appCacheKeys = cacheKeys.filter((key) => key.startsWith("word-trainer-v"));
+      await Promise.all(appCacheKeys.map((key) => caches.delete(key)));
+    }
+
+    currentUrl.searchParams.set("refresh", Date.now().toString());
+    window.location.replace(currentUrl.toString());
+  } catch {
+    window.location.reload();
+  }
 }
 
 async function installApp() {
