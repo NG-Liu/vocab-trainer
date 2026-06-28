@@ -252,11 +252,33 @@
   ["one-shot deal", "一次性交易；一锤子买卖", "The company treated the order as a one-shot deal."],
   ["devastating", "adj. 毁灭性的；极令人震惊的", "The earthquake had a devastating effect on the town."],
   ["be obliged to do sth", "不得不做某事；有义务做某事", "We are obliged to follow the court's decision."],
-  ["diffuse", "v. 扩散；散布；缓解", "The government tried to diffuse the tension."]
+  ["diffuse", "v. 扩散；散布；缓解", "The government tried to diffuse the tension."],
+  ["gloom", "n. 阴暗；忧郁；沮丧", "A sense of gloom hung over the office after the announcement."],
+  ["endure", "v. 忍受；忍耐；持续", "She endured years of hardship without complaint."],
+  ["distributed", "adj. 分布式的；分散的", "The company runs a distributed network across several cities."],
+  ["dazzling", "adj. 耀眼的；令人赞叹的", "She gave a dazzling performance on opening night."],
+  ["envisage", "v. 设想；展望", "Few people envisaged how quickly the town would change."],
+  ["descendant", "n. 后代；子孙", "He is a direct descendant of the village founder."],
+  ["passing fad", "一时的风尚；短暂流行", "The editor dismissed the craze as a passing fad."],
+  ["prospect", "n. 前景；可能性", "The prospect of working abroad excited her."],
+  ["merge", "v. 合并；融合", "The two firms agreed to merge by the end of the year."],
+  ["hyperactive", "adj. 过度活跃的；极度亢奋的", "The child became hyperactive after too much sugar."],
+  ["hyper", "adj. 过度兴奋的；过于紧张的", "He gets hyper before every important match."],
+  ["might", "n. 力量；威力", "The empire used its military might to expand its borders."],
+  ["surpass", "v. 超过；胜过", "Her latest novel surpasses her earlier work in depth."],
+  ["concentrate", "v. 集中注意力；专注于", "Please concentrate on the question in front of you."],
+  ["account for", "占；解释；导致", "Online orders now account for half of our sales."],
+  ["on account of", "因为；由于", "The flight was delayed on account of bad weather."],
+  ["affiliate", "n. 附属机构；联属机构", "The university opened a new affiliate in Shenzhen."],
+  ["detrimental", "adj. 有害的；不利的", "Lack of sleep can be detrimental to your health."],
+  ["scanty", "adj. 不足的；很少的", "The report was based on scanty evidence."],
+  ["telecom", "n. 电信；电信行业", "The telecom sector is investing heavily in rural coverage."],
+  ["last resort", "最后手段；无奈之举", "We will go to court only as a last resort."],
+  ["infringement", "n. 侵犯；侵害；违背", "The company denied any infringement of the patent."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "46";
+const APP_VERSION = "47";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
