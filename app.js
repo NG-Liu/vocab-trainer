@@ -274,11 +274,17 @@
   ["scanty", "adj. 不足的；很少的", "The report was based on scanty evidence."],
   ["telecom", "n. 电信；电信行业", "The telecom sector is investing heavily in rural coverage."],
   ["last resort", "最后手段；无奈之举", "We will go to court only as a last resort."],
-  ["infringement", "n. 侵犯；侵害；违背", "The company denied any infringement of the patent."]
+  ["infringement", "n. 侵犯；侵害；违背", "The company denied any infringement of the patent."],
+  ["assist", "v. 帮助；协助", "A nurse assisted the doctor during the operation."],
+  ["dismiss", "v. 解雇；驳回；不予理会", "The judge dismissed the case for lack of evidence."],
+  ["sustain", "v. 维持；支撑；遭受", "The company must sustain growth without cutting quality."],
+  ["reform", "n./v. 改革；改良", "The government introduced reforms to improve education."],
+  ["conversely", "adv. 相反地", "High demand can raise prices; conversely, weak demand can lower them."],
+  ["converse", "v. 交谈；adj. 相反的", "The two managers conversed privately after the meeting."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "48";
+const APP_VERSION = "49";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
