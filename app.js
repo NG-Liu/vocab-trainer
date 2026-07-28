@@ -280,11 +280,23 @@
   ["sustain", "v. 维持；支撑；遭受", "The company must sustain growth without cutting quality."],
   ["reform", "n./v. 改革；改良", "The government introduced reforms to improve education."],
   ["conversely", "adv. 相反地", "High demand can raise prices; conversely, weak demand can lower them."],
-  ["converse", "v. 交谈；adj. 相反的", "The two managers conversed privately after the meeting."]
+  ["converse", "v. 交谈；adj. 相反的", "The two managers conversed privately after the meeting."],
+  ["appoint", "v. 任命；委派", "The board appointed her chief executive."],
+  ["designate", "v. 指定；命名", "The area was designated as a national park."],
+  ["extract", "v. 提取；取出", "Scientists extracted DNA from the sample."],
+  ["aggravate", "v. 使恶化；加重", "Lack of sleep can aggravate the condition."],
+  ["moderate", "adj. 适度的；温和的；v. 缓和", "Exercise can moderate the effects of stress."],
+  ["negotiation", "n. 协商；谈判", "After weeks of negotiation, both sides reached an agreement."],
+  ["recite", "v. 背诵；朗诵", "Each student had to recite a short poem."],
+  ["ritual", "n. 仪式；惯例", "Drinking tea became part of her morning ritual."],
+  ["thread", "n. 线；线索；脉络", "A loose thread hung from his sleeve."],
+  ["inspect", "v. 检查；视察", "Engineers inspected the bridge for structural damage."],
+  ["come down with", "患上；染上（疾病）", "She came down with the flu before the exam."],
+  ["serve up", "v. 端上；提供", "The restaurant serves up fresh seafood every evening."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "49";
+const APP_VERSION = "50";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
