@@ -292,11 +292,28 @@
   ["thread", "n. 线；线索；脉络", "A loose thread hung from his sleeve."],
   ["inspect", "v. 检查；视察", "Engineers inspected the bridge for structural damage."],
   ["come down with", "患上；染上（疾病）", "She came down with the flu before the exam."],
-  ["serve up", "v. 端上；提供", "The restaurant serves up fresh seafood every evening."]
+  ["serve up", "v. 端上；提供", "The restaurant serves up fresh seafood every evening."],
+  ["territory", "n. 领土；领域；地盘", "The river marks the edge of their territory."],
+  ["convention", "n. 惯例；大会；公约", "By convention, guests wait for the host to begin."],
+  ["aerobic", "adj. 有氧的；需氧的", "Swimming is an excellent aerobic exercise."],
+  ["fiber", "n. 纤维；纤维质", "Whole grains are a good source of dietary fiber."],
+  ["eliminate", "v. 消除；淘汰", "The new filter eliminates harmful chemicals from the water."],
+  ["severe", "adj. 严重的；严厉的", "The storm caused severe damage along the coast."],
+  ["symptoms", "n. 症状（复数）", "Her symptoms improved after a few days of rest."],
+  ["maintenance", "n. 维护；保养；维持", "Regular maintenance keeps the machine running safely."],
+  ["complementary", "adj. 互补的；补充的", "The two approaches are complementary rather than competing."],
+  ["compensating", "v. 补偿；弥补（compensate 的现在分词）", "The company is compensating residents for the damage."],
+  ["mean value", "n. 平均值", "The mean value of the measurements was 18.4."],
+  ["hostile", "adj. 敌对的；不友善的", "The proposal received a hostile response from local residents."],
+  ["binding", "adj. 有约束力的；有法律效力的", "The court's decision is legally binding."],
+  ["tricky", "adj. 棘手的；难处理的", "Finding the source of the leak was tricky."],
+  ["tedious", "adj. 单调乏味的；冗长的", "Entering the data by hand was slow and tedious."],
+  ["instructive", "adj. 有教育意义的；有启发性的", "The experiment was both simple and instructive."],
+  ["scarce", "adj. 稀缺的；不足的", "Clean water becomes scarce during the dry season."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "50";
+const APP_VERSION = "51";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
