@@ -309,11 +309,25 @@
   ["tricky", "adj. 棘手的；难处理的", "Finding the source of the leak was tricky."],
   ["tedious", "adj. 单调乏味的；冗长的", "Entering the data by hand was slow and tedious."],
   ["instructive", "adj. 有教育意义的；有启发性的", "The experiment was both simple and instructive."],
-  ["scarce", "adj. 稀缺的；不足的", "Clean water becomes scarce during the dry season."]
+  ["scarce", "adj. 稀缺的；不足的", "Clean water becomes scarce during the dry season."],
+  ["literally", "adv. 按字面地；确实地", "The word literally means 'without light'."],
+  ["intentionally", "adv. 故意地；有意地", "He intentionally left the question unanswered."],
+  ["eventually", "adv. 最终；终于", "After several attempts, she eventually passed the exam."],
+  ["occasionally", "adv. 偶尔；有时", "We occasionally meet for coffee after work."],
+  ["solely", "adv. 仅仅；完全", "The decision was based solely on cost."],
+  ["initially", "adv. 最初；起初", "Initially, the plan seemed too expensive."],
+  ["as long as", "只要；和...一样长", "You can borrow the car as long as you drive carefully."],
+  ["indeed", "adv. 的确；实际上", "The results were indeed better than expected."],
+  ["nevertheless", "adv. 然而；尽管如此", "The journey was difficult; nevertheless, they continued."],
+  ["disgusting", "adj. 令人恶心的；令人厌恶的", "The kitchen was filled with a disgusting smell."],
+  ["subsequent", "adj. 随后的；后来的", "Subsequent tests confirmed the original result."],
+  ["reproduce", "v. 再现；复制；繁殖", "Other researchers failed to reproduce the result."],
+  ["speculate", "v. 推测；猜测；投机", "It is too early to speculate about the cause."],
+  ["theorize", "v. 提出理论；从理论上说明", "Scientists theorize that the lake was formed by a glacier."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "51";
+const APP_VERSION = "52";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
