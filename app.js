@@ -327,7 +327,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "52";
+const APP_VERSION = "53";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -1101,6 +1101,7 @@ function buildQueue(type) {
   const filtered = words.filter((word) => {
     const item = progress[word.id] || createProgress();
     if (type === "unmastered") return item.level < 4;
+    if (type === "mastered") return item.level >= 4;
     if (type === "new") return item.seen === 0;
     if (type === "wrong") return item.wrong > 0;
     if (type === "all") return true;
@@ -1108,7 +1109,7 @@ function buildQueue(type) {
   });
 
   const sorted = filtered.sort(byNeed);
-  return type === "unmastered" ? sorted : sorted.slice(0, 40);
+  return type === "unmastered" || type === "mastered" ? sorted : sorted.slice(0, 40);
 }
 
 function buildTodayQueue() {
@@ -1254,6 +1255,7 @@ function getCurrentQueueLabel() {
   const position = currentIndex + 1;
   if (currentQueueType === "due") return `${position} / ${currentQueue.length}`;
   if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
+  if (currentQueueType === "mastered") return `已掌握单词：第 ${position} 个`;
   if (currentQueueType === "new") return `未学单词：第 ${position} 个`;
   if (currentQueueType === "wrong") return `错词优先：第 ${position} 个`;
   return `第 ${position} 个`;
