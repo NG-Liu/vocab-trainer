@@ -327,7 +327,7 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "53";
+const APP_VERSION = "54";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -1296,13 +1296,16 @@ function rateCurrent(rating) {
     return;
   }
 
-  recordRating(word, rating);
+  const demoteToUnmastered = rating === "hard" && currentQueueType === "mastered";
+  recordRating(word, rating, { demoteToUnmastered });
 
   if (rating === "hard") {
     markTodaySessionPendingHard(word.id);
     revealAnswer();
     awaitingHardAdvance = true;
-    els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
+    els.feedbackText.textContent = demoteToUnmastered
+      ? "已降为未掌握，先看一下释义。"
+      : "已加入重点复习，先看一下释义。";
     toggleReviewControls(true);
     return;
   }
@@ -1313,7 +1316,9 @@ function rateCurrent(rating) {
 function recordRating(word, rating, options = {}) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
-  const next = scheduleNext(progress, rating);
+  const next = scheduleNext(progress, rating, {
+    demoteToUnmastered: options.demoteToUnmastered === true
+  });
   Object.assign(progress, next, {
     seen: progress.seen + 1,
     correct: progress.correct + (correct ? 1 : 0),
@@ -1357,7 +1362,7 @@ function markTodaySessionPendingHard(wordId) {
   saveState();
 }
 
-function scheduleNext(progress, rating) {
+function scheduleNext(progress, rating, options = {}) {
   const currentLevel = progress.level || 0;
   const intervalMap = {
     hard: 0,
@@ -1367,7 +1372,9 @@ function scheduleNext(progress, rating) {
   };
   const level =
     rating === "hard"
-      ? Math.max(0, currentLevel - 1)
+      ? options.demoteToUnmastered
+        ? 3
+        : Math.max(0, currentLevel - 1)
       : rating === "mastered"
         ? 5
         : Math.min(5, currentLevel + (rating === "easy" ? 1 : 0.5));
