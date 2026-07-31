@@ -331,7 +331,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "56";
+const APP_VERSION = "57";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -2127,7 +2127,7 @@ async function syncCloudProgress({ silent = false, allowCreate = false, throwOnE
     const result = await cloudSyncPromise;
     if (cloudSyncConnection.code !== code) return result;
     cloudSyncConnection.revision = result.revision;
-    cloudSyncConnection.lastSyncedAt = result.updatedAt || Date.now();
+    cloudSyncConnection.lastSyncedAt = Date.now();
     saveCloudSyncConnection();
     setCloudSyncStatus(result.changed ? "同步完成，进度已更新。" : "进度已是最新。", "success", silent);
     return result;
