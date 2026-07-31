@@ -503,12 +503,60 @@ textarea {
 
 .data-panel {
   width: min(460px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .data-actions {
   display: grid;
   gap: 10px;
   margin: 18px 0 12px;
+}
+
+.data-panel h3 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}
+
+.sync-section {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.backup-section {
+  padding-top: 20px;
+}
+
+.sync-code-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.sync-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.sync-code-row input {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.sync-code-row .ghost-button {
+  min-width: 66px;
+  padding: 0 12px;
+}
+
+.sync-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
 }
 
 .close-button {

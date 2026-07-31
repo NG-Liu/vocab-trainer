@@ -51,3 +51,23 @@ window.VOCAB_SUBMISSION_ENDPOINT = "https://vocab-submission.your-name.workers.d
 ## 审核流程
 
 用户提交后，仓库会多出 `submissions/pending/...` 目录。你审核 `source.txt` 后，再决定是否整理成正式词本。正式词本的创建不由用户提交自动触发。
+
+## 跨设备进度同步
+
+同一个 Worker 还提供 `/sync/pull` 和 `/sync/push` 两个进度同步接口。进度写入 Cloudflare KV，不写入 GitHub 仓库。
+
+部署前创建 KV namespace，并把它绑定为 `PROGRESS_SYNC`：
+
+```text
+npx wrangler kv namespace create PROGRESS_SYNC
+```
+
+然后把命令返回的 namespace id 写入 `wrangler.toml`：
+
+```toml
+[[kv_namespaces]]
+binding = "PROGRESS_SYNC"
+id = "你的 namespace id"
+```
+
+前端使用随机 128 位同步码。学习进度在浏览器中通过 AES-GCM 加密后再上传，Worker 只保存密文、版本号和同步码派生出的鉴权摘要。同步码不包含在 JSON 备份中；遗失同步码后无法解密云端数据。

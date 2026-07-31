@@ -211,22 +211,50 @@
           <span aria-hidden="true">×</span>
         </button>
         <h2 id="dataTitle">数据管理</h2>
-        <p>导出会保存当前设备的全部词本、进度和复习记录。导入会覆盖当前本地数据，适合换设备迁移。</p>
-        <div class="data-actions">
-          <button class="primary-button" id="exportBackupButton" type="button">导出备份</button>
-          <button class="ghost-button" id="importBackupButton" type="button">导入备份</button>
-        </div>
-        <input id="backupInput" class="is-hidden" type="file" accept=".json,application/json" />
-        <p class="submit-status" id="dataStatus" role="status" aria-live="polite"></p>
+        <section class="sync-section" aria-labelledby="syncTitle">
+          <h3 id="syncTitle">跨设备同步</h3>
+          <label class="sync-code-label" for="syncCodeInput">同步码</label>
+          <div class="sync-code-row">
+            <input
+              id="syncCodeInput"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX"
+            />
+            <button class="ghost-button" id="copySyncCodeButton" type="button" disabled>复制</button>
+          </div>
+          <div class="sync-actions">
+            <button class="primary-button" id="createSyncCodeButton" type="button">生成同步码</button>
+            <button class="ghost-button" id="connectSyncButton" type="button">连接</button>
+            <button class="ghost-button" id="syncNowButton" type="button" disabled>立即同步</button>
+            <button class="ghost-button" id="disconnectSyncButton" type="button" disabled>断开</button>
+          </div>
+          <p class="submit-status" id="syncStatus" role="status" aria-live="polite">未连接</p>
+        </section>
+
+        <section class="backup-section" aria-labelledby="backupTitle">
+          <h3 id="backupTitle">本地备份</h3>
+          <p>导出会保存当前设备的全部词本、进度和复习记录。导入会覆盖当前本地数据。</p>
+          <div class="data-actions">
+            <button class="primary-button" id="exportBackupButton" type="button">导出备份</button>
+            <button class="ghost-button" id="importBackupButton" type="button">导入备份</button>
+          </div>
+          <input id="backupInput" class="is-hidden" type="file" accept=".json,application/json" />
+          <p class="submit-status" id="dataStatus" role="status" aria-live="polite"></p>
+        </section>
       </div>
     </div>
 
     <button class="meaning-bulk-button is-hidden" id="toggleAllMeaningsButton" type="button">全部显示</button>
 
-    <script src="submission-config.js?v=54"></script>
-    <script src="core-book-data.js?v=54"></script>
-    <script src="cet4-book-data.js?v=54"></script>
-    <script src="cet6-book-data.js?v=54"></script>
-    <script src="app.js?v=54"></script>
+    <script src="submission-config.js?v=55"></script>
+    <script src="cloud-sync.js?v=55"></script>
+    <script src="core-book-data.js?v=55"></script>
+    <script src="cet4-book-data.js?v=55"></script>
+    <script src="cet6-book-data.js?v=55"></script>
+    <script src="app.js?v=55"></script>
   </body>
 </html>

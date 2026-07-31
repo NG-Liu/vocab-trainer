@@ -8,3 +8,7 @@ GITHUB_OWNER = "NG-Liu"
 GITHUB_REPO = "vocab-trainer"
 GITHUB_BRANCH = "main"
 ALLOWED_ORIGIN = "https://ng-liu.github.io"
+
+[[kv_namespaces]]
+binding = "PROGRESS_SYNC"
+id = "4a21669a8a804f2799e4ac554357a97d"

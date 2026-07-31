@@ -327,7 +327,10 @@
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
-const APP_VERSION = "54";
+const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
+const CLOUD_SYNC_SCHEMA_VERSION = 1;
+const CLOUD_SYNC_DELAY = 1800;
+const APP_VERSION = "55";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -504,6 +507,11 @@ let deferredInstallPrompt = null;
 let isReloadingForUpdate = false;
 
 const state = loadState();
+let cloudSyncConnection = loadCloudSyncConnection();
+let cloudSyncTimer = null;
+let cloudSyncPromise = null;
+let cloudSyncDirty = false;
+let isApplyingCloudSync = false;
 Object.defineProperties(state, {
   words: {
     get() {
@@ -567,6 +575,13 @@ const els = {
   importBackupButton: document.querySelector("#importBackupButton"),
   backupInput: document.querySelector("#backupInput"),
   dataStatus: document.querySelector("#dataStatus"),
+  syncCodeInput: document.querySelector("#syncCodeInput"),
+  createSyncCodeButton: document.querySelector("#createSyncCodeButton"),
+  connectSyncButton: document.querySelector("#connectSyncButton"),
+  copySyncCodeButton: document.querySelector("#copySyncCodeButton"),
+  syncNowButton: document.querySelector("#syncNowButton"),
+  disconnectSyncButton: document.querySelector("#disconnectSyncButton"),
+  syncStatus: document.querySelector("#syncStatus"),
   tabs: document.querySelectorAll(".tab"),
   queueType: document.querySelector("#queueType"),
   reviewLimit: document.querySelector("#reviewLimit"),
@@ -609,6 +624,8 @@ function init() {
   ensureKatex();
   registerServiceWorker();
   renderAll();
+  renderCloudSyncControls();
+  if (cloudSyncConnection.code) scheduleCloudSync(0);
 }
 
 function bindEvents() {
@@ -661,6 +678,18 @@ function bindEvents() {
   els.importBackupButton.addEventListener("click", () => els.backupInput.click());
   els.backupInput.addEventListener("change", handleBackupImport);
   els.refreshButton.addEventListener("click", forceRefreshApp);
+  if (els.createSyncCodeButton) els.createSyncCodeButton.addEventListener("click", createCloudSyncConnection);
+  if (els.connectSyncButton) els.connectSyncButton.addEventListener("click", connectCloudSync);
+  if (els.copySyncCodeButton) els.copySyncCodeButton.addEventListener("click", copyCloudSyncCode);
+  if (els.syncNowButton) els.syncNowButton.addEventListener("click", () => syncCloudProgress({ silent: false }));
+  if (els.disconnectSyncButton) els.disconnectSyncButton.addEventListener("click", disconnectCloudSync);
+
+  window.addEventListener("online", () => {
+    if (cloudSyncConnection.code) scheduleCloudSync(0);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && cloudSyncConnection.code) scheduleCloudSync(250);
+  });
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -758,6 +787,7 @@ function closeInstallSheet() {
 
 function openDataSheet() {
   setDataStatus("");
+  renderCloudSyncControls();
   els.dataSheet.classList.remove("is-hidden");
 }
 
@@ -789,8 +819,9 @@ function loadState() {
   }
 }
 
-function saveState() {
+function saveState(options = {}) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!options.skipCloudSync && !isApplyingCloudSync) scheduleCloudSync();
 }
 
 function normalizeState(parsed, fallback) {
@@ -1148,7 +1179,7 @@ function createTodaySession(date, book = ensureCurrentBook(), limit = getReviewL
     .slice(0, limit)
     .map((word) => word.id);
 
-  return { date, limit, queueIds, index: 0, pendingHardId: null };
+  return { date, limit, queueIds, index: 0, pendingHardId: null, updatedAt: Date.now() };
 }
 
 function reconcileTodaySession(session, book, limit = getReviewLimit()) {
@@ -1166,7 +1197,19 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
   }
 
   const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
-  return { ...session, limit, queueIds, index, pendingHardId };
+  const changed =
+    limit !== session.limit ||
+    index !== session.index ||
+    pendingHardId !== session.pendingHardId ||
+    queueIds.join("|") !== (session.queueIds || []).join("|");
+  return {
+    ...session,
+    limit,
+    queueIds,
+    index,
+    pendingHardId,
+    updatedAt: changed ? Date.now() : Number(session.updatedAt) || 0
+  };
 }
 
 function getDueWordsForToday(book) {
@@ -1351,6 +1394,7 @@ function saveTodaySessionPosition() {
   const session = getTodaySession();
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = null;
+  session.updatedAt = Date.now();
   saveState();
 }
 
@@ -1359,6 +1403,7 @@ function markTodaySessionPendingHard(wordId) {
   const session = getTodaySession();
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = wordId;
+  session.updatedAt = Date.now();
   saveState();
 }
 
@@ -1929,6 +1974,444 @@ function isJsonFile(file) {
 function setDataStatus(message, type) {
   els.dataStatus.textContent = message;
   els.dataStatus.className = `submit-status${type ? ` is-${type}` : ""}`;
+}
+
+function loadCloudSyncConnection() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CLOUD_SYNC_STORAGE_KEY));
+    const code = window.VocabCloudSync?.formatCode(parsed?.code || "");
+    return {
+      code,
+      revision: normalizeCloudRevision(parsed?.revision),
+      lastSyncedAt: Number(parsed?.lastSyncedAt) || null
+    };
+  } catch {
+    return { code: "", revision: 0, lastSyncedAt: null };
+  }
+}
+
+function saveCloudSyncConnection() {
+  if (!cloudSyncConnection.code) {
+    localStorage.removeItem(CLOUD_SYNC_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(CLOUD_SYNC_STORAGE_KEY, JSON.stringify(cloudSyncConnection));
+}
+
+function renderCloudSyncControls() {
+  if (!els.syncCodeInput) return;
+  const connected = Boolean(cloudSyncConnection.code);
+  if (connected) els.syncCodeInput.value = cloudSyncConnection.code;
+  els.copySyncCodeButton.disabled = !connected || Boolean(cloudSyncPromise);
+  els.syncNowButton.disabled = !connected || Boolean(cloudSyncPromise);
+  els.disconnectSyncButton.disabled = !connected || Boolean(cloudSyncPromise);
+  els.createSyncCodeButton.disabled = Boolean(cloudSyncPromise);
+  els.connectSyncButton.disabled = Boolean(cloudSyncPromise);
+
+  if (!els.syncStatus.textContent || els.syncStatus.dataset.passive === "true") {
+    const message = connected
+      ? cloudSyncConnection.lastSyncedAt
+        ? `已连接，上次同步：${formatCloudSyncTime(cloudSyncConnection.lastSyncedAt)}`
+        : "已连接，等待首次同步。"
+      : "未连接";
+    setCloudSyncStatus(message, "", true);
+  }
+}
+
+async function createCloudSyncConnection() {
+  const api = window.VocabCloudSync;
+  if (!api) {
+    setCloudSyncStatus("同步组件加载失败，请刷新网页。", "error");
+    return;
+  }
+
+  const code = api.generateCode();
+  cloudSyncConnection = { code, revision: 0, lastSyncedAt: null };
+  saveCloudSyncConnection();
+  els.syncCodeInput.value = code;
+  setCloudSyncStatus("正在创建云端进度...", "");
+  renderCloudSyncControls();
+  await syncCloudProgress({ silent: false, allowCreate: true });
+}
+
+async function connectCloudSync() {
+  const api = window.VocabCloudSync;
+  if (!api) {
+    setCloudSyncStatus("同步组件加载失败，请刷新网页。", "error");
+    return;
+  }
+
+  let code;
+  try {
+    code = api.formatCode(els.syncCodeInput.value);
+  } catch (error) {
+    setCloudSyncStatus(error.message || "同步码格式不正确。", "error");
+    return;
+  }
+
+  const previousConnection = cloudSyncConnection;
+  cloudSyncConnection = { code, revision: 0, lastSyncedAt: null };
+  renderCloudSyncControls();
+  try {
+    await syncCloudProgress({ silent: false, allowCreate: false, throwOnError: true });
+  } catch {
+    cloudSyncConnection = previousConnection;
+    renderCloudSyncControls();
+  }
+}
+
+async function copyCloudSyncCode() {
+  if (!cloudSyncConnection.code) return;
+  try {
+    await navigator.clipboard.writeText(cloudSyncConnection.code);
+    setCloudSyncStatus("同步码已复制。", "success");
+  } catch {
+    els.syncCodeInput.focus();
+    els.syncCodeInput.select();
+    setCloudSyncStatus("请长按同步码复制。", "");
+  }
+}
+
+function disconnectCloudSync() {
+  if (cloudSyncTimer) window.clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = null;
+  cloudSyncDirty = false;
+  cloudSyncConnection = { code: "", revision: 0, lastSyncedAt: null };
+  saveCloudSyncConnection();
+  if (els.syncCodeInput) els.syncCodeInput.value = "";
+  setCloudSyncStatus("已断开，本机学习数据仍保留。", "success");
+  renderCloudSyncControls();
+}
+
+function scheduleCloudSync(delay = CLOUD_SYNC_DELAY) {
+  if (!cloudSyncConnection.code || !window.VocabCloudSync || !navigator.onLine) return;
+  cloudSyncDirty = true;
+  if (cloudSyncPromise) return;
+  if (cloudSyncTimer) window.clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = window.setTimeout(() => {
+    cloudSyncTimer = null;
+    syncCloudProgress({ silent: true });
+  }, Math.max(0, delay));
+}
+
+async function syncCloudProgress({ silent = false, allowCreate = false, throwOnError = false } = {}) {
+  if (!cloudSyncConnection.code) {
+    if (!silent) setCloudSyncStatus("请先生成或输入同步码。", "error");
+    return null;
+  }
+  if (cloudSyncPromise) {
+    cloudSyncDirty = true;
+    return cloudSyncPromise;
+  }
+
+  if (cloudSyncTimer) window.clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = null;
+  cloudSyncDirty = false;
+  if (!silent) setCloudSyncStatus("正在同步...", "");
+
+  const code = cloudSyncConnection.code;
+  cloudSyncPromise = performCloudSync(code, allowCreate);
+  renderCloudSyncControls();
+  try {
+    const result = await cloudSyncPromise;
+    if (cloudSyncConnection.code !== code) return result;
+    cloudSyncConnection.revision = result.revision;
+    cloudSyncConnection.lastSyncedAt = result.updatedAt || Date.now();
+    saveCloudSyncConnection();
+    setCloudSyncStatus(result.changed ? "同步完成，进度已更新。" : "进度已是最新。", "success", silent);
+    return result;
+  } catch (error) {
+    const message = error?.code === "not_found" ? "没有找到这个同步码，请核对后重试。" : error.message || "同步失败，请稍后再试。";
+    setCloudSyncStatus(message, "error");
+    if (throwOnError) throw error;
+    return null;
+  } finally {
+    cloudSyncPromise = null;
+    renderCloudSyncControls();
+    if (cloudSyncDirty && cloudSyncConnection.code === code) scheduleCloudSync();
+  }
+}
+
+async function performCloudSync(code, allowCreate) {
+  const api = window.VocabCloudSync;
+  const endpoint = getSubmissionEndpoint();
+  if (!api || !endpoint) throw new Error("同步后端尚未配置。");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const remote = await api.pull(endpoint, code);
+    if (!remote.exists && !allowCreate) {
+      throw new api.CloudSyncError("没有找到这个同步码。", 404, "not_found");
+    }
+
+    const localSnapshot = createCloudSyncSnapshot();
+    const mergedSnapshot = remote.exists
+      ? mergeCloudSyncSnapshots(localSnapshot, remote.snapshot)
+      : localSnapshot;
+    const localChanged = stableSnapshotJson(localSnapshot) !== stableSnapshotJson(mergedSnapshot);
+    const remoteChanged = !remote.exists || stableSnapshotJson(remote.snapshot) !== stableSnapshotJson(mergedSnapshot);
+
+    if (localChanged) applyCloudSyncSnapshot(mergedSnapshot);
+    if (!remoteChanged) {
+      return { revision: remote.revision, updatedAt: remote.updatedAt || Date.now(), changed: localChanged };
+    }
+
+    try {
+      const pushed = await api.push(endpoint, code, remote.revision, mergedSnapshot);
+      return { ...pushed, changed: true };
+    } catch (error) {
+      if (error?.code !== "revision_conflict" || attempt === 1) throw error;
+    }
+  }
+  throw new Error("同步冲突，请重新同步。");
+}
+
+function createCloudSyncSnapshot() {
+  ensureBooks();
+  const books = {};
+  BOOK_DEFINITIONS.forEach((definition) => {
+    const book = state.books[definition.id];
+    if (!book) return;
+    const builtInWordIds = new Set(definition.words.map((word) => word.id));
+    const validWordIds = new Set(book.words.map((word) => word.id));
+    const progress = {};
+    Object.entries(book.progress || {}).forEach(([wordId, value]) => {
+      if (!validWordIds.has(wordId)) return;
+      const normalized = normalizeCloudProgress(value);
+      if (isMeaningfulCloudProgress(normalized) || !builtInWordIds.has(wordId)) progress[wordId] = normalized;
+    });
+
+    books[definition.id] = {
+      extraWords: book.words.filter((word) => !builtInWordIds.has(word.id)).map(normalizeCloudWord).filter(Boolean),
+      progress,
+      history: normalizeCloudHistory(book.history),
+      todaySession: normalizeCloudTodaySession(book.todaySession)
+    };
+  });
+  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+}
+
+function mergeCloudSyncSnapshots(localSnapshot, remoteSnapshot) {
+  const local = normalizeCloudSnapshot(localSnapshot);
+  const remote = normalizeCloudSnapshot(remoteSnapshot);
+  const books = {};
+  BOOK_DEFINITIONS.forEach((definition) => {
+    const localBook = local.books[definition.id] || getEmptyCloudBook();
+    const remoteBook = remote.books[definition.id] || getEmptyCloudBook();
+    books[definition.id] = mergeCloudBook(localBook, remoteBook);
+  });
+  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+}
+
+function normalizeCloudSnapshot(snapshot) {
+  if (!snapshot || snapshot.schemaVersion !== CLOUD_SYNC_SCHEMA_VERSION || !snapshot.books || typeof snapshot.books !== "object") {
+    throw new Error("云端进度版本不兼容。");
+  }
+  const books = {};
+  BOOK_DEFINITIONS.forEach((definition) => {
+    const source = snapshot.books[definition.id];
+    if (!source || typeof source !== "object") {
+      books[definition.id] = getEmptyCloudBook();
+      return;
+    }
+    const extraWords = Array.isArray(source.extraWords)
+      ? source.extraWords.slice(0, 2000).map(normalizeCloudWord).filter(Boolean)
+      : [];
+    const progress = {};
+    Object.entries(source.progress && typeof source.progress === "object" ? source.progress : {})
+      .slice(0, 20000)
+      .forEach(([wordId, value]) => {
+        if (typeof wordId === "string" && wordId.length <= 160) progress[wordId] = normalizeCloudProgress(value);
+      });
+    books[definition.id] = {
+      extraWords,
+      progress,
+      history: normalizeCloudHistory(source.history),
+      todaySession: normalizeCloudTodaySession(source.todaySession)
+    };
+  });
+  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+}
+
+function mergeCloudBook(localBook, remoteBook) {
+  const extraWords = new Map(remoteBook.extraWords.map((word) => [word.id, word]));
+  localBook.extraWords.forEach((word) => extraWords.set(word.id, word));
+
+  const progress = {};
+  const wordIds = new Set([...Object.keys(remoteBook.progress), ...Object.keys(localBook.progress)]);
+  wordIds.forEach((wordId) => {
+    progress[wordId] = pickNewerCloudProgress(localBook.progress[wordId], remoteBook.progress[wordId]);
+  });
+
+  return {
+    extraWords: Array.from(extraWords.values()),
+    progress,
+    history: mergeCloudHistory(localBook.history, remoteBook.history),
+    todaySession: pickNewerCloudTodaySession(localBook.todaySession, remoteBook.todaySession)
+  };
+}
+
+function pickNewerCloudProgress(local, remote) {
+  if (!local) return remote;
+  if (!remote) return local;
+  const localReviewed = Number(local.lastReviewed) || 0;
+  const remoteReviewed = Number(remote.lastReviewed) || 0;
+  if (localReviewed !== remoteReviewed) return localReviewed > remoteReviewed ? local : remote;
+  if (local.seen !== remote.seen) return local.seen > remote.seen ? local : remote;
+  const localAnswers = local.correct + local.wrong;
+  const remoteAnswers = remote.correct + remote.wrong;
+  if (localAnswers !== remoteAnswers) return localAnswers > remoteAnswers ? local : remote;
+  return local;
+}
+
+function mergeCloudHistory(localHistory, remoteHistory) {
+  const history = new Map();
+  [...remoteHistory, ...localHistory].forEach((item) => {
+    history.set(`${item.id}|${item.rating}|${item.at}`, item);
+  });
+  return Array.from(history.values()).sort((a, b) => b.at - a.at).slice(0, 80);
+}
+
+function pickNewerCloudTodaySession(local, remote) {
+  if (!local) return remote;
+  if (!remote) return local;
+  if (local.date !== remote.date) return local.date > remote.date ? local : remote;
+  if (local.updatedAt !== remote.updatedAt) return local.updatedAt > remote.updatedAt ? local : remote;
+  return local.index >= remote.index ? local : remote;
+}
+
+function applyCloudSyncSnapshot(snapshot) {
+  const normalized = normalizeCloudSnapshot(snapshot);
+  isApplyingCloudSync = true;
+  try {
+    BOOK_DEFINITIONS.forEach((definition) => {
+      const book = state.books[definition.id];
+      const cloudBook = normalized.books[definition.id];
+      const builtInWordIds = new Set(definition.words.map((word) => word.id));
+      const existingWordIds = new Set(book.words.map((word) => word.id));
+      cloudBook.extraWords.forEach((word) => {
+        if (builtInWordIds.has(word.id) || existingWordIds.has(word.id)) return;
+        book.words.push({ ...word });
+        existingWordIds.add(word.id);
+      });
+      Object.entries(cloudBook.progress).forEach(([wordId, progress]) => {
+        if (existingWordIds.has(wordId)) book.progress[wordId] = { ...createProgress(), ...progress };
+      });
+      book.history = cloudBook.history.map((item) => ({ ...item }));
+      book.todaySession = cloudBook.todaySession ? { ...cloudBook.todaySession, queueIds: [...cloudBook.todaySession.queueIds] } : null;
+      orderBookWords(book, definition);
+    });
+    saveState({ skipCloudSync: true });
+  } finally {
+    isApplyingCloudSync = false;
+  }
+
+  renderAll();
+  if (currentQueueType === "due" && currentIndex >= 0) {
+    currentQueue = buildTodayQueue();
+    currentIndex = getTodaySession().index;
+    renderCurrentCard();
+  }
+}
+
+function normalizeCloudWord(value) {
+  if (!value || typeof value !== "object") return null;
+  const term = String(value.term || "").trim().slice(0, 160);
+  const meaning = String(value.meaning || "").trim().slice(0, 1000);
+  if (!term || !meaning) return null;
+  const id = makeId(term);
+  if (!id) return null;
+  return { id, term, meaning, example: String(value.example || "").trim().slice(0, 2000) };
+}
+
+function normalizeCloudProgress(value) {
+  const progress = value && typeof value === "object" ? value : {};
+  return {
+    level: clampCloudNumber(progress.level, 0, 5),
+    interval: clampCloudInteger(progress.interval, 0, 36500),
+    dueAt: normalizeCloudTimestamp(progress.dueAt) || startOfToday(),
+    seen: clampCloudInteger(progress.seen, 0, 1000000),
+    correct: clampCloudInteger(progress.correct, 0, 1000000),
+    wrong: clampCloudInteger(progress.wrong, 0, 1000000),
+    lastReviewed: normalizeCloudTimestamp(progress.lastReviewed)
+  };
+}
+
+function isMeaningfulCloudProgress(progress) {
+  return progress.level > 0 || progress.interval > 0 || progress.seen > 0 || progress.correct > 0 || progress.wrong > 0 || progress.lastReviewed !== null;
+}
+
+function normalizeCloudHistory(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 160)
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const id = String(item.id || "").slice(0, 160);
+      const term = String(item.term || "").slice(0, 160);
+      const rating = ["hard", "medium", "easy", "mastered"].includes(item.rating) ? item.rating : "hard";
+      const at = normalizeCloudTimestamp(item.at);
+      if (!id || !term || !at) return null;
+      return { id, term, rating, correct: rating !== "hard", at };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 80);
+}
+
+function normalizeCloudTodaySession(value) {
+  if (!value || typeof value !== "object" || !/^\d{4}-\d{2}-\d{2}$/.test(value.date || "")) return null;
+  const limit = normalizeReviewLimit(value.limit);
+  const queueIds = Array.isArray(value.queueIds)
+    ? value.queueIds.filter((id) => typeof id === "string" && id.length <= 160).slice(0, limit)
+    : [];
+  const index = Math.min(clampCloudInteger(value.index, 0, queueIds.length), queueIds.length);
+  const pendingHardId = queueIds[index] === value.pendingHardId ? value.pendingHardId : null;
+  return {
+    date: value.date,
+    limit,
+    queueIds,
+    index,
+    pendingHardId,
+    updatedAt: normalizeCloudTimestamp(value.updatedAt) || 0
+  };
+}
+
+function getEmptyCloudBook() {
+  return { extraWords: [], progress: {}, history: [], todaySession: null };
+}
+
+function stableSnapshotJson(snapshot) {
+  return JSON.stringify(normalizeCloudSnapshot(snapshot));
+}
+
+function normalizeCloudTimestamp(value) {
+  const timestamp = Number(value);
+  return Number.isFinite(timestamp) && timestamp > 0 ? Math.round(timestamp) : null;
+}
+
+function normalizeCloudRevision(value) {
+  const revision = Number(value);
+  return Number.isSafeInteger(revision) && revision >= 0 ? revision : 0;
+}
+
+function clampCloudInteger(value, min, max) {
+  return Math.round(clampCloudNumber(value, min, max));
+}
+
+function clampCloudNumber(value, min, max) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : min;
+}
+
+function formatCloudSyncTime(value) {
+  return new Date(value).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function setCloudSyncStatus(message, type, passive = false) {
+  if (!els.syncStatus) return;
+  els.syncStatus.textContent = message;
+  els.syncStatus.dataset.passive = passive ? "true" : "false";
+  els.syncStatus.className = `submit-status${type ? ` is-${type}` : ""}`;
 }
 
 function ensureKatex() {
