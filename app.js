@@ -323,7 +323,19 @@
   ["subsequent", "adj. 随后的；后来的", "Subsequent tests confirmed the original result."],
   ["reproduce", "v. 再现；复制；繁殖", "Other researchers failed to reproduce the result."],
   ["speculate", "v. 推测；猜测；投机", "It is too early to speculate about the cause."],
-  ["theorize", "v. 提出理论；从理论上说明", "Scientists theorize that the lake was formed by a glacier."]
+  ["theorize", "v. 提出理论；从理论上说明", "Scientists theorize that the lake was formed by a glacier."],
+  ["end up doing sth", "最终做某事；到头来做某事", "We missed the last bus and ended up walking home."],
+  ["carve", "v. 雕刻；切（熟肉）", "She carved the child's name into the wooden box."],
+  ["abdominal", "adj. 腹部的", "The patient complained of severe abdominal pain."],
+  ["regime", "n. 政权；政体；制度", "The military regime banned independent newspapers."],
+  ["colonialism", "n. 殖民主义", "The museum examines the lasting effects of colonialism."],
+  ["punctuality", "n. 准时；守时", "Punctuality is especially important in job interviews."],
+  ["hospitality", "n. 好客；殷勤款待", "We were touched by the warmth of their hospitality."],
+  ["revenue", "n. 收入；收益；财政收入", "Advertising provides most of the website's revenue."],
+  ["criterion", "n. 标准；准则", "Cost should not be the only criterion when choosing a school."],
+  ["roundabouts", "n. 环形交叉路口；环岛", "There are several roundabouts on the road into town."],
+  ["controversial", "adj. 有争议的；引发争论的", "The council approved the controversial housing project."],
+  ["pick up the pace", "加快速度；加快节奏", "We need to pick up the pace if we want to finish before dark."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -331,7 +343,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "57";
+const APP_VERSION = "58";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
