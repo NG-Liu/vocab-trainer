@@ -330,7 +330,8 @@ const STORAGE_KEY = "wordTrainer.v1";
 const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
-const APP_VERSION = "55";
+const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
+const APP_VERSION = "56";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -509,6 +510,7 @@ let isReloadingForUpdate = false;
 const state = loadState();
 let cloudSyncConnection = loadCloudSyncConnection();
 let cloudSyncTimer = null;
+let cloudSyncPollTimer = null;
 let cloudSyncPromise = null;
 let cloudSyncDirty = false;
 let isApplyingCloudSync = false;
@@ -625,6 +627,7 @@ function init() {
   registerServiceWorker();
   renderAll();
   renderCloudSyncControls();
+  startCloudSyncPolling();
   if (cloudSyncConnection.code) scheduleCloudSync(0);
 }
 
@@ -2092,6 +2095,14 @@ function scheduleCloudSync(delay = CLOUD_SYNC_DELAY) {
     cloudSyncTimer = null;
     syncCloudProgress({ silent: true });
   }, Math.max(0, delay));
+}
+
+function startCloudSyncPolling() {
+  if (cloudSyncPollTimer) window.clearInterval(cloudSyncPollTimer);
+  cloudSyncPollTimer = window.setInterval(() => {
+    if (document.visibilityState !== "visible" || !navigator.onLine || !cloudSyncConnection.code) return;
+    scheduleCloudSync(0);
+  }, CLOUD_SYNC_POLL_INTERVAL);
 }
 
 async function syncCloudProgress({ silent = false, allowCreate = false, throwOnError = false } = {}) {
