@@ -335,7 +335,27 @@
   ["criterion", "n. 标准；准则", "Cost should not be the only criterion when choosing a school."],
   ["roundabouts", "n. 环形交叉路口；环岛", "There are several roundabouts on the road into town."],
   ["controversial", "adj. 有争议的；引发争论的", "The council approved the controversial housing project."],
-  ["pick up the pace", "加快速度；加快节奏", "We need to pick up the pace if we want to finish before dark."]
+  ["pick up the pace", "加快速度；加快节奏", "We need to pick up the pace if we want to finish before dark."],
+  ["assess", "评估；评定；估算", "The committee will assess the risks before approving the plan."],
+  ["interpret", "解释；理解；口译", "People may interpret the same event in different ways."],
+  ["resume", "继续；重新开始；恢复", "The meeting will resume after a short break."],
+  ["with regard to", "关于；就……而言", "With regard to your request, we will reply by Friday."],
+  ["stand up for", "支持；维护；捍卫", "She always stands up for her friends when they are treated unfairly."],
+  ["go in for", "喜欢；参加；选择", "He does not usually go in for competitive sports."],
+  ["stock up for", "为……储备；囤积", "We stocked up for the winter before the roads were closed."],
+  ["implied", "暗示的；含蓄的", "Her silence implied that she disagreed with the decision."],
+  ["penalized", "受处罚的；被罚的", "The team was penalized for breaking the rules."],
+  ["affair", "事情；事务；风流韵事", "The whole affair was handled with great care."],
+  ["ethnic", "种族的；民族的", "The city is home to many different ethnic communities."],
+  ["inquiry", "询问；调查；查询", "We sent an inquiry about the delivery date."],
+  ["sibling", "兄弟；姐妹；兄弟姐妹", "She is the youngest of three siblings."],
+  ["naive", "天真的；幼稚的；缺乏经验的", "It was naive to believe that the problem would disappear by itself."],
+  ["confront", "面对；对抗；使面对", "We must confront the problem before it becomes worse."],
+  ["emerge from", "从……中出现；摆脱", "The company emerged from the crisis stronger than before."],
+  ["spoiled", "被宠坏的；腐败的；变质的", "The spoiled food had to be thrown away."],
+  ["revise", "修订；修改；复习", "I need to revise my essay before submitting it."],
+  ["fatigue", "疲劳；疲乏", "Long hours of work can lead to mental fatigue."],
+  ["wipe off", "擦掉；抹去；清除", "He wiped the mud off his shoes before entering."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -343,7 +363,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "58";
+const APP_VERSION = "59";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
