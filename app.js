@@ -363,7 +363,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "59";
+const APP_VERSION = "60";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -584,6 +584,7 @@ let currentQueue = [];
 let currentIndex = -1;
 let currentQueueType = "due";
 let awaitingHardAdvance = false;
+let reviewAnswerWordId = null;
 const expandedLibraryMeaningIdsByBook = Object.create(null);
 let inlineReviewWordId = null;
 let inlineReviewAnswerVisible = false;
@@ -1084,6 +1085,7 @@ function switchBook(bookId) {
   currentIndex = -1;
   currentQueueType = "due";
   awaitingHardAdvance = false;
+  reviewAnswerWordId = null;
   els.queueType.value = "due";
   saveState();
   syncBookSelect();
@@ -1147,6 +1149,7 @@ function startSession() {
   currentQueueType = els.queueType.value;
   currentQueue = buildQueue(currentQueueType);
   currentIndex = currentQueueType === "due" ? getTodaySession().index : 0;
+  reviewAnswerWordId = null;
   renderCurrentCard();
 }
 
@@ -1265,10 +1268,12 @@ function renderCurrentCard() {
   const mathBook = isMathBook();
   const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
+  const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
   toggleReviewControls(hasWord);
   flashReviewCard();
 
   if (!hasWord) {
+    reviewAnswerWordId = null;
     hideDictionaryLink();
     if (currentQueueType === "due") {
       els.queueLabel.textContent = "今日复习已完成";
@@ -1292,11 +1297,11 @@ function renderCurrentCard() {
   if (els.dictionaryLink && dictionaryAllowed) {
     els.dictionaryLink.href = buildDictionaryUrl(word.term);
   }
-  els.answerBox.classList.toggle("is-hidden", !awaitingHardAdvance);
+  els.answerBox.classList.toggle("is-hidden", !answerVisible);
   hideDictionaryLink();
-  if (awaitingHardAdvance && dictionaryAllowed) {
+  if (answerVisible && dictionaryAllowed) {
     showDictionaryLink();
-    els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
+    if (awaitingHardAdvance) els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
   }
   els.showAnswerButton.classList.remove("is-hidden");
 }
@@ -1342,6 +1347,7 @@ function getCurrentQueueLabel() {
 function revealAnswer() {
   const word = currentQueue[currentIndex];
   if (!word) return;
+  reviewAnswerWordId = word.id;
   els.answerBox.classList.remove("is-hidden");
   if (shouldShowDictionaryLink()) showDictionaryLink();
   els.feedbackText.textContent = "";
@@ -1418,6 +1424,7 @@ function recordRating(word, rating, options = {}) {
 }
 
 function advanceToNext() {
+  reviewAnswerWordId = null;
   currentIndex += 1;
   saveTodaySessionPosition();
   renderAll();
@@ -1979,6 +1986,7 @@ async function handleBackupImport(event) {
     currentIndex = -1;
     currentQueueType = "due";
     awaitingHardAdvance = false;
+    reviewAnswerWordId = null;
     saveState();
     syncBookSelect();
     renderAll();
