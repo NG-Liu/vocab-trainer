@@ -1322,8 +1322,9 @@ function renderCurrentCard() {
     reviewAnswerWordId = null;
     hideDictionaryLink();
     if (currentQueueType === "due") {
-      els.queueLabel.textContent = "今日复习已完成";
-      els.promptText.textContent = `今天的 ${getReviewLimit()} 个已经背完`;
+      const total = getUniqueWordIds(getTodaySession().queueIds).length;
+      els.queueLabel.textContent = `今日复习已完成 · ${total} / ${total}`;
+      els.promptText.textContent = `今天的 ${total} 个已经背完`;
       els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
     } else {
       els.queueLabel.textContent = "没有待复习单词";
@@ -1398,11 +1399,13 @@ function getCurrentQueueLabel() {
   if (currentQueueType === "due") {
     const word = currentQueue[currentIndex];
     const session = getTodaySession();
+    const total = getUniqueWordIds(session.queueIds).length;
+    const completed = getUniqueWordIds(session.queueIds.slice(0, currentIndex)).length;
     const reviewNumber = word
       ? session.queueIds.slice(0, currentIndex + 1).filter((id) => id === word.id).length
       : 0;
     const retryLabel = reviewNumber > 1 ? ` · 第 ${reviewNumber} 次复习` : "";
-    return `${position} / ${currentQueue.length}${retryLabel}`;
+    return `${completed} / ${total}${retryLabel}`;
   }
   if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
   if (currentQueueType === "mastered") return `已掌握单词：第 ${position} 个`;
