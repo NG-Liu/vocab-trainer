@@ -363,7 +363,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "60";
+const APP_VERSION = "61";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -532,6 +532,8 @@ const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
 const DEFAULT_REVIEW_LIMIT = 50;
+const HARD_RETRY_GAPS = [4, 10];
+const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
 const LIBRARY_BATCH_SIZE = 120;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
@@ -1203,6 +1205,7 @@ function getTodaySession() {
     nextSession.limit !== book.todaySession.limit ||
     nextSession.index !== book.todaySession.index ||
     nextSession.pendingHardId !== book.todaySession.pendingHardId ||
+    !sameTodayHardReviewCounts(nextSession.hardReviewCounts, book.todaySession.hardReviewCounts) ||
     nextSession.queueIds.join("|") !== (book.todaySession.queueIds || []).join("|")
   ) {
     book.todaySession = nextSession;
@@ -1217,28 +1220,44 @@ function createTodaySession(date, book = ensureCurrentBook(), limit = getReviewL
     .slice(0, limit)
     .map((word) => word.id);
 
-  return { date, limit, queueIds, index: 0, pendingHardId: null, updatedAt: Date.now() };
+  return { date, limit, queueIds, index: 0, pendingHardId: null, hardReviewCounts: {}, updatedAt: Date.now() };
 }
 
 function reconcileTodaySession(session, book, limit = getReviewLimit()) {
   const validWordIds = new Set(book.words.map((word) => word.id));
-  let queueIds = (session.queueIds || []).filter((id) => validWordIds.has(id)).slice(0, limit);
-  const index = Math.min(Math.max(session.index || 0, 0), queueIds.length);
+  const previousQueueIds = Array.isArray(session.queueIds)
+    ? session.queueIds.filter((id) => validWordIds.has(id))
+    : [];
+  const previousIndex = Math.min(Math.max(session.index || 0, 0), previousQueueIds.length);
+  const baseQueueIds = getUniqueWordIds(previousQueueIds).slice(0, limit);
 
-  if (queueIds.length < limit) {
-    const queued = new Set(queueIds);
+  if (baseQueueIds.length < limit) {
+    const queued = new Set(baseQueueIds);
     const extraIds = getDueWordsForToday(book)
       .filter((word) => !queued.has(word.id))
-      .slice(0, limit - queueIds.length)
+      .slice(0, limit - baseQueueIds.length)
       .map((word) => word.id);
-    queueIds = queueIds.concat(extraIds);
+    baseQueueIds.push(...extraIds);
   }
 
+  const allowedWordIds = new Set(baseQueueIds);
+  const maxQueueLength = limit * MAX_DAILY_HARD_REVIEWS;
+  const queueIds = previousQueueIds.filter((id) => allowedWordIds.has(id)).slice(0, maxQueueLength);
+  baseQueueIds.forEach((id) => {
+    if (!queueIds.includes(id)) queueIds.push(id);
+  });
+
+  const index = Math.min(
+    previousQueueIds.slice(0, previousIndex).filter((id) => allowedWordIds.has(id)).length,
+    queueIds.length
+  );
   const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
+  const hardReviewCounts = normalizeTodayHardReviewCounts(session.hardReviewCounts, allowedWordIds);
   const changed =
     limit !== session.limit ||
     index !== session.index ||
     pendingHardId !== session.pendingHardId ||
+    !sameTodayHardReviewCounts(hardReviewCounts, session.hardReviewCounts) ||
     queueIds.join("|") !== (session.queueIds || []).join("|");
   return {
     ...session,
@@ -1246,8 +1265,35 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
     queueIds,
     index,
     pendingHardId,
+    hardReviewCounts,
     updatedAt: changed ? Date.now() : Number(session.updatedAt) || 0
   };
+}
+
+function getUniqueWordIds(ids) {
+  const seen = new Set();
+  const uniqueIds = [];
+  ids.forEach((id) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    uniqueIds.push(id);
+  });
+  return uniqueIds;
+}
+
+function normalizeTodayHardReviewCounts(value, validWordIds) {
+  const source = value && typeof value === "object" ? value : {};
+  const counts = {};
+  Object.entries(source).forEach(([wordId, count]) => {
+    if (!validWordIds.has(wordId)) return;
+    const normalized = Math.min(MAX_DAILY_HARD_REVIEWS, Math.max(0, Math.round(Number(count) || 0)));
+    if (normalized > 0) counts[wordId] = normalized;
+  });
+  return counts;
+}
+
+function sameTodayHardReviewCounts(left, right) {
+  return JSON.stringify(left || {}) === JSON.stringify(right || {});
 }
 
 function getDueWordsForToday(book) {
@@ -1301,8 +1347,8 @@ function renderCurrentCard() {
   hideDictionaryLink();
   if (answerVisible && dictionaryAllowed) {
     showDictionaryLink();
-    if (awaitingHardAdvance) els.feedbackText.textContent = "已加入重点复习，先看一下释义。";
   }
+  if (answerVisible && awaitingHardAdvance) els.feedbackText.textContent = `${getHardReviewFeedback(word.id)}，先看一下释义。`;
   els.showAnswerButton.classList.remove("is-hidden");
 }
 
@@ -1316,6 +1362,19 @@ function flashReviewCard() {
 function isPendingHard(word) {
   if (!word || currentQueueType !== "due") return false;
   return getTodaySession().pendingHardId === word.id;
+}
+
+function getHardReviewFeedback(wordId) {
+  if (currentQueueType !== "due") return "已加入重点复习";
+  const session = getTodaySession();
+  const hardReviewCount = Math.min(
+    MAX_DAILY_HARD_REVIEWS,
+    Math.max(0, Math.round(Number(session.hardReviewCounts?.[wordId]) || 0))
+  );
+  const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
+  if (retryGap !== undefined) return `已加入第 ${hardReviewCount + 1} 次复习，约 ${retryGap} 张后再出现`;
+  if (hardReviewCount >= MAX_DAILY_HARD_REVIEWS) return `当天已复习 ${hardReviewCount} 次，明天继续优先复习`;
+  return "已加入重点复习";
 }
 
 function normalizeText(value) {
@@ -1336,7 +1395,15 @@ function toggleReviewControls(enabled) {
 
 function getCurrentQueueLabel() {
   const position = currentIndex + 1;
-  if (currentQueueType === "due") return `${position} / ${currentQueue.length}`;
+  if (currentQueueType === "due") {
+    const word = currentQueue[currentIndex];
+    const session = getTodaySession();
+    const reviewNumber = word
+      ? session.queueIds.slice(0, currentIndex + 1).filter((id) => id === word.id).length
+      : 0;
+    const retryLabel = reviewNumber > 1 ? ` · 第 ${reviewNumber} 次复习` : "";
+    return `${position} / ${currentQueue.length}${retryLabel}`;
+  }
   if (currentQueueType === "unmastered") return `未掌握单词：第 ${position} 个`;
   if (currentQueueType === "mastered") return `已掌握单词：第 ${position} 个`;
   if (currentQueueType === "new") return `未学单词：第 ${position} 个`;
@@ -1381,15 +1448,15 @@ function rateCurrent(rating) {
   }
 
   const demoteToUnmastered = rating === "hard" && currentQueueType === "mastered";
-  recordRating(word, rating, { demoteToUnmastered });
+  recordRating(word, rating, { demoteToUnmastered, render: rating !== "hard" });
 
   if (rating === "hard") {
-    markTodaySessionPendingHard(word.id);
+    const retryMessage = markTodaySessionPendingHard(word.id);
     revealAnswer();
     awaitingHardAdvance = true;
-    els.feedbackText.textContent = demoteToUnmastered
-      ? "已降为未掌握，先看一下释义。"
-      : "已加入重点复习，先看一下释义。";
+    renderAll();
+    if (currentQueueType === "due") renderCurrentCard();
+    els.feedbackText.textContent = `${demoteToUnmastered ? "已降为未掌握，" : ""}${retryMessage}，先看一下释义。`;
     toggleReviewControls(true);
     return;
   }
@@ -1441,12 +1508,31 @@ function saveTodaySessionPosition() {
 }
 
 function markTodaySessionPendingHard(wordId) {
-  if (currentQueueType !== "due") return;
+  if (currentQueueType !== "due") return "已加入重点复习";
   const session = getTodaySession();
+  const previousCount = Math.min(
+    MAX_DAILY_HARD_REVIEWS,
+    Math.max(0, Math.round(Number(session.hardReviewCounts?.[wordId]) || 0))
+  );
+  const hardReviewCount = Math.min(MAX_DAILY_HARD_REVIEWS, previousCount + 1);
+  if (!session.hardReviewCounts || typeof session.hardReviewCounts !== "object") session.hardReviewCounts = {};
+  session.hardReviewCounts[wordId] = hardReviewCount;
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = wordId;
+
+  const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
+  let retryScheduled = false;
+  if (retryGap !== undefined && session.queueIds.length < session.limit * MAX_DAILY_HARD_REVIEWS) {
+    const retryIndex = Math.min(session.index + 1 + retryGap, session.queueIds.length);
+    session.queueIds.splice(retryIndex, 0, wordId);
+    retryScheduled = true;
+  }
   session.updatedAt = Date.now();
   saveState();
+  currentQueue = buildTodayQueue();
+
+  if (retryScheduled) return `已加入第 ${hardReviewCount + 1} 次复习，约 ${retryGap} 张后再出现`;
+  return `当天已复习 ${hardReviewCount} 次，明天继续优先复习`;
 }
 
 function scheduleNext(progress, rating, options = {}) {
@@ -2348,7 +2434,13 @@ function applyCloudSyncSnapshot(snapshot) {
         if (existingWordIds.has(wordId)) book.progress[wordId] = { ...createProgress(), ...progress };
       });
       book.history = cloudBook.history.map((item) => ({ ...item }));
-      book.todaySession = cloudBook.todaySession ? { ...cloudBook.todaySession, queueIds: [...cloudBook.todaySession.queueIds] } : null;
+      book.todaySession = cloudBook.todaySession
+        ? {
+            ...cloudBook.todaySession,
+            queueIds: [...cloudBook.todaySession.queueIds],
+            hardReviewCounts: { ...cloudBook.todaySession.hardReviewCounts }
+          }
+        : null;
       orderBookWords(book, definition);
     });
     saveState({ skipCloudSync: true });
@@ -2413,16 +2505,18 @@ function normalizeCloudTodaySession(value) {
   if (!value || typeof value !== "object" || !/^\d{4}-\d{2}-\d{2}$/.test(value.date || "")) return null;
   const limit = normalizeReviewLimit(value.limit);
   const queueIds = Array.isArray(value.queueIds)
-    ? value.queueIds.filter((id) => typeof id === "string" && id.length <= 160).slice(0, limit)
+    ? value.queueIds.filter((id) => typeof id === "string" && id.length <= 160).slice(0, limit * MAX_DAILY_HARD_REVIEWS)
     : [];
   const index = Math.min(clampCloudInteger(value.index, 0, queueIds.length), queueIds.length);
   const pendingHardId = queueIds[index] === value.pendingHardId ? value.pendingHardId : null;
+  const hardReviewCounts = normalizeTodayHardReviewCounts(value.hardReviewCounts, new Set(getUniqueWordIds(queueIds)));
   return {
     date: value.date,
     limit,
     queueIds,
     index,
     pendingHardId,
+    hardReviewCounts,
     updatedAt: normalizeCloudTimestamp(value.updatedAt) || 0
   };
 }
