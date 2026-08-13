@@ -323,6 +323,12 @@
   ["subsequent", "adj. 随后的；后来的", "Subsequent tests confirmed the original result."],
   ["reproduce", "v. 再现；复制；繁殖", "Other researchers failed to reproduce the result."],
   ["speculate", "v. 推测；猜测；投机", "It is too early to speculate about the cause."],
+  ["speculate on", "v. 推测；猜测", "The report does not speculate on the cause of the accident."],
+  ["lavish", "adj. 奢华的；过分慷慨的；v. 大量给予", "They held a lavish dinner for their guests."],
+  ["shabbily", "adv. 衣着破旧地；寒酸地；不公正地", "He was shabbily dressed but spoke with confidence."],
+  ["emigration", "n. 移居国外；移民出境", "Economic hardship led to widespread emigration from the region."],
+  ["wilderness", "n. 荒野；荒地", "The hikers spent three days in the wilderness."],
+  ["destiny", "n. 命运；天命", "She believed that meeting him was part of her destiny."],
   ["theorize", "v. 提出理论；从理论上说明", "Scientists theorize that the lake was formed by a glacier."],
   ["end up doing sth", "最终做某事；到头来做某事", "We missed the last bus and ended up walking home."],
   ["carve", "v. 雕刻；切（熟肉）", "She carved the child's name into the wooden box."],
@@ -363,7 +369,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "62";
+const APP_VERSION = "63";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
