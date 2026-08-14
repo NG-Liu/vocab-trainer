@@ -329,6 +329,14 @@
   ["emigration", "n. 移居国外；移民出境", "Economic hardship led to widespread emigration from the region."],
   ["wilderness", "n. 荒野；荒地", "The hikers spent three days in the wilderness."],
   ["destiny", "n. 命运；天命", "She believed that meeting him was part of her destiny."],
+  ["mural", "n. 壁画；墙画", "Artists painted a mural on the school wall."],
+  ["celebrity", "n. 名人；名流", "The actor became a national celebrity."],
+  ["suicide", "n. 自杀；自杀者", "The campaign offers support to people affected by suicide."],
+  ["deprive", "v. 剥夺；使丧失", "Long working hours deprived him of sleep."],
+  ["autobiography", "n. 自传", "She wrote an autobiography about her early life."],
+  ["modesty", "n. 谦虚；谦逊；朴素", "Despite her success, she spoke with modesty."],
+  ["detect", "v. 发现；察觉；侦测", "The device can detect small changes in temperature."],
+  ["concisely", "adv. 简洁地；简明地", "Please state your main point concisely."],
   ["theorize", "v. 提出理论；从理论上说明", "Scientists theorize that the lake was formed by a glacier."],
   ["end up doing sth", "最终做某事；到头来做某事", "We missed the last bus and ended up walking home."],
   ["carve", "v. 雕刻；切（熟肉）", "She carved the child's name into the wooden box."],
@@ -369,7 +377,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "63";
+const APP_VERSION = "64";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
