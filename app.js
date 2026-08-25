@@ -438,7 +438,26 @@
   ["spoiled", "被宠坏的；腐败的；变质的", "The spoiled food had to be thrown away."],
   ["revise", "修订；修改；复习", "I need to revise my essay before submitting it."],
   ["fatigue", "疲劳；疲乏", "Long hours of work can lead to mental fatigue."],
-  ["wipe off", "擦掉；抹去；清除", "He wiped the mud off his shoes before entering."]
+  ["wipe off", "擦掉；抹去；清除", "He wiped the mud off his shoes before entering."],
+  ["intently", "adv. 专心地；专注地", "The students listened intently as the scientist explained the experiment."],
+  ["in effect", "实际上；事实上；生效", "The new rule is, in effect, a ban on private cars in the city center."],
+  ["discernible", "adj. 可辨认的；可察觉的", "There was no discernible change in the patient's condition."],
+  ["intensive", "adj. 密集的；强化的", "The patient spent two weeks in intensive care after the accident."],
+  ["intensity", "n. 强度；强烈程度", "The intensity of the storm surprised even experienced sailors."],
+  ["contented", "adj. 满足的；满意的", "After a quiet dinner with her family, she felt peaceful and contented."],
+  ["dietary", "adj. 饮食的；膳食的", "The doctor recommended several dietary changes to lower his blood pressure."],
+  ["endeavor", "v. 努力；尽力；n. 努力；尝试", "The researchers endeavor to develop a safer and cheaper treatment."],
+  ["native", "adj. 本土的；当地的；n. 本地人", "The guide introduced us to several native plants found only on the island."],
+  ["eclipsed", "v. 使相形见绌；遮住（eclipse 的过去式或过去分词）", "Her latest achievement eclipsed everything she had done before."],
+  ["suppress", "v. 抑制；压制；镇压", "The government tried to suppress the report, but journalists published it anyway."],
+  ["distinct", "adj. 清晰的；明显不同的", "The two theories are distinct, although they address the same problem."],
+  ["shaky", "adj. 摇晃的；不稳固的；不可靠的", "The witness gave a shaky account of what had happened."],
+  ["religious", "adj. 宗教的；虔诚的", "The city is home to people from many different religious traditions."],
+  ["predominance", "n. 优势；主导地位", "The predominance of cars has transformed the design of modern cities."],
+  ["disposition", "n. 性情；性格；倾向", "Her cheerful disposition made it easy for new colleagues to approach her."],
+  ["temptation", "n. 诱惑；诱惑物", "He resisted the temptation to check his phone during the meeting."],
+  ["imprison", "v. 监禁；关押", "The regime imprisoned many critics without a fair trial."],
+  ["ecological", "adj. 生态的；生态学的", "The project aims to reduce the ecological damage caused by construction."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -446,7 +465,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "65";
+const APP_VERSION = "66";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
