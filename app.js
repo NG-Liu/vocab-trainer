@@ -480,7 +480,33 @@
   ["abundant", "adj. 丰富的；充足的", "The region has abundant sunshine and fertile soil."],
   ["ridiculous", "adj. 荒谬的；可笑的", "The idea of finishing the bridge in one day sounds ridiculous."],
   ["superfluous", "adj. 多余的；过剩的", "The extra paragraph was superfluous and added nothing to the argument."],
-  ["enormous", "adj. 巨大的；庞大的", "An enormous crowd gathered outside the stadium."]
+  ["enormous", "adj. 巨大的；庞大的", "An enormous crowd gathered outside the stadium."],
+  ["fraud", "n. 欺诈；骗局；骗子", "The company was accused of fraud after it falsified its accounts."],
+  ["vigorous", "adj. 充满活力的；强有力的", "The debate prompted a vigorous exchange of views."],
+  ["complement", "n. 补充物；补足语；v. 补充；与……相配", "The wine was chosen to complement the meal."],
+  ["hasty", "adj. 匆忙的；草率的", "A hasty decision could create more problems later."],
+  ["landlord", "n. 房东；地主", "The landlord agreed to repair the broken heating system."],
+  ["flare", "v. 突然加剧；闪耀；n. 闪光；信号弹", "Tensions flared after the announcement was made."],
+  ["compassion", "n. 同情；怜悯", "The nurse treated every patient with compassion."],
+  ["retreat", "v. 撤退；退却；n. 撤退；静修处", "The army was forced to retreat when supplies ran short."],
+  ["multiply", "v. 乘；成倍增加；繁殖", "The bacteria multiply rapidly in warm water."],
+  ["ignorant", "adj. 无知的；不了解的", "He was ignorant of the risks involved."],
+  ["sheer", "adj. 陡峭的；纯粹的；完全的", "The climbers faced a sheer wall of rock."],
+  ["frame", "n. 框架；画框；v. 给……装框；构成", "The report provides a useful frame for understanding the debate."],
+  ["haste", "n. 匆忙；急躁", "In his haste to leave, he forgot the keys on the table."],
+  ["pessimistic", "adj. 悲观的", "Analysts are pessimistic about the company's short-term prospects."],
+  ["flee", "v. 逃离；逃跑", "Thousands of families were forced to flee the flooded region."],
+  ["agency", "n. 机构；代理处；作用", "The travel agency arranged every detail of our trip."],
+  ["thrill", "n. 激动；兴奋；v. 使兴奋", "The final goal sent a thrill through the crowd."],
+  ["negative", "adj. 否定的；负面的；n. 负数；底片", "The test result was negative, so no further treatment was needed."],
+  ["conceive", "v. 构想；设想；怀孕", "It is difficult to conceive of a city without public transport."],
+  ["rough", "adj. 粗糙的；艰难的；大致的", "The first few months in the new job were rough."],
+  ["neglect", "v. 忽视；疏忽；n. 忽视；疏忽", "The building fell into disrepair because its owners neglected it."],
+  ["multitude", "n. 大量；众多；群众", "A multitude of factors influenced the final decision."],
+  ["deceive", "v. 欺骗；蒙骗", "The advertisement was designed to deceive consumers about the product's quality."],
+  ["flame", "n. 火焰；激情；v. 燃烧", "A single flame flickered in the dark."],
+  ["treaty", "n. 条约；协定", "The two countries signed a treaty to protect the river."],
+  ["bore", "v. 使厌烦；n. 令人厌烦的人；孔", "The long lecture began to bore even the most patient students."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -488,7 +514,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "67";
+const APP_VERSION = "68";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
