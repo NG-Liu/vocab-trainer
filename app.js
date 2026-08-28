@@ -457,7 +457,30 @@
   ["disposition", "n. 性情；性格；倾向", "Her cheerful disposition made it easy for new colleagues to approach her."],
   ["temptation", "n. 诱惑；诱惑物", "He resisted the temptation to check his phone during the meeting."],
   ["imprison", "v. 监禁；关押", "The regime imprisoned many critics without a fair trial."],
-  ["ecological", "adj. 生态的；生态学的", "The project aims to reduce the ecological damage caused by construction."]
+  ["ecological", "adj. 生态的；生态学的", "The project aims to reduce the ecological damage caused by construction."],
+  ["surplus", "n. 过剩；剩余；adj. 过剩的", "The country has a surplus of wheat after a particularly good harvest."],
+  ["eloquent", "adj. 雄辩的；有说服力的；传神的", "She gave an eloquent defense of the proposed reforms."],
+  ["deploy", "v. 部署；调动；有效利用", "The army was ordered to deploy additional units along the border."],
+  ["feeble", "adj. 虚弱的；微弱的；无力的", "His voice was feeble after the illness."],
+  ["supplement", "n. 补充物；增刊；v. 补充", "The appendix supplements the main report with detailed statistics."],
+  ["plausible", "adj. 貌似合理的；可信的", "Her explanation was plausible, but the investigators still wanted proof."],
+  ["flock", "n. 一群；大量人群；v. 聚集", "A flock of birds rose from the marsh at dawn."],
+  ["tender", "adj. 温柔的；嫩的；n. 投标；v. 提出；投标", "The leaves were too tender to withstand the cold wind."],
+  ["redundant", "adj. 多余的；被裁员的", "The report contains several redundant sections that should be removed."],
+  ["immense", "adj. 巨大的；广大的", "The museum houses an immense collection of maps."],
+  ["amiable", "adj. 和蔼可亲的；友好的", "Despite the tense meeting, he remained amiable and patient."],
+  ["employment", "n. 就业；雇用", "The factory provides employment for hundreds of local residents."],
+  ["absurd", "adj. 荒谬的；不合理的", "It would be absurd to blame the weather for a missed deadline."],
+  ["numerical", "adj. 数字的；数值的", "The software can perform numerical calculations with high precision."],
+  ["vulnerable", "adj. 脆弱的；易受伤害的", "Young seedlings are particularly vulnerable to sudden changes in temperature."],
+  ["plot", "n. 情节；阴谋；小块土地；v. 密谋；绘制", "The novel's plot turns on a secret kept for thirty years."],
+  ["extravagant", "adj. 奢侈的；过度的；挥霍的", "They spent an extravagant amount on decorations for a one-day event."],
+  ["evident", "adj. 明显的；显然的", "The cause of the failure was evident from the first inspection."],
+  ["tremble", "v. 颤抖；发抖；n. 颤抖", "Her hands began to tremble as she opened the letter."],
+  ["abundant", "adj. 丰富的；充足的", "The region has abundant sunshine and fertile soil."],
+  ["ridiculous", "adj. 荒谬的；可笑的", "The idea of finishing the bridge in one day sounds ridiculous."],
+  ["superfluous", "adj. 多余的；过剩的", "The extra paragraph was superfluous and added nothing to the argument."],
+  ["enormous", "adj. 巨大的；庞大的", "An enormous crowd gathered outside the stadium."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -465,7 +488,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "66";
+const APP_VERSION = "67";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
