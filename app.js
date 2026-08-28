@@ -558,7 +558,41 @@
   ["imitate", "v. 模仿；仿效", "Children often imitate the gestures and expressions of adults."],
   ["avail", "v. 有用；帮助；n. 效用", "These warnings will be of little avail unless people take them seriously."],
   ["enrol", "v. 登记；注册；入学", "She decided to enrol in an evening course in economics."],
-  ["demonstrate", "v. 证明；展示；示范", "The experiment demonstrates how quickly the material responds to heat."]
+  ["demonstrate", "v. 证明；展示；示范", "The experiment demonstrates how quickly the material responds to heat."],
+  ["scandal", "n. 丑闻；丑事", "The scandal forced the minister to resign."],
+  ["elapse", "v. （时间）流逝；过去", "Several months elapsed before the project received funding."],
+  ["crew", "n. 全体工作人员；船员；机组人员；v. 为……配备人员", "The flight crew asked passengers to remain seated."],
+  ["applicable", "adj. 适用的；适当的", "The discount is applicable only to full-time students."],
+  ["glare", "v. 怒视；发出刺眼的光；n. 怒视；刺眼的光", "The glare from the headlights made it difficult to see."],
+  ["timber", "n. 木材；木料", "The old bridge was built from local timber."],
+  ["diminish", "v. 减弱；减少；降低", "The pain began to diminish after a few hours."],
+  ["plight", "n. 困境；苦境", "The report drew attention to the plight of displaced families."],
+  ["screw", "n. 螺丝；螺钉；v. 拧紧；旋紧", "Tighten the screw before you replace the cover."],
+  ["dawn", "n. 黎明；破晓；v. 开始明白", "It dawned on me that I had left my passport at home."],
+  ["fulfil", "v. 履行；实现；满足", "She worked hard to fulfil her promise to the community."],
+  ["probe", "n. 探针；调查；v. 探查；调查", "The committee was set up to probe the cause of the accident."],
+  ["stare", "v. 盯着看；凝视；n. 盯视", "It is rude to stare at people on public transport."],
+  ["famine", "n. 饥荒；严重缺粮", "The drought led to famine in several parts of the country."],
+  ["mute", "adj. 沉默的；哑的；v. 使静音", "Please mute your microphone when you are not speaking."],
+  ["agenda", "n. 议程；待办事项", "The first item on the agenda is the annual budget."],
+  ["alight", "v. 下车；落下；adj. 燃烧着的", "She alighted from the train at the next station."],
+  ["conquer", "v. 征服；战胜；克服", "He finally conquered his fear of public speaking."],
+  ["stuff", "n. 东西；材料；v. 塞满；填塞", "Please put your stuff in the locker before the class begins."],
+  ["slight", "adj. 轻微的；略微的；v. 轻视；冷落", "There has been a slight improvement in air quality."],
+  ["stem", "n. 茎；词干；v. 阻止；遏制；起源于", "The new measures may help stem the spread of the disease."],
+  ["investigate", "v. 调查；研究", "The police are investigating the cause of the fire."],
+  ["blight", "n. 枯萎病；祸害；v. 破坏；损害", "Poor drainage continues to blight farms in the valley."],
+  ["gaze", "v. 凝视；注视；n. 凝视", "She gazed out of the window as the train crossed the bridge."],
+  ["strip", "v. 剥去；脱掉；n. 条；带", "Workers stripped the old paint from the doors."],
+  ["ignite", "v. 点燃；引发", "A single spark can ignite the dry grass."],
+  ["advent", "n. 到来；出现", "The advent of digital photography changed the industry."],
+  ["cradle", "n. 摇篮；发源地；v. 轻轻抱住", "The region is regarded as the cradle of the ancient civilization."],
+  ["defeat", "v. 击败；战胜；n. 失败；挫败", "The team suffered a narrow defeat in the final."],
+  ["lump", "n. 肿块；块；v. 把……归在一起", "He discovered a small lump on his neck."],
+  ["scheme", "n. 计划；方案；阴谋；v. 密谋", "The government introduced a scheme to support small businesses."],
+  ["plunge", "v. 猛跌；骤降；投入；n. 骤降", "The announcement caused the company's shares to plunge."],
+  ["offend", "v. 冒犯；使不适；违反", "I did not mean to offend anyone with my remark."],
+  ["dusk", "n. 黄昏；暮色", "We reached the village at dusk."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -566,7 +600,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "69";
+const APP_VERSION = "70";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
