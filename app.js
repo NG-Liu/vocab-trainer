@@ -506,7 +506,59 @@
   ["deceive", "v. 欺骗；蒙骗", "The advertisement was designed to deceive consumers about the product's quality."],
   ["flame", "n. 火焰；激情；v. 燃烧", "A single flame flickered in the dark."],
   ["treaty", "n. 条约；协定", "The two countries signed a treaty to protect the river."],
-  ["bore", "v. 使厌烦；n. 令人厌烦的人；孔", "The long lecture began to bore even the most patient students."]
+  ["bore", "v. 使厌烦；n. 令人厌烦的人；孔", "The long lecture began to bore even the most patient students."],
+  ["prevalent", "adj. 普遍的；流行的", "The belief was once prevalent, but it has now been widely questioned."],
+  ["glow", "v. 发光；容光焕发；n. 光辉", "The windows began to glow as the sun set behind the hills."],
+  ["defer", "v. 推迟；听从；遵从", "The committee decided to defer the vote until more evidence was available."],
+  ["carpenter", "n. 木匠；木工", "The carpenter built a sturdy table from locally sourced wood."],
+  ["implicit", "adj. 含蓄的；不言明的；内含的", "There was an implicit agreement that neither side would discuss the matter publicly."],
+  ["stride", "n. 大步；步幅；v. 大步走", "She strode across the platform to accept the award."],
+  ["refer", "v. 提及；参考；涉及", "The report refers to several studies published in the past decade."],
+  ["scarcity", "n. 缺乏；稀缺", "Water scarcity has become a serious problem in the region."],
+  ["embody", "v. 体现；包含；具体表现", "The building embodies the architect's belief in simplicity."],
+  ["idle", "adj. 闲置的；懒散的；v. 闲置；空转", "Several machines stood idle while the factory was being repaired."],
+  ["symphony", "n. 交响乐；和谐的组合", "The orchestra performed Beethoven's Ninth Symphony to a full house."],
+  ["flatter", "v. 奉承；使感到荣幸", "She knew he was trying to flatter her, but the compliment still made her smile."],
+  ["negotiate", "v. 谈判；协商；洽谈", "The two sides met to negotiate a new labor contract."],
+  ["radiate", "v. 辐射；散发；传播", "Warmth radiated from the fireplace throughout the room."],
+  ["genre", "n. 类型；体裁", "The novel combines elements of the mystery and historical fiction genres."],
+  ["faint", "adj. 微弱的；昏厥的；v. 晕倒", "A faint smell of smoke lingered in the hallway."],
+  ["incorporate", "v. 包含；合并；融入", "The new design incorporates several features suggested by users."],
+  ["prevail", "v. 盛行；占优势；获胜", "Common sense eventually prevailed over political pressure."],
+  ["considerate", "adj. 体贴的；考虑周到的", "It was considerate of him to call before coming over."],
+  ["glitter", "v. 闪耀；闪烁；n. 闪光", "Tiny lights glittered on the surface of the lake."],
+  ["modify", "v. 修改；调整", "The engineer modified the design to make it safer."],
+  ["verbal", "adj. 言语的；口头的", "The agreement was verbal, so neither party had a written record."],
+  ["adolescent", "n. 青少年；adj. 青春期的", "The program helps adolescents cope with the pressures of school life."],
+  ["polish", "v. 擦亮；润色；n. 光泽；上光剂", "She spent the evening polishing the introduction to her speech."],
+  ["confer", "v. 授予；协商；商议", "The university will confer an honorary degree on the scientist."],
+  ["scar", "n. 伤疤；创伤；v. 给……留下疤痕", "The accident left a small scar above his eyebrow."],
+  ["manifest", "adj. 明显的；显然的；v. 表明；显现", "Her anxiety was manifest in the way she kept checking the door."],
+  ["swarm", "n. 一大群；蜂群；v. 蜂拥而至", "Fans began to swarm around the singer outside the theater."],
+  ["indicate", "v. 表明；暗示；指出", "The findings indicate that the policy needs to be revised."],
+  ["earnest", "adj. 认真的；诚挚的；n. 认真；真挚", "He made an earnest promise to support the project."],
+  ["crawl", "v. 爬行；缓慢行进；n. 爬行", "Traffic crawled along the highway after the accident."],
+  ["considerable", "adj. 相当大的；重要的", "The renovation required a considerable amount of time and money."],
+  ["indication", "n. 迹象；指示；表明", "There is no indication that the storm will weaken tonight."],
+  ["grace", "n. 优雅；恩典；宽限期；v. 使增色", "She accepted the criticism with remarkable grace."],
+  ["illustrate", "v. 说明；阐明；给……加插图", "The example illustrates why small errors can have serious consequences."],
+  ["lag", "v. 落后；滞后；n. 延迟", "The local economy continues to lag behind the rest of the country."],
+  ["imply", "v. 暗示；意味着", "His silence seemed to imply that he disagreed."],
+  ["reference", "n. 参考；提及；推荐信；v. 查阅", "The article makes frequent reference to recent climate data."],
+  ["exemplify", "v. 例证；是……的典型", "Her career exemplifies the opportunities created by lifelong learning."],
+  ["disgrace", "n. 耻辱；丢脸；v. 使蒙羞", "The corruption scandal brought disgrace on the entire organization."],
+  ["simultaneous", "adj. 同时发生的；同时的", "The translation was broadcast simultaneously in three languages."],
+  ["prior", "adj. 先前的；优先的", "Applicants with prior experience will be considered first."],
+  ["assimilate", "v. 吸收；同化；理解", "It took her several weeks to assimilate the new information."],
+  ["hint", "n. 暗示；提示；v. 暗示", "He dropped a hint that he might leave the company soon."],
+  ["stroll", "n. 散步；漫步；v. 散步", "We took a leisurely stroll along the river after dinner."],
+  ["exaggerate", "v. 夸大；夸张", "The article exaggerates the risks without presenting reliable evidence."],
+  ["linger", "v. 逗留；徘徊；持续存在", "The smell of rain lingered in the air long after the storm had passed."],
+  ["carpet", "n. 地毯；v. 给……铺地毯", "A thick carpet covered the floor of the old library."],
+  ["imitate", "v. 模仿；仿效", "Children often imitate the gestures and expressions of adults."],
+  ["avail", "v. 有用；帮助；n. 效用", "These warnings will be of little avail unless people take them seriously."],
+  ["enrol", "v. 登记；注册；入学", "She decided to enrol in an evening course in economics."],
+  ["demonstrate", "v. 证明；展示；示范", "The experiment demonstrates how quickly the material responds to heat."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -514,7 +566,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "68";
+const APP_VERSION = "69";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
