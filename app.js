@@ -592,7 +592,12 @@
   ["scheme", "n. 计划；方案；阴谋；v. 密谋", "The government introduced a scheme to support small businesses."],
   ["plunge", "v. 猛跌；骤降；投入；n. 骤降", "The announcement caused the company's shares to plunge."],
   ["offend", "v. 冒犯；使不适；违反", "I did not mean to offend anyone with my remark."],
-  ["dusk", "n. 黄昏；暮色", "We reached the village at dusk."]
+  ["dusk", "n. 黄昏；暮色", "We reached the village at dusk."],
+  ["acquaintance", "n. 熟人；相识；了解", "He is an old acquaintance from my university days."],
+  ["sharpness", "n. 锋利；敏锐；清晰", "The knife lost its sharpness after years of use."],
+  ["uneven", "adj. 不平坦的；不均匀的；不均衡的", "The path was rough and uneven, making the climb more difficult."],
+  ["circumstance", "n. 情况；环境；条件", "Owing to unforeseen circumstances, the event has been postponed."],
+  ["regardless of", "不管；不顾；无论", "He continued working regardless of the noise around him."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -600,7 +605,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "70";
+const APP_VERSION = "71";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
