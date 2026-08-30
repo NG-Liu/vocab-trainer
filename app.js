@@ -597,7 +597,12 @@
   ["sharpness", "n. 锋利；敏锐；清晰", "The knife lost its sharpness after years of use."],
   ["uneven", "adj. 不平坦的；不均匀的；不均衡的", "The path was rough and uneven, making the climb more difficult."],
   ["circumstance", "n. 情况；环境；条件", "Owing to unforeseen circumstances, the event has been postponed."],
-  ["regardless of", "不管；不顾；无论", "He continued working regardless of the noise around him."]
+  ["regardless of", "不管；不顾；无论", "He continued working regardless of the noise around him."],
+  ["sit for", "参加（考试）；出席（会议）；代表", "She will sit for the entrance examination in June."],
+  ["stern", "adj. 严厉的；严峻的；n. 船尾", "The teacher gave a stern warning about plagiarism."],
+  ["hindrance", "n. 阻碍；障碍；妨碍", "Poor transport is a serious hindrance to economic development."],
+  ["rigid", "adj. 僵硬的；死板的；严格的", "The school has rigid rules about dress and attendance."],
+  ["ethically", "adv. 伦理上；道德上；合乎道德地", "The company must act ethically in all its business dealings."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -605,7 +610,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "71";
+const APP_VERSION = "72";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
