@@ -1,16 +1,16 @@
-const CACHE_NAME = "word-trainer-v72";
+const CACHE_NAME = "word-trainer-v73";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=72",
-  "./cloud-sync.js?v=72",
-  "./core-book-data.js?v=72",
-  "./cet4-book-data.js?v=72",
-  "./cet6-book-data.js?v=72",
-  "./app.js?v=72",
-  "./submission-config.js?v=72",
-  "./manifest.webmanifest?v=72",
-  "./icon.svg?v=72"
+  "./style.css?v=73",
+  "./cloud-sync.js?v=73",
+  "./core-book-data.js?v=73",
+  "./cet4-book-data.js?v=73",
+  "./cet6-book-data.js?v=73",
+  "./app.js?v=73",
+  "./submission-config.js?v=73",
+  "./manifest.webmanifest?v=73",
+  "./icon.svg?v=73"
 ];
 
 self.addEventListener("install", (event) => {

@@ -602,7 +602,29 @@
   ["stern", "adj. 严厉的；严峻的；n. 船尾", "The teacher gave a stern warning about plagiarism."],
   ["hindrance", "n. 阻碍；障碍；妨碍", "Poor transport is a serious hindrance to economic development."],
   ["rigid", "adj. 僵硬的；死板的；严格的", "The school has rigid rules about dress and attendance."],
-  ["ethically", "adv. 伦理上；道德上；合乎道德地", "The company must act ethically in all its business dealings."]
+  ["ethically", "adv. 伦理上；道德上；合乎道德地", "The company must act ethically in all its business dealings."],
+  ["chancellor", "n. 大臣；总理；校长；大法官", "The German chancellor opened the summit."],
+  ["eligible", "adj. 有资格的；符合条件的", "Only full-time students are eligible for the grant."],
+  ["exchequer", "n. 财政部；国库", "The new spending program will put extra pressure on the national exchequer."],
+  ["upfront", "adj. 直率的；坦率的；预付的", "The manager was upfront about all potential costs."],
+  ["indulgent", "adj. 纵容的；放纵的；迁就的", "He was indulgent with his grandchildren."],
+  ["subsidise", "v. 资助；补贴；给予补助", "The city subsidises public transport for students."],
+  ["claimant", "n. 索赔人；申请人", "Each claimant must provide evidence of loss."],
+  ["exclude...from...", "把……排除在……之外", "The contract excludes part-time workers from the pension scheme."],
+  ["dependency", "n. 依赖；依靠；附属地", "The region's heavy dependency on imports makes it vulnerable."],
+  ["falsehood", "n. 谎言；虚假；不实", "The newspaper published a falsehood about the minister."],
+  ["as though/as if", "好像；仿佛；如同", "She spoke as though she had known him, as if they were old friends."],
+  ["administration", "n. 管理；行政；政府", "The university administration announced a new timetable."],
+  ["redefine", "v. 重新定义；重新界定", "The discovery may redefine our understanding of the disease."],
+  ["entitlement", "n. 权利；资格；应得的权益", "The pension system grants every worker an entitlement."],
+  ["nuisance", "n. 麻烦事；令人讨厌的人或事物", "The noisy construction site has become a constant nuisance."],
+  ["tort", "n. 侵权；侵权行为", "The lawyer specializes in tort law."],
+  ["excessive", "adj. 过度的；过多的；过分的", "Excessive use of antibiotics can cause serious health problems."],
+  ["undergraduate", "n. 本科生；adj. 本科的", "She is an undergraduate studying economics."],
+  ["fearsomely", "adv. 可怕地；令人生畏地", "The storm became fearsomely powerful."],
+  ["tuition fees", "n. 学费", "Many students take out loans to pay their tuition fees."],
+  ["bachelor's degree", "n. 学士学位", "She earned a bachelor's degree in engineering."],
+  ["conservative", "adj. 保守的；n. 保守派；保守党人", "Older employees were more conservative about adopting the new system."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -610,7 +632,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "72";
+const APP_VERSION = "73";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
