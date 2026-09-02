@@ -638,7 +638,24 @@
   ["cement", "n. 水泥；v. 巩固；加强", "The shared experience cemented the friendship between the two families."],
   ["perpetuate", "v. 使持续；使长存；使永久存在", "Good education should challenge stereotypes rather than perpetuate them."],
   ["scattered", "adj. 分散的；零散的", "Scattered clouds cleared by noon, revealing the mountains beyond the valley."],
-  ["a handful of", "少数几个；一把；少量的", "Only a handful of residents attended the meeting, but their comments changed the proposal."]
+  ["a handful of", "少数几个；一把；少量的", "Only a handful of residents attended the meeting, but their comments changed the proposal."],
+  ["liberal", "adj. 开明的；自由的；宽松的", "The committee adopted a liberal policy on working from home."],
+  ["archaeological", "adj. 考古的；考古学的", "The excavation uncovered archaeological evidence of an ancient settlement."],
+  ["contemptuous", "adj. 鄙视的；轻蔑的", "He gave a contemptuous laugh when asked to apologize."],
+  ["prominent", "adj. 著名的；突出的；显眼的", "A prominent scientist has urged the government to act quickly."],
+  ["diplomacy", "n. 外交；外交手腕", "Quiet diplomacy helped the two countries avoid a public confrontation."],
+  ["journalism", "n. 新闻业；新闻报道", "Good journalism checks facts before publishing a story."],
+  ["presuppose", "v. 预先假定；以……为前提", "The argument presupposes that every voter has access to reliable information."],
+  ["full literacy", "充分读写能力；完全识字", "The program aims to achieve full literacy among adults in the region."],
+  ["crafting", "n./v. 精心制作；精心制定", "Crafting a clear research question is the first step in a successful study."],
+  ["coherent", "adj. 连贯的；有条理的", "She gave a coherent explanation of what had happened."],
+  ["curricula", "n. 课程；课程体系（curriculum 的复数）", "Many schools are revising their curricula to include digital skills."],
+  ["bear on", "v. 对……有影响；与……有关", "The new evidence may bear on the question of whether the policy worked."],
+  ["exclusive", "adj. 独有的；排他的；专属的", "The resort has an exclusive beach reserved for its guests."],
+  ["propaganda", "n. 宣传；宣传材料（通常带有偏向性）", "The government used propaganda to portray the failed campaign as a victory."],
+  ["progressive", "adj. 进步的；革新的；逐步的", "The city introduced progressive policies to make public transport more accessible."],
+  ["illuminate", "v. 照亮；阐明", "The report helps illuminate the reasons behind the decline in public trust."],
+  ["set back", "v. 使受挫；使延迟", "A serious knee injury set back her training by several months."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -646,7 +663,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "74";
+const APP_VERSION = "75";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
