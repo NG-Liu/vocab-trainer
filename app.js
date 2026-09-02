@@ -624,7 +624,21 @@
   ["fearsomely", "adv. 可怕地；令人生畏地", "The storm became fearsomely powerful."],
   ["tuition fees", "n. 学费", "Many students take out loans to pay their tuition fees."],
   ["bachelor's degree", "n. 学士学位", "She earned a bachelor's degree in engineering."],
-  ["conservative", "adj. 保守的；n. 保守派；保守党人", "Older employees were more conservative about adopting the new system."]
+  ["conservative", "adj. 保守的；n. 保守派；保守党人", "Older employees were more conservative about adopting the new system."],
+  ["legitimate", "adj. 合法的；正当的；合理的", "The court recognized the tenant's legitimate claim to compensation."],
+  ["row", "n. 一排；一行；争吵；v. 划船；争吵", "A row of old houses faces the village green."],
+  ["collaborative", "adj. 合作的；协作的", "The project succeeded because of a collaborative effort between teachers and engineers."],
+  ["legitimacy", "n. 合法性；正当性", "The election results strengthened the new government's legitimacy."],
+  ["dispute", "n./v. 争论；争端；对……提出异议", "The two sides settled the boundary dispute before it reached the courts."],
+  ["lucrative", "adj. 赚钱的；获利丰厚的", "She left a lucrative job to start a small publishing company."],
+  ["entrepreneur", "n. 企业家；创业者", "The young entrepreneur built a successful business from a simple idea."],
+  ["quote", "n./v. 引用；引述；报价", "The article quotes a scientist who has studied the disease for decades."],
+  ["upstart", "n./adj. 暴发户；自以为是的新手；新贵的", "The upstart company soon became a serious rival to established brands."],
+  ["prestige", "n. 威望；声望", "The university has earned international prestige for its medical research."],
+  ["cement", "n. 水泥；v. 巩固；加强", "The shared experience cemented the friendship between the two families."],
+  ["perpetuate", "v. 使持续；使长存；使永久存在", "Good education should challenge stereotypes rather than perpetuate them."],
+  ["scattered", "adj. 分散的；零散的", "Scattered clouds cleared by noon, revealing the mountains beyond the valley."],
+  ["a handful of", "少数几个；一把；少量的", "Only a handful of residents attended the meeting, but their comments changed the proposal."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -632,7 +646,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "73";
+const APP_VERSION = "74";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
