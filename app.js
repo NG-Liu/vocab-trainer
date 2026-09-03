@@ -655,7 +655,17 @@
   ["propaganda", "n. 宣传；宣传材料（通常带有偏向性）", "The government used propaganda to portray the failed campaign as a victory."],
   ["progressive", "adj. 进步的；革新的；逐步的", "The city introduced progressive policies to make public transport more accessible."],
   ["illuminate", "v. 照亮；阐明", "The report helps illuminate the reasons behind the decline in public trust."],
-  ["set back", "v. 使受挫；使延迟", "A serious knee injury set back her training by several months."]
+  ["set back", "v. 使受挫；使延迟", "A serious knee injury set back her training by several months."],
+  ["cousin", "n. 表亲；堂亲；同类事物", "My cousin lives in a small village outside Dublin."],
+  ["defendant", "n. 被告", "The defendant denied taking part in the robbery."],
+  ["genome-wide", "adj. 全基因组的", "A genome-wide study has identified several genes linked to sleep patterns."],
+  ["resemble", "v. 像；与……相似", "The finished building closely resembles the architect's original model."],
+  ["there is more to it", "事情不止如此；背后还有隐情", "There is more to it than a simple staffing problem; the budget has also been cut."],
+  ["outgrown", "v. 长得太大而不再适合；发展超越（outgrow 的过去分词）", "The children have outgrown their old clothes and need larger sizes."],
+  ["orient", "v. 使适应；确定方向；使面向", "The course is oriented toward students who have little research experience."],
+  ["intention", "n. 意图；打算", "Her intention was to finish the proposal before the meeting."],
+  ["do justice to", "公正对待；充分展现；恰当处理", "The photograph does not do justice to the cathedral's enormous stained-glass windows."],
+  ["excellence", "n. 优秀；卓越", "The school has a long tradition of excellence in music and drama."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -663,7 +673,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "75";
+const APP_VERSION = "76";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
