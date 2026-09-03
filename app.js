@@ -752,7 +752,25 @@ const STARTER_WORDS = [
   ["furnish", "v. 布置家具；提供", "The apartment comes fully furnished with modern appliances."],
   ["enclose", "v. 围住；随信附上", "Please enclose a copy of your receipt with the application."],
   ["betray", "v. 背叛；泄露；暴露", "He would never betray a friend who trusted him."],
-  ["veil", "n. 面纱；遮盖物；v. 遮掩", "The bride wore a veil of white silk."]
+  ["veil", "n. 面纱；遮盖物；v. 遮掩", "The bride wore a veil of white silk."],
+  ["eccentric", "adj. 古怪的；异乎寻常的", "The eccentric inventor filled his garden with mechanical birds."],
+  ["exquisite", "adj. 精美的；精致的；剧烈的", "The museum displayed an exquisite jade carving from the Tang dynasty."],
+  ["subordinate", "n. 下级；adj. 次要的；v. 使从属于", "She treats every subordinate with respect and gives clear feedback."],
+  ["blur", "n. 模糊；模糊之物；v. 使模糊", "Tears blurred the words on the page."],
+  ["exploit", "v. 利用；开发；剥削；n. 功绩", "The company was criticized for exploiting workers during the busy season."],
+  ["odd", "adj. 奇怪的；单只的；奇数的", "It seemed odd that the shop was closed on a Saturday."],
+  ["sensation", "n. 感觉；知觉；轰动", "The news of their victory caused a sensation across the country."],
+  ["superstition", "n. 迷信", "The old superstition warned that breaking a mirror brings bad luck."],
+  ["exotic", "adj. 异国的；奇异的", "The greenhouse is full of exotic plants from South America."],
+  ["specific", "adj. 明确的；具体的；特定的", "The doctor asked for specific details about when the pain began."],
+  ["exile", "n. 流放；流亡者；v. 放逐", "The writer spent twenty years in exile after criticizing the government."],
+  ["impair", "v. 损害；削弱", "Loud music over many years can impair your hearing."],
+  ["expedition", "n. 远征；探险；考察", "The expedition reached the base camp after nine days of climbing."],
+  ["sensible", "adj. 明智的；合理的；可察觉的", "Bringing a map and extra water was a sensible decision."],
+  ["weird", "adj. 怪异的；不可思议的", "A weird light appeared over the hills just before the storm."],
+  ["superb", "adj. 极好的；华丽的", "The restaurant is known for its superb seafood and quiet atmosphere."],
+  ["coordinate", "v. 协调；配合；n. 坐标", "The agencies coordinated their efforts to deliver aid after the flood."],
+  ["queer", "adj. 奇怪的；同性恋的", "The novel describes the queer corners of the old harbor district."],
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -760,7 +778,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "80";
+const APP_VERSION = "81";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
