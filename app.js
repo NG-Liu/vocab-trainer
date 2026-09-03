@@ -1,4 +1,4 @@
-﻿const STARTER_WORDS = [
+const STARTER_WORDS = [
   ["bankrupt", "破产的；使破产", "The company went bankrupt after years of losses."],
   ["auctioneer", "拍卖师", "The auctioneer opened the bidding at a low price."],
   ["greed", "贪婪", "Greed can cloud good judgment."],
@@ -702,7 +702,42 @@
   ["frighten", "v. 使惊吓；吓唬", "Loud thunder frightened the horse during the night."],
   ["publicity", "n. 公众关注；宣传", "The charity gained wide publicity after the television documentary."],
   ["intimidate", "v. 恐吓；威胁", "The accused tried to intimidate the witness before the trial."],
-  ["fabricate", "v. 编造；捏造；制造", "The reporter was dismissed for fabricating quotations."]
+  ["fabricate", "v. 编造；捏造；制造", "The reporter was dismissed for fabricating quotations."],
+  ["prone", "adj. 易于……的；俯卧的", "Tired drivers are prone to misjudge distances and speeds."],
+  ["sanction", "n./v. 批准；制裁", "The council imposed economic sanctions on the regime after the election."],
+  ["holy", "adj. 神圣的；圣洁的", "Pilgrims visited the holy city during the annual festival."],
+  ["bond", "n. 纽带；债券；v. 建立联系", "Regular team meals helped strengthen the bond between new colleagues."],
+  ["misery", "n. 痛苦；悲惨；不幸", "The flood left thousands of families in misery."],
+  ["compulsory", "adj. 强制的；义务的", "Safety training is compulsory for every new employee."],
+  ["torment", "n./v. 折磨；痛苦", "He could not escape the torment of unanswered questions."],
+  ["console", "v. 安慰；慰问", "Friends tried to console her after the funeral."],
+  ["delicate", "adj. 精美的；脆弱的；微妙的", "The surgeon handled the delicate tissue with great care."],
+  ["satire", "n. 讽刺；讽刺作品", "The play uses satire to expose political hypocrisy."],
+  ["strive", "v. 努力；力争", "The school strives to give every student individual attention."],
+  ["agitate", "v. 激怒；鼓动；搅动", "Campaigners agitated for safer working conditions in the mines."],
+  ["advisable", "adj. 明智的；可取的", "It is advisable to book tickets early during the holiday season."],
+  ["erode", "v. 侵蚀；削弱", "Years of inflation eroded the value of people's savings."],
+  ["noble", "adj. 高尚的；贵族的", "She showed noble courage by speaking out against injustice."],
+  ["torture", "n./v. 拷打；折磨", "Human rights groups condemned the use of torture during interrogation."],
+  ["stir", "v. 搅动；激起；n. 轰动", "The documentary stirred public anger over the polluted river."],
+  ["sacred", "adj. 神圣的；不可侵犯的", "The river is sacred to the people who live along its banks."],
+  ["distress", "n./v. 痛苦；贫困；使忧虑", "The news of the accident caused great distress to his family."],
+  ["bend", "v. 弯曲；转折；n. 弯道", "Slow down before you reach the sharp bend in the mountain road."],
+  ["retort", "n./v. 反驳；回嘴", "There was no need to shout, she retorted."],
+  ["apt", "adj. 恰当的；易于……的；聪明的", "The phrase a fertile mind is an apt description of the professor."],
+  ["blend", "v. 混合；融合；n. 混合物", "The architecture blends traditional wooden design with modern glass."],
+  ["decay", "n./v. 腐烂；衰退", "The abandoned castle had begun to decay after centuries of neglect."],
+  ["eradicate", "v. 根除；消灭", "Vaccination campaigns helped eradicate smallpox worldwide."],
+  ["counsel", "n. 忠告；法律顾问；v. 建议", "The counselor helped the students choose courses that matched their goals."],
+  ["protest", "n./v. 抗议；反对", "Thousands gathered to protest against the closure of the local hospital."],
+  ["feast", "n. 盛宴；节日；v. 尽情享用", "The wedding feast lasted late into the night."],
+  ["derive", "v. 得到；源于；派生", "The company derives most of its income from online subscriptions."],
+  ["detest", "v. 憎恶；厌恶", "He detested having to repeat the same explanation several times."],
+  ["incline", "n. 斜坡；v. 使倾向于", "The old path climbs a steep incline toward the monastery."],
+  ["insult", "n./v. 侮辱；辱骂", "His cruel remark was intended as an insult rather than a joke."],
+  ["agony", "n. 极度痛苦", "The injured athlete waited in agony for the doctor to arrive."],
+  ["contrive", "v. 设法做到；策划；设计", "They contrived to finish the project despite losing two days to the storm."],
+  ["principal", "n. 校长；本金；adj. 主要的", "The principal reason for the delay was the sudden shortage of materials."],
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -710,7 +745,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "78";
+const APP_VERSION = "79";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
