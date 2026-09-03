@@ -685,7 +685,24 @@
   ["pregnant", "adj. 怀孕的；充满的", "She was six months pregnant when they moved to the new house."],
   ["curse", "n. 诅咒；祸根；v. 诅咒", "Locals described the drought as a curse on the valley."],
   ["engage", "v. 吸引；使参与；雇用；订婚", "The teacher used puzzles to engage the students in mathematics."],
-  ["liable", "adj. 有法律责任的；易于……的", "Drivers who ignore the warning may be liable for the resulting damage."]
+  ["liable", "adj. 有法律责任的；易于……的", "Drivers who ignore the warning may be liable for the resulting damage."],
+  ["remark", "n./v. 评论；谈论；注意到", "Her opening remark put everyone at ease."],
+  ["exceptional", "adj. 杰出的；异常的", "The young violinist showed exceptional talent at her first public concert."],
+  ["lease", "n. 租约；v. 出租；租用", "The company signed a ten-year lease for its new office."],
+  ["fierce", "adj. 凶猛的；激烈的；狂热的", "The team faces fierce competition for a place in the final."],
+  ["coward", "n. 胆小鬼；懦夫", "He called himself a coward for not telling her the truth."],
+  ["marvellous", "adj. 极好的；了不起的（美式常拼作 marvelous）", "The children told marvellous stories about their journey through the forest."],
+  ["timid", "adj. 胆怯的；羞怯的", "The timid child hid behind his mother when the guests arrived."],
+  ["rebel", "n. 反叛者；v. 反抗；叛逆", "The students rebelled against the sudden change in examination rules."],
+  ["brilliant", "adj. 聪颖的；极好的；明亮的", "She produced a brilliant plan that saved both time and money."],
+  ["tenant", "n. 租户；房客", "The landlord agreed to repair the roof after the tenant reported the leak."],
+  ["panic", "n./v. 恐慌；惊慌", "Don't panic; the fire alarm was only a test."],
+  ["eminent", "adj. 杰出的；著名的", "An eminent historian delivered this year's opening lecture."],
+  ["marvel", "n. 奇迹；令人惊叹的事物；v. 感到惊叹", "The bridge was regarded as a marvel of nineteenth-century engineering."],
+  ["frighten", "v. 使惊吓；吓唬", "Loud thunder frightened the horse during the night."],
+  ["publicity", "n. 公众关注；宣传", "The charity gained wide publicity after the television documentary."],
+  ["intimidate", "v. 恐吓；威胁", "The accused tried to intimidate the witness before the trial."],
+  ["fabricate", "v. 编造；捏造；制造", "The reporter was dismissed for fabricating quotations."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -693,7 +710,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "77";
+const APP_VERSION = "78";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
