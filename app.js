@@ -738,6 +738,21 @@ const STARTER_WORDS = [
   ["agony", "n. 极度痛苦", "The injured athlete waited in agony for the doctor to arrive."],
   ["contrive", "v. 设法做到；策划；设计", "They contrived to finish the project despite losing two days to the storm."],
   ["principal", "n. 校长；本金；adj. 主要的", "The principal reason for the delay was the sudden shortage of materials."],
+  ["ascertain", "v. 查明；弄清", "The police tried to ascertain exactly when the painting disappeared."],
+  ["diplomat", "n. 外交官", "The senior diplomat helped negotiate the peace agreement."],
+  ["permeate", "v. 渗透；弥漫", "The smell of fresh bread permeated the whole house."],
+  ["diploma", "n. 文凭；毕业证书", "She earned a diploma in graphic design after two years of study."],
+  ["conceal", "v. 隐藏；隐瞒", "He could not conceal his disappointment at the result."],
+  ["penetrate", "v. 渗入；穿透；洞察", "The arrow penetrated deep into the wooden target."],
+  ["extent", "n. 程度；范围；限度", "The report shows the full extent of the damage to the coral reef."],
+  ["disclose", "v. 披露；透露", "The company refused to disclose the terms of the settlement."],
+  ["pretend", "v. 假装；自称", "The children pretended to be explorers crossing a desert."],
+  ["perpetual", "adj. 持续的；长久的；无休止的", "The machine room was filled with a perpetual low hum."],
+  ["disguise", "n./v. 伪装；假扮；掩饰", "The detective entered the club in disguise."],
+  ["furnish", "v. 布置家具；提供", "The apartment comes fully furnished with modern appliances."],
+  ["enclose", "v. 围住；随信附上", "Please enclose a copy of your receipt with the application."],
+  ["betray", "v. 背叛；泄露；暴露", "He would never betray a friend who trusted him."],
+  ["veil", "n. 面纱；遮盖物；v. 遮掩", "The bride wore a veil of white silk."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -745,7 +760,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "79";
+const APP_VERSION = "80";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
