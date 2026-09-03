@@ -665,7 +665,27 @@
   ["orient", "v. 使适应；确定方向；使面向", "The course is oriented toward students who have little research experience."],
   ["intention", "n. 意图；打算", "Her intention was to finish the proposal before the meeting."],
   ["do justice to", "公正对待；充分展现；恰当处理", "The photograph does not do justice to the cathedral's enormous stained-glass windows."],
-  ["excellence", "n. 优秀；卓越", "The school has a long tradition of excellence in music and drama."]
+  ["excellence", "n. 优秀；卓越", "The school has a long tradition of excellence in music and drama."],
+  ["dubious", "adj. 怀疑的；可疑的；不可靠的", "She was dubious about the promise of instant results."],
+  ["heir", "n. 继承人", "The eldest son became heir to the family estate."],
+  ["quarrel", "n./v. 争吵；吵架", "Their quarrel began over a trivial misunderstanding."],
+  ["ambiguous", "adj. 模棱两可的；含糊不清的", "The minister gave an ambiguous answer that satisfied neither side."],
+  ["elevate", "v. 提升；举起；使升高", "The program aims to elevate the status of technical education."],
+  ["tame", "adj. 驯服的；沉闷的；v. 驯化；制服", "The tame rabbit sat calmly while the children fed it."],
+  ["spouse", "n. 配偶", "Employees may include their spouse in the health insurance plan."],
+  ["uphold", "v. 维护；支持；维持原判", "The appeals court upheld the lower court's decision."],
+  ["appliance", "n. （家用）电器；器具", "Modern kitchens are filled with time-saving appliances."],
+  ["dilemma", "n. 困境；进退两难", "She faced the dilemma of accepting the promotion or staying near her family."],
+  ["accuse", "v. 指责；控告", "The report accuses the agency of ignoring early warnings."],
+  ["marital", "adj. 婚姻的", "The counselor helped them work through several marital difficulties."],
+  ["apparatus", "n. 设备；仪器；机构", "The technician sterilized each piece of apparatus before the experiment."],
+  ["legacy", "n. 遗产；遗留影响", "The Olympics left the city with improved transport and a lasting sporting legacy."],
+  ["dim", "adj. 昏暗的；模糊的；v. 使变暗；使减弱", "The only light came from a dim lamp above the desk."],
+  ["ally", "n. 盟友；支持者；v. 结盟", "Spain became a valuable ally during the negotiations."],
+  ["pregnant", "adj. 怀孕的；充满的", "She was six months pregnant when they moved to the new house."],
+  ["curse", "n. 诅咒；祸根；v. 诅咒", "Locals described the drought as a curse on the valley."],
+  ["engage", "v. 吸引；使参与；雇用；订婚", "The teacher used puzzles to engage the students in mathematics."],
+  ["liable", "adj. 有法律责任的；易于……的", "Drivers who ignore the warning may be liable for the resulting damage."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -673,7 +693,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "76";
+const APP_VERSION = "77";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
