@@ -771,6 +771,22 @@ const STARTER_WORDS = [
   ["superb", "adj. 极好的；华丽的", "The restaurant is known for its superb seafood and quiet atmosphere."],
   ["coordinate", "v. 协调；配合；n. 坐标", "The agencies coordinated their efforts to deliver aid after the flood."],
   ["queer", "adj. 奇怪的；同性恋的", "The novel describes the queer corners of the old harbor district."],
+  ["ponderous", "adj. 沉重的；笨重的；冗长乏味的", "The professor's ponderous lecture made the afternoon seem endless."],
+  ["vital", "adj. 至关重要的；生命的", "Clean water is vital to the survival of the whole community."],
+  ["specimen", "n. 样本；标本；典型", "The nurse labeled each blood specimen before sending it to the laboratory."],
+  ["decisive", "adj. 决定性的；果断的", "Her decisive response prevented the small fire from spreading."],
+  ["exempt", "adj. 被免除的；v. 免除", "Charitable organizations are exempt from the new tax."],
+  ["spontaneous", "adj. 自发的；自然的", "The crowd broke into spontaneous applause at the end of the speech."],
+  ["elite", "n. 精英；adj. 精英的", "The academy trains an elite group of young athletes."],
+  ["fatal", "adj. 致命的；灾难性的", "The driver made a fatal error on the wet mountain road."],
+  ["clumsy", "adj. 笨拙的；不灵巧的", "The clumsy waiter knocked a glass off the table."],
+  ["physician", "n. 医师；内科医生", "Consult your physician before starting any new exercise program."],
+  ["imperative", "adj. 极重要的；必要的；n. 必要的事", "It is imperative that the report reach the minister before tomorrow's meeting."],
+  ["germ", "n. 细菌；病菌；萌芽", "Washing your hands regularly helps stop the spread of germs."],
+  ["resort", "n. 度假村；诉诸；v. 诉诸", "The coastal resort fills with tourists every summer."],
+  ["ponder", "v. 思考；沉思", "She paused to ponder the meaning of his final remark."],
+  ["phase", "n. 阶段；时期", "The building project has entered its final phase."],
+  ["indispensable", "adj. 不可或缺的", "A good dictionary is indispensable for advanced language learners."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -778,7 +794,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "81";
+const APP_VERSION = "82";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
