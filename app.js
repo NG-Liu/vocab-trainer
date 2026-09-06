@@ -816,7 +816,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "83";
+const APP_VERSION = "84";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
@@ -987,6 +987,7 @@ const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
 const DEFAULT_REVIEW_LIMIT = 50;
 const HARD_RETRY_GAPS = [4, 10];
 const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
+const CLOUD_HISTORY_LIMIT = 500;
 const LIBRARY_BATCH_SIZE = 120;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
@@ -1659,6 +1660,7 @@ function getTodaySession() {
     nextSession.index !== book.todaySession.index ||
     nextSession.pendingHardId !== book.todaySession.pendingHardId ||
     !sameTodayHardReviewCounts(nextSession.hardReviewCounts, book.todaySession.hardReviewCounts) ||
+    !sameTodayWordIds(nextSession.completedWordIds, book.todaySession.completedWordIds) ||
     nextSession.queueIds.join("|") !== (book.todaySession.queueIds || []).join("|")
   ) {
     book.todaySession = nextSession;
@@ -1673,7 +1675,16 @@ function createTodaySession(date, book = ensureCurrentBook(), limit = getReviewL
     .slice(0, limit)
     .map((word) => word.id);
 
-  return { date, limit, queueIds, index: 0, pendingHardId: null, hardReviewCounts: {}, updatedAt: Date.now() };
+  return {
+    date,
+    limit,
+    queueIds,
+    index: 0,
+    pendingHardId: null,
+    hardReviewCounts: {},
+    completedWordIds: [],
+    updatedAt: Date.now()
+  };
 }
 
 function reconcileTodaySession(session, book, limit = getReviewLimit()) {
@@ -1706,11 +1717,16 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
   );
   const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
   const hardReviewCounts = normalizeTodayHardReviewCounts(session.hardReviewCounts, allowedWordIds);
+  const completedWordIds = normalizeTodayCompletedWordIds(
+    [...(session.completedWordIds || []), ...previousQueueIds.slice(0, previousIndex)],
+    allowedWordIds
+  );
   const changed =
     limit !== session.limit ||
     index !== session.index ||
     pendingHardId !== session.pendingHardId ||
     !sameTodayHardReviewCounts(hardReviewCounts, session.hardReviewCounts) ||
+    !sameTodayWordIds(completedWordIds, session.completedWordIds) ||
     queueIds.join("|") !== (session.queueIds || []).join("|");
   return {
     ...session,
@@ -1719,6 +1735,7 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
     index,
     pendingHardId,
     hardReviewCounts,
+    completedWordIds,
     updatedAt: changed ? Date.now() : Number(session.updatedAt) || 0
   };
 }
@@ -1747,6 +1764,15 @@ function normalizeTodayHardReviewCounts(value, validWordIds) {
 
 function sameTodayHardReviewCounts(left, right) {
   return JSON.stringify(left || {}) === JSON.stringify(right || {});
+}
+
+function normalizeTodayCompletedWordIds(value, validWordIds) {
+  if (!Array.isArray(value)) return [];
+  return getUniqueWordIds(value.filter((wordId) => validWordIds.has(wordId)));
+}
+
+function sameTodayWordIds(left, right) {
+  return JSON.stringify(getUniqueWordIds(left || []).sort()) === JSON.stringify(getUniqueWordIds(right || []).sort());
 }
 
 function getDueWordsForToday(book) {
@@ -1923,6 +1949,7 @@ function rateCurrent(rating) {
 function recordRating(word, rating, options = {}) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
+  const reviewedAt = Date.now();
   const next = scheduleNext(progress, rating, {
     demoteToUnmastered: options.demoteToUnmastered === true
   });
@@ -1930,20 +1957,28 @@ function recordRating(word, rating, options = {}) {
     seen: progress.seen + 1,
     correct: progress.correct + (correct ? 1 : 0),
     wrong: progress.wrong + (correct ? 0 : 1),
-    lastReviewed: Date.now()
+    lastReviewed: reviewedAt
   });
 
   const book = ensureCurrentBook();
   book.history.unshift({
+    eventId: createReviewEventId(),
     id: word.id,
     term: word.term,
     rating,
     correct,
-    at: Date.now()
+    at: reviewedAt
   });
-  book.history = book.history.slice(0, 80);
+  book.history = book.history.slice(0, CLOUD_HISTORY_LIMIT);
   saveState();
   if (options.render !== false) renderAll();
+}
+
+function createReviewEventId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  return `review-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}-${Date.now()}`;
 }
 
 function advanceToNext() {
@@ -1959,6 +1994,7 @@ function saveTodaySessionPosition() {
   const session = getTodaySession();
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = null;
+  session.completedWordIds = getUniqueWordIds(session.queueIds.slice(0, session.index));
   session.updatedAt = Date.now();
   saveState();
 }
@@ -1975,6 +2011,7 @@ function markTodaySessionPendingHard(wordId) {
   session.hardReviewCounts[wordId] = hardReviewCount;
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = wordId;
+  session.completedWordIds = getUniqueWordIds(session.queueIds.slice(0, session.index));
 
   const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
   let retryScheduled = false;
@@ -2829,18 +2866,81 @@ function mergeCloudBook(localBook, remoteBook) {
   const extraWords = new Map(remoteBook.extraWords.map((word) => [word.id, word]));
   localBook.extraWords.forEach((word) => extraWords.set(word.id, word));
 
+  const history = mergeCloudHistory(localBook.history, remoteBook.history);
   const progress = {};
   const wordIds = new Set([...Object.keys(remoteBook.progress), ...Object.keys(localBook.progress)]);
   wordIds.forEach((wordId) => {
-    progress[wordId] = pickNewerCloudProgress(localBook.progress[wordId], remoteBook.progress[wordId]);
+    progress[wordId] = mergeCloudProgress(
+      localBook.progress[wordId],
+      remoteBook.progress[wordId],
+      localBook.history,
+      remoteBook.history,
+      wordId
+    );
   });
 
   return {
     extraWords: Array.from(extraWords.values()),
     progress,
-    history: mergeCloudHistory(localBook.history, remoteBook.history),
+    history,
     todaySession: pickNewerCloudTodaySession(localBook.todaySession, remoteBook.todaySession)
   };
+}
+
+function mergeCloudProgress(local, remote, localHistory, remoteHistory, wordId) {
+  if (!local) return remote;
+  if (!remote) return local;
+
+  const localEvents = getCloudWordHistory(localHistory, wordId);
+  const remoteEvents = getCloudWordHistory(remoteHistory, wordId);
+  const localKeys = new Set(localEvents.map(getCloudEventKey));
+  const remoteKeys = new Set(remoteEvents.map(getCloudEventKey));
+  const localOldest = getOldestCloudEventAt(localEvents);
+  const remoteOldest = getOldestCloudEventAt(remoteEvents);
+  const cutoff = Math.max(localOldest || 0, remoteOldest || 0);
+  const localOnly = localEvents.filter(
+    (event) => !remoteKeys.has(getCloudEventKey(event)) && (!cutoff || event.at >= cutoff)
+  );
+  const remoteOnly = remoteEvents.filter(
+    (event) => !localKeys.has(getCloudEventKey(event)) && (!cutoff || event.at >= cutoff)
+  );
+  const latest = pickNewerCloudProgress(local, remote);
+  const mergedCorrect = Math.max(
+    local.correct + countCloudEvents(remoteOnly, (event) => event.correct),
+    remote.correct + countCloudEvents(localOnly, (event) => event.correct)
+  );
+  const mergedWrong = Math.max(
+    local.wrong + countCloudEvents(remoteOnly, (event) => !event.correct),
+    remote.wrong + countCloudEvents(localOnly, (event) => !event.correct)
+  );
+
+  return {
+    ...latest,
+    seen: Math.max(
+      local.seen + localOnly.length,
+      remote.seen + remoteOnly.length,
+      mergedCorrect + mergedWrong
+    ),
+    correct: mergedCorrect,
+    wrong: mergedWrong
+  };
+}
+
+function getCloudWordHistory(history, wordId) {
+  return (history || []).filter((event) => event.id === wordId);
+}
+
+function getCloudEventKey(event) {
+  return event.eventId || `${event.id}|${event.rating}|${event.at}`;
+}
+
+function getOldestCloudEventAt(events) {
+  if (!events.length) return null;
+  return events.reduce((oldest, event) => Math.min(oldest, event.at), Number.POSITIVE_INFINITY);
+}
+
+function countCloudEvents(events, predicate) {
+  return events.reduce((count, event) => count + (predicate(event) ? 1 : 0), 0);
 }
 
 function pickNewerCloudProgress(local, remote) {
@@ -2859,17 +2959,67 @@ function pickNewerCloudProgress(local, remote) {
 function mergeCloudHistory(localHistory, remoteHistory) {
   const history = new Map();
   [...remoteHistory, ...localHistory].forEach((item) => {
-    history.set(`${item.id}|${item.rating}|${item.at}`, item);
+    history.set(getCloudEventKey(item), item);
   });
-  return Array.from(history.values()).sort((a, b) => b.at - a.at).slice(0, 80);
+  return Array.from(history.values()).sort((a, b) => b.at - a.at).slice(0, CLOUD_HISTORY_LIMIT);
 }
 
 function pickNewerCloudTodaySession(local, remote) {
   if (!local) return remote;
   if (!remote) return local;
   if (local.date !== remote.date) return local.date > remote.date ? local : remote;
-  if (local.updatedAt !== remote.updatedAt) return local.updatedAt > remote.updatedAt ? local : remote;
-  return local.index >= remote.index ? local : remote;
+  const limit = Math.max(local.limit, remote.limit);
+  const maxQueueLength = limit * MAX_DAILY_HARD_REVIEWS;
+  const queueIds = mergeCloudQueueIds(local.queueIds, remote.queueIds, maxQueueLength);
+  const index = Math.min(queueIds.length, Math.max(local.index, remote.index));
+  const pendingCandidates = [local, remote].filter(
+    (session) => session.pendingHardId && session.index === index && queueIds[index] === session.pendingHardId
+  );
+  const pendingHardId = pendingCandidates.length
+    ? pendingCandidates.sort((a, b) => b.updatedAt - a.updatedAt)[0].pendingHardId
+    : null;
+  const hardReviewCounts = mergeCloudHardReviewCounts(local.hardReviewCounts, remote.hardReviewCounts);
+  const completedWordIds = getUniqueWordIds([...(local.completedWordIds || []), ...(remote.completedWordIds || [])]);
+  return {
+    ...(local.updatedAt >= remote.updatedAt ? local : remote),
+    date: local.date,
+    limit,
+    queueIds,
+    index,
+    pendingHardId,
+    hardReviewCounts,
+    completedWordIds,
+    updatedAt: Math.max(local.updatedAt, remote.updatedAt)
+  };
+}
+
+function mergeCloudQueueIds(localQueueIds, remoteQueueIds, maxLength) {
+  const result = [...localQueueIds];
+  const resultCounts = countCloudQueueIds(result);
+  const remoteCounts = countCloudQueueIds(remoteQueueIds);
+  remoteQueueIds.forEach((wordId) => {
+    if ((resultCounts[wordId] || 0) >= (remoteCounts[wordId] || 0)) return;
+    result.push(wordId);
+    resultCounts[wordId] = (resultCounts[wordId] || 0) + 1;
+  });
+  return result.slice(0, maxLength);
+}
+
+function countCloudQueueIds(queueIds) {
+  return queueIds.reduce((counts, wordId) => {
+    counts[wordId] = (counts[wordId] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function mergeCloudHardReviewCounts(localCounts, remoteCounts) {
+  const counts = {};
+  const wordIds = new Set([...Object.keys(localCounts || {}), ...Object.keys(remoteCounts || {})]);
+  wordIds.forEach((wordId) => {
+    const count = Math.max(Number(localCounts?.[wordId]) || 0, Number(remoteCounts?.[wordId]) || 0);
+    if (count > 0) counts[wordId] = Math.min(MAX_DAILY_HARD_REVIEWS, Math.round(count));
+  });
+  return counts;
 }
 
 function applyCloudSyncSnapshot(snapshot) {
@@ -2894,7 +3044,8 @@ function applyCloudSyncSnapshot(snapshot) {
         ? {
             ...cloudBook.todaySession,
             queueIds: [...cloudBook.todaySession.queueIds],
-            hardReviewCounts: { ...cloudBook.todaySession.hardReviewCounts }
+            hardReviewCounts: { ...cloudBook.todaySession.hardReviewCounts },
+            completedWordIds: [...(cloudBook.todaySession.completedWordIds || [])]
           }
         : null;
       orderBookWords(book, definition);
@@ -2942,7 +3093,7 @@ function isMeaningfulCloudProgress(progress) {
 function normalizeCloudHistory(value) {
   if (!Array.isArray(value)) return [];
   return value
-    .slice(0, 160)
+    .slice(0, CLOUD_HISTORY_LIMIT)
     .map((item) => {
       if (!item || typeof item !== "object") return null;
       const id = String(item.id || "").slice(0, 160);
@@ -2950,11 +3101,12 @@ function normalizeCloudHistory(value) {
       const rating = ["hard", "medium", "easy", "mastered"].includes(item.rating) ? item.rating : "hard";
       const at = normalizeCloudTimestamp(item.at);
       if (!id || !term || !at) return null;
-      return { id, term, rating, correct: rating !== "hard", at };
+      const eventId = String(item.eventId || `${id}|${rating}|${at}`).slice(0, 200);
+      return { eventId, id, term, rating, correct: rating !== "hard", at };
     })
     .filter(Boolean)
     .sort((a, b) => b.at - a.at)
-    .slice(0, 80);
+    .slice(0, CLOUD_HISTORY_LIMIT);
 }
 
 function normalizeCloudTodaySession(value) {
@@ -2965,7 +3117,9 @@ function normalizeCloudTodaySession(value) {
     : [];
   const index = Math.min(clampCloudInteger(value.index, 0, queueIds.length), queueIds.length);
   const pendingHardId = queueIds[index] === value.pendingHardId ? value.pendingHardId : null;
-  const hardReviewCounts = normalizeTodayHardReviewCounts(value.hardReviewCounts, new Set(getUniqueWordIds(queueIds)));
+  const validWordIds = new Set(getUniqueWordIds(queueIds));
+  const hardReviewCounts = normalizeTodayHardReviewCounts(value.hardReviewCounts, validWordIds);
+  const completedWordIds = normalizeTodayCompletedWordIds(value.completedWordIds, validWordIds);
   return {
     date: value.date,
     limit,
@@ -2973,6 +3127,7 @@ function normalizeCloudTodaySession(value) {
     index,
     pendingHardId,
     hardReviewCounts,
+    completedWordIds,
     updatedAt: normalizeCloudTimestamp(value.updatedAt) || 0
   };
 }
