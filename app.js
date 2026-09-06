@@ -786,7 +786,29 @@ const STARTER_WORDS = [
   ["resort", "n. 度假村；诉诸；v. 诉诸", "The coastal resort fills with tourists every summer."],
   ["ponder", "v. 思考；沉思", "She paused to ponder the meaning of his final remark."],
   ["phase", "n. 阶段；时期", "The building project has entered its final phase."],
-  ["indispensable", "adj. 不可或缺的", "A good dictionary is indispensable for advanced language learners."]
+  ["indispensable", "adj. 不可或缺的", "A good dictionary is indispensable for advanced language learners."],
+  ["aristocratic", "adj. 贵族的；贵族式的", "Her aristocratic manners seemed out of place in the crowded market."],
+  ["intrude", "v. 闯入；打扰；干涉", "I am sorry to intrude, but may I ask you a private question?"],
+  ["republican", "adj. 共和制的；n. 共和党人", "The country adopted a republican form of government after the revolution."],
+  ["hierarchy", "n. 等级制度；层级；等级体系", "The company has a clear hierarchy, but senior managers still welcome suggestions."],
+  ["majestic", "adj. 雄伟的；庄严的", "A majestic eagle circled above the valley before disappearing into the clouds."],
+  ["infestation", "n. 蔓延；大量滋生；虫害", "The building was closed after an infestation of rats was discovered in the basement."],
+  ["stand down", "v. 退下；辞职；暂停行动", "The police officer agreed to stand down once the crowd had dispersed."],
+  ["adherence", "n. 遵守；坚持；依附", "Strict adherence to the safety rules prevented a serious accident."],
+  ["downside", "n. 缺点；不利的一面", "The main downside of working from home is the lack of daily contact with colleagues."],
+  ["transcendence", "n. 超越；卓越；超凡境界", "The poem seeks transcendence through images of light and silence."],
+  ["crisis", "n. 危机；紧急关头", "The hospital introduced new measures to cope with the winter flu crisis."],
+  ["preserve", "v. 保护；保存；维持；n. 果酱", "The national park was created to preserve the forest and its wildlife."],
+  ["bizarre", "adj. 奇异的；怪诞的", "A bizarre coincidence brought the two old friends together again."],
+  ["nobility", "n. 高贵；贵族；高尚的品格", "The story celebrates the nobility of those who help others without seeking praise."],
+  ["the writing is on the wall", "事情已很明显；不祥之兆已出现", "The writing is on the wall for the outdated factory unless it modernizes soon."],
+  ["abdicate", "v. 退位；放弃（责任或权力）", "The king was forced to abdicate after losing the support of the army."],
+  ["hierarchical", "adj. 分等级的；等级森严的", "The old hierarchical structure made it difficult for junior staff to speak up."],
+  ["indefensible", "adj. 无法辩护的；站不住脚的", "The committee admitted that the decision was indefensible in light of the new evidence."],
+  ["infest", "v. 大量滋生于；遍布", "Cockroaches began to infest the kitchen after the restaurant stopped cleaning regularly."],
+  ["election", "n. 选举；当选", "Voters will choose a new mayor in next month's election."],
+  ["intrusiveness", "n. 侵扰性；冒犯性；干涉", "The survey's intrusiveness made several participants uncomfortable."],
+  ["majesty", "n. 雄伟；庄严；陛下", "The mountains impressed the visitors with their sheer majesty."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -794,7 +816,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "82";
+const APP_VERSION = "83";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
