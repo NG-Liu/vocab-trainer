@@ -808,7 +808,42 @@ const STARTER_WORDS = [
   ["infest", "v. 大量滋生于；遍布", "Cockroaches began to infest the kitchen after the restaurant stopped cleaning regularly."],
   ["election", "n. 选举；当选", "Voters will choose a new mayor in next month's election."],
   ["intrusiveness", "n. 侵扰性；冒犯性；干涉", "The survey's intrusiveness made several participants uncomfortable."],
-  ["majesty", "n. 雄伟；庄严；陛下", "The mountains impressed the visitors with their sheer majesty."]
+  ["majesty", "n. 雄伟；庄严；陛下", "The mountains impressed the visitors with their sheer majesty."],
+  ["integrity", "n. 正直；诚实；完整性", "The journalist was respected for her integrity and careful reporting."],
+  ["warrant", "n. 授权令；正当理由；v. 使有必要；保证", "The evidence was not strong enough to warrant further action."],
+  ["cunning", "adj. 狡猾的；巧妙的；n. 狡猾；诡计", "The fox used a cunning trick to escape from the trap."],
+  ["screen", "n. 屏幕；屏风；v. 筛选；遮挡", "The company screens all applicants before inviting them to an interview."],
+  ["conspire", "v. 密谋；共同导致", "The two officials conspired to conceal the evidence."],
+  ["board", "n. 董事会；木板；伙食；v. 登上；寄宿", "The board approved the proposal after a lengthy discussion."],
+  ["dearth", "n. 缺乏；稀缺", "A dearth of affordable housing has forced many families to move away."],
+  ["upset", "v. 打乱；使心烦；推翻；adj. 难过的；混乱的", "The unexpected news upset her plans for the weekend."],
+  ["revelation", "n. 揭示；意外发现；启示", "The diary contained a revelation that changed the family's understanding of the past."],
+  ["guild", "n. 行会；协会；公会", "The craftsmen formed a guild to protect the standards of their trade."],
+  ["ruin", "v. 毁坏；使破产；n. 废墟；毁灭", "One careless decision could ruin years of hard work."],
+  ["advisory", "adj. 咨询的；劝告的；n. 通知；公告", "The weather service issued an advisory about dangerous driving conditions."],
+  ["possession", "n. 所有物；占有；拥有", "The passport was the most important possession in her bag."],
+  ["terms", "n. 条件；条款；措辞；关系", "The two companies agreed to the terms of the new contract."],
+  ["indifference", "n. 漠不关心；冷淡", "His indifference to the suffering around him surprised everyone."],
+  ["hire", "v. 雇用；租用；n. 新雇员；租用", "The restaurant plans to hire extra staff for the summer season."],
+  ["long overdue", "adj. 早该发生的；拖延已久的", "The museum's long-overdue renovation finally began this spring."],
+  ["doctrine", "n. 学说；教义；原则", "The policy was based on the doctrine that every citizen deserves equal treatment."],
+  ["specify", "v. 明确说明；规定；指定", "The instructions specify how the chemicals must be stored."],
+  ["unsettling", "adj. 令人不安的；扰乱人心的", "There was something unsettling about the empty house at night."],
+  ["merit", "n. 优点；价值；功绩；v. 值得", "The proposal has considerable merit despite its high cost."],
+  ["circulation", "n. 流通；发行量；血液循环", "Regular exercise improves circulation and reduces stress."],
+  ["ruling", "n. 裁决；判决；统治；adj. 统治的", "The court's ruling will affect thousands of similar cases."],
+  ["conspiracy", "n. 阴谋；密谋；阴谋集团", "The investigation uncovered a conspiracy to manipulate the election."],
+  ["impel", "v. 驱使；推动", "A strong sense of responsibility impelled her to report the mistake."],
+  ["trial", "n. 审判；试验；试用", "The new medicine is currently undergoing clinical trials."],
+  ["discard", "v. 丢弃；抛弃；不再考虑", "Please discard any food that has been left at room temperature overnight."],
+  ["collective", "adj. 集体的；共同的；n. 集体；团体", "The decision reflected the collective judgment of the committee."],
+  ["manuscript", "n. 手稿；原稿", "The author sent the finished manuscript to her editor."],
+  ["proportionality", "n. 相称性；比例关系", "The court questioned the proportionality of the punishment."],
+  ["flag up", "v. 提醒注意；指出", "The audit flagged up several weaknesses in the company's procedures."],
+  ["degrade", "v. 降低质量；使降级；使丢脸", "Repeated exposure to sunlight can degrade the material."],
+  ["implication", "n. 可能的影响；含义；牵连", "The report discusses the wider implications of the decision."],
+  ["irreproducibility", "n. 不可重复性；难以复现", "The study's irreproducibility raised questions about the original findings."],
+  ["refrain", "v. 忍住；克制；避免；n. 副歌；叠句", "She refrained from commenting until all the facts were known."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -816,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "84";
+const APP_VERSION = "85";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
