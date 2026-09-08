@@ -851,8 +851,9 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "85";
+const APP_VERSION = "87";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
+const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
 const DEFAULT_BOOK_NAME = "默认单词本";
 const INTEGRAL_BOOK_ID = "integrals";
@@ -1082,6 +1083,8 @@ let inlineReviewAnswerVisible = false;
 let inlineReviewPendingHard = false;
 let libraryOrderFreeze = null;
 let libraryVisibleLimit = LIBRARY_BATCH_SIZE;
+let activeWordAudio = null;
+let wordAudioRequestId = 0;
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -1114,6 +1117,7 @@ const els = {
   startButton: document.querySelector("#startButton"),
   queueLabel: document.querySelector("#queueLabel"),
   promptText: document.querySelector("#promptText"),
+  promptAudioButton: document.querySelector("#promptAudioButton"),
   promptHint: document.querySelector("#promptHint"),
   answerBox: document.querySelector("#answerBox"),
   answerText: document.querySelector("#answerText"),
@@ -1168,6 +1172,11 @@ function bindEvents() {
   }
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
+  if (els.promptAudioButton) {
+    els.promptAudioButton.addEventListener("click", () => {
+      playWordAudio(els.promptAudioButton.dataset.audioTerm, els.promptAudioButton);
+    });
+  }
   els.rateButtons.forEach((button) => {
     button.addEventListener("click", () => rateCurrent(button.dataset.rating));
   });
@@ -1568,6 +1577,7 @@ function syncBookSelect() {
 
 function switchBook(bookId) {
   if (!state.books[bookId]) return;
+  stopWordAudio();
   clearInlineReview();
   clearLibraryOrderFreeze();
   resetLibraryVisibleLimit();
@@ -1629,6 +1639,7 @@ function todayKey(date = new Date()) {
 }
 
 function switchView(viewId) {
+  stopWordAudio();
   clearInlineReview();
   clearLibraryOrderFreeze();
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === viewId));
@@ -1823,12 +1834,14 @@ function getDueWordsForToday(book) {
 }
 
 function renderCurrentCard() {
+  stopWordAudio();
   const word = currentQueue[currentIndex];
   const hasWord = Boolean(word);
   const mathBook = isMathBook();
   const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
   const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
+  updatePromptAudioButton(word, hasWord && !mathBook);
   toggleReviewControls(hasWord);
   flashReviewCard();
 
@@ -1955,6 +1968,120 @@ function buildDictionaryUrl(term) {
   return `${DICTIONARY_SEARCH_URL}${encodeURIComponent(term.trim())}`;
 }
 
+function shouldShowWordAudio(book = ensureCurrentBook()) {
+  return !isMathBook(book);
+}
+
+function renderAudioButton(term) {
+  if (!shouldShowWordAudio()) return "";
+  const cleanTerm = String(term || "").trim();
+  const label = `播放 ${cleanTerm} 发音`;
+  return `
+    <button
+      class="audio-button"
+      type="button"
+      data-audio-term="${escapeHtml(cleanTerm)}"
+      title="播放发音"
+      aria-label="${escapeHtml(label)}"
+    ><span aria-hidden="true">🔊</span></button>
+  `;
+}
+
+function updatePromptAudioButton(word, visible) {
+  const button = els.promptAudioButton;
+  if (!button) return;
+  const enabled = Boolean(word && visible && shouldShowWordAudio());
+  button.classList.toggle("is-hidden", !enabled);
+  if (!enabled) {
+    delete button.dataset.audioTerm;
+    setAudioButtonState(button, "idle");
+    return;
+  }
+  button.dataset.audioTerm = word.term;
+  setAudioButtonState(button, "idle");
+}
+
+function setAudioButtonState(button, state) {
+  if (!button) return;
+  const term = button.dataset.audioTerm || "单词";
+  const isBusy = state === "loading" || state === "playing";
+  button.disabled = state === "loading";
+  button.classList.toggle("is-playing", isBusy);
+  button.setAttribute("aria-label", state === "loading" ? "正在加载发音" : state === "playing" ? `正在播放 ${term} 发音` : `播放 ${term} 发音`);
+}
+
+function buildWordAudioUrl(term) {
+  const cleanTerm = String(term || "").trim();
+  return cleanTerm ? `${WORD_AUDIO_URL}${encodeURIComponent(cleanTerm)}` : "";
+}
+
+function playWordAudio(term, button) {
+  const cleanTerm = String(term || "").trim();
+  if (!cleanTerm || !shouldShowWordAudio()) return;
+
+  stopWordAudio();
+  const requestId = wordAudioRequestId;
+  const audioUrl = buildWordAudioUrl(cleanTerm);
+  if (audioUrl && typeof Audio !== "undefined") {
+    playAudioUrl(audioUrl, cleanTerm, button, requestId);
+    return;
+  }
+
+  speakWordAudio(cleanTerm, button, requestId);
+}
+
+function playAudioUrl(audioUrl, term, button, requestId) {
+  const audio = new Audio(audioUrl);
+  const finish = () => {
+    if (activeWordAudio?.audio !== audio) return;
+    activeWordAudio = null;
+    setAudioButtonState(button, "idle");
+  };
+  const fallback = () => {
+    if (activeWordAudio?.audio === audio) activeWordAudio = null;
+    speakWordAudio(term, button, requestId);
+  };
+  audio.addEventListener("ended", finish, { once: true });
+  audio.addEventListener("error", fallback, { once: true });
+  activeWordAudio = { audio, button };
+  setAudioButtonState(button, "playing");
+  audio.play().catch(fallback);
+}
+
+function speakWordAudio(term, button, requestId) {
+  if (requestId !== wordAudioRequestId) return;
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    setAudioButtonState(button, "idle");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(term);
+  utterance.lang = "en-US";
+  utterance.rate = 0.82;
+  const finish = () => {
+    if (activeWordAudio?.speech !== utterance) return;
+    activeWordAudio = null;
+    setAudioButtonState(button, "idle");
+  };
+  utterance.addEventListener("end", finish, { once: true });
+  utterance.addEventListener("error", finish, { once: true });
+  activeWordAudio = { speech: utterance, button };
+  setAudioButtonState(button, "playing");
+  try {
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    finish();
+  }
+}
+
+function stopWordAudio() {
+  wordAudioRequestId += 1;
+  if (activeWordAudio?.audio) activeWordAudio.audio.pause();
+  if (activeWordAudio?.speech && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (activeWordAudio?.button) setAudioButtonState(activeWordAudio.button, "idle");
+  activeWordAudio = null;
+}
+
 function rateCurrent(rating) {
   const word = currentQueue[currentIndex];
   if (!word) return;
@@ -2017,6 +2144,7 @@ function createReviewEventId() {
 }
 
 function advanceToNext() {
+  stopWordAudio();
   reviewAnswerWordId = null;
   currentIndex += 1;
   saveTodaySessionPosition();
@@ -2136,7 +2264,10 @@ function renderWordList() {
       const meaningId = `meaning-${word.id}`;
       const row = `
         <article class="word-row${expanded ? " is-expanded" : ""}${inlineOpen ? " is-inline-open" : ""}" data-word-id="${escapeHtml(word.id)}">
-          <div class="word-term">${formatInlineContent(word.term, isMathBook())}</div>
+          <div class="word-term">
+            <span class="word-term-text">${formatInlineContent(word.term, isMathBook())}</span>
+            ${renderAudioButton(word.term)}
+          </div>
           <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
           <button
@@ -2175,7 +2306,10 @@ function renderInlineReviewCard(word) {
   return `
     <article class="inline-review-card" data-inline-word-id="${escapeHtml(word.id)}">
       <p class="queue-label">单词复习</p>
-      <h3 class="inline-review-term">${formatInlineContent(word.term, mathBook)}</h3>
+      <h3 class="inline-review-term">
+        <span class="inline-review-term-text">${formatInlineContent(word.term, mathBook)}</span>
+        ${renderAudioButton(word.term)}
+      </h3>
       <p class="subtle-text">${formatInlineContent(word.example || "根据英文回忆中文释义。", mathBook)}</p>
       <div class="answer-box inline-answer${answerHiddenClass}">
         <span>${formatInlineContent(word.meaning, mathBook)}</span>
@@ -2274,6 +2408,12 @@ function handleWordListClick(event) {
   if (loadMoreButton && els.wordList.contains(loadMoreButton)) {
     libraryVisibleLimit += LIBRARY_BATCH_SIZE;
     renderWordList();
+    return;
+  }
+
+  const audioButton = target ? target.closest(".audio-button") : null;
+  if (audioButton && els.wordList.contains(audioButton)) {
+    playWordAudio(audioButton.dataset.audioTerm, audioButton);
     return;
   }
 

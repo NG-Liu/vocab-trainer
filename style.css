@@ -377,6 +377,45 @@ textarea {
   letter-spacing: 0;
 }
 
+.prompt-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.prompt-line #promptText {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.audio-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  color: var(--accent);
+  font-size: 1.12rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.audio-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.42);
+}
+
+.audio-button.is-playing {
+  border-color: rgba(37, 99, 235, 0.5);
+  background: var(--accent-soft);
+}
+
 #promptText .katex-display,
 .answer-box .katex-display {
   margin: 0;
@@ -631,8 +670,23 @@ textarea {
 }
 
 .word-term {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 900;
+}
+
+.word-term-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.word-row .audio-button {
+  width: 36px;
+  min-height: 36px;
+  font-size: 1rem;
 }
 
 .word-meaning {
@@ -709,10 +763,24 @@ textarea {
 }
 
 .inline-review-term {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   margin: 0;
   font-size: 1.45rem;
   line-height: 1.18;
   overflow-wrap: anywhere;
+}
+
+.inline-review-term-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.inline-review-term .audio-button {
+  width: 38px;
+  min-height: 38px;
 }
 
 .inline-answer {
