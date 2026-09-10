@@ -851,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "92";
+const APP_VERSION = "93";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2165,7 +2165,7 @@ function rateCurrent(rating) {
     return;
   }
 
-  const demoteToUnmastered = rating === "hard" && currentQueueType === "mastered";
+  const demoteToUnmastered = rating === "hard" && getProgress(word.id).level >= 4;
   recordRating(word, rating, { demoteToUnmastered, render: rating !== "hard" });
 
   if (rating === "hard") {
@@ -2275,9 +2275,7 @@ function scheduleNext(progress, rating, options = {}) {
   };
   const level =
     rating === "hard"
-      ? options.demoteToUnmastered
-        ? 3
-        : Math.max(0, currentLevel - 1)
+      ? Math.max(0, Math.min(3, currentLevel - 1))
       : rating === "mastered"
         ? 5
         : Math.min(5, currentLevel + (rating === "easy" ? 1 : 0.5));
