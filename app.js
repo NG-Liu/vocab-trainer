@@ -851,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "91";
+const APP_VERSION = "92";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1920,9 +1920,14 @@ function flashReviewCard() {
 
 function isPendingHard(word) {
   if (!word || currentQueueType !== "due") return false;
+  return getTodaySession().pendingHardId === word.id;
+}
+
+function isRepeatHardReview(word) {
+  if (!word || currentQueueType !== "due" || awaitingHardAdvance) return false;
   const session = getTodaySession();
   const hardReviewCount = Math.max(0, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0));
-  return session.pendingHardId === word.id || hardReviewCount > 0;
+  return hardReviewCount > 0;
 }
 
 function getHardReviewFeedback(wordId) {
@@ -2151,6 +2156,11 @@ function rateCurrent(rating) {
   if (!word) return;
 
   if (rating === "hard" && awaitingHardAdvance) {
+    advanceToNext();
+    return;
+  }
+
+  if (isRepeatHardReview(word)) {
     advanceToNext();
     return;
   }
