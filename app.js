@@ -851,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "87";
+const APP_VERSION = "91";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1021,6 +1021,9 @@ const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
 const DEFAULT_REVIEW_LIMIT = 50;
+const EXAM_FUZZY_INTERVAL_DAYS = 1;
+const EXAM_MAX_INTERVAL_DAYS = 14;
+const EXAM_MASTERED_MIN_INTERVAL_DAYS = 7;
 const HARD_RETRY_GAPS = [4, 10];
 const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
 const CLOUD_HISTORY_LIMIT = 500;
@@ -1085,6 +1088,7 @@ let libraryOrderFreeze = null;
 let libraryVisibleLimit = LIBRARY_BATCH_SIZE;
 let activeWordAudio = null;
 let wordAudioRequestId = 0;
+const preparedWordAudio = new Map();
 
 const els = {
   dueCount: document.querySelector("#dueCount"),
@@ -1545,6 +1549,7 @@ function ensureBooks() {
       changed = true;
     }
     if (seedBookWords(book, definition)) changed = true;
+    if (applyExamSprintSchedule(book)) changed = true;
   });
   if (!state.currentBookId || !state.books[state.currentBookId]) {
     state.currentBookId = DEFAULT_BOOK_ID;
@@ -1653,6 +1658,29 @@ function startSession() {
   currentIndex = currentQueueType === "due" ? getTodaySession().index : 0;
   reviewAnswerWordId = null;
   renderCurrentCard();
+}
+
+function applyExamSprintSchedule(book) {
+  const today = startOfToday();
+  const maxDueAt = today + EXAM_MAX_INTERVAL_DAYS * DAY;
+  let changed = false;
+
+  Object.values(book.progress || {}).forEach((progress) => {
+    if (!progress || typeof progress !== "object") return;
+    const interval = Number(progress.interval);
+    if (Number.isFinite(interval) && interval > EXAM_MAX_INTERVAL_DAYS) {
+      progress.interval = EXAM_MAX_INTERVAL_DAYS;
+      changed = true;
+    }
+
+    const dueAt = Number(progress.dueAt);
+    if (Number.isFinite(dueAt) && dueAt > maxDueAt) {
+      progress.dueAt = maxDueAt;
+      changed = true;
+    }
+  });
+
+  return changed;
 }
 
 function buildQueue(type) {
@@ -1836,12 +1864,15 @@ function getDueWordsForToday(book) {
 function renderCurrentCard() {
   stopWordAudio();
   const word = currentQueue[currentIndex];
+  const nextWord = currentQueue[currentIndex + 1];
   const hasWord = Boolean(word);
   const mathBook = isMathBook();
   const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
   const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
   updatePromptAudioButton(word, hasWord && !mathBook);
+  if (word && !mathBook) prepareWordAudio(word.term);
+  if (nextWord && !mathBook) prepareWordAudio(nextWord.term);
   toggleReviewControls(hasWord);
   flashReviewCard();
 
@@ -1889,16 +1920,20 @@ function flashReviewCard() {
 
 function isPendingHard(word) {
   if (!word || currentQueueType !== "due") return false;
-  return getTodaySession().pendingHardId === word.id;
+  const session = getTodaySession();
+  const hardReviewCount = Math.max(0, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0));
+  return session.pendingHardId === word.id || hardReviewCount > 0;
 }
 
 function getHardReviewFeedback(wordId) {
   if (currentQueueType !== "due") return "已加入重点复习";
   const session = getTodaySession();
+  const isCurrentPendingHard = session.pendingHardId === wordId;
   const hardReviewCount = Math.min(
     MAX_DAILY_HARD_REVIEWS,
     Math.max(0, Math.round(Number(session.hardReviewCounts?.[wordId]) || 0))
   );
+  if (hardReviewCount > 0 && !isCurrentPendingHard) return "本次为重复复习，进度按第一次“忘了”记录";
   const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
   if (retryGap !== undefined) return `已加入第 ${hardReviewCount + 1} 次复习，约 ${retryGap} 张后再出现`;
   if (hardReviewCount >= MAX_DAILY_HARD_REVIEWS) return `当天已复习 ${hardReviewCount} 次，明天继续优先复习`;
@@ -2015,35 +2050,63 @@ function buildWordAudioUrl(term) {
   return cleanTerm ? `${WORD_AUDIO_URL}${encodeURIComponent(cleanTerm)}` : "";
 }
 
+function prepareWordAudio(term) {
+  const cleanTerm = String(term || "").trim();
+  if (!cleanTerm || !shouldShowWordAudio() || typeof Audio === "undefined") return null;
+  const key = normalizeText(cleanTerm);
+  if (preparedWordAudio.has(key)) return preparedWordAudio.get(key);
+
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.src = buildWordAudioUrl(cleanTerm);
+  audio.addEventListener("error", () => {
+    if (preparedWordAudio.get(key) === audio) preparedWordAudio.delete(key);
+  });
+  preparedWordAudio.set(key, audio);
+  audio.load();
+  return audio;
+}
+
 function playWordAudio(term, button) {
   const cleanTerm = String(term || "").trim();
   if (!cleanTerm || !shouldShowWordAudio()) return;
 
   stopWordAudio();
   const requestId = wordAudioRequestId;
-  const audioUrl = buildWordAudioUrl(cleanTerm);
-  if (audioUrl && typeof Audio !== "undefined") {
-    playAudioUrl(audioUrl, cleanTerm, button, requestId);
+  const audio = prepareWordAudio(cleanTerm);
+  if (audio) {
+    playPreparedAudio(audio, cleanTerm, button, requestId);
     return;
   }
 
   speakWordAudio(cleanTerm, button, requestId);
 }
 
-function playAudioUrl(audioUrl, term, button, requestId) {
-  const audio = new Audio(audioUrl);
+function playPreparedAudio(audio, term, button, requestId) {
+  let fallbackStarted = false;
   const finish = () => {
     if (activeWordAudio?.audio !== audio) return;
+    activeWordAudio.cleanup();
     activeWordAudio = null;
     setAudioButtonState(button, "idle");
   };
   const fallback = () => {
+    if (requestId !== wordAudioRequestId || fallbackStarted) return;
+    fallbackStarted = true;
     if (activeWordAudio?.audio === audio) activeWordAudio = null;
     speakWordAudio(term, button, requestId);
   };
-  audio.addEventListener("ended", finish, { once: true });
-  audio.addEventListener("error", fallback, { once: true });
-  activeWordAudio = { audio, button };
+  audio.addEventListener("ended", finish);
+  audio.addEventListener("error", fallback);
+  activeWordAudio = {
+    audio,
+    button,
+    cleanup: () => {
+      audio.removeEventListener("ended", finish);
+      audio.removeEventListener("error", fallback);
+    }
+  };
+  audio.currentTime = 0;
   setAudioButtonState(button, "playing");
   audio.play().catch(fallback);
 }
@@ -2078,6 +2141,7 @@ function stopWordAudio() {
   wordAudioRequestId += 1;
   if (activeWordAudio?.audio) activeWordAudio.audio.pause();
   if (activeWordAudio?.speech && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (activeWordAudio?.cleanup) activeWordAudio.cleanup();
   if (activeWordAudio?.button) setAudioButtonState(activeWordAudio.button, "idle");
   activeWordAudio = null;
 }
@@ -2195,9 +2259,9 @@ function scheduleNext(progress, rating, options = {}) {
   const currentLevel = progress.level || 0;
   const intervalMap = {
     hard: 0,
-    medium: Math.max(1, Math.round((progress.interval || 1) * 1.8)),
-    easy: currentLevel === 0 ? 1 : Math.max(2, Math.round((progress.interval || 1) * 2.6)),
-    mastered: Math.max(30, Math.round((progress.interval || 1) * 4))
+    medium: EXAM_FUZZY_INTERVAL_DAYS,
+    easy: Math.min(EXAM_MAX_INTERVAL_DAYS, currentLevel === 0 ? 1 : Math.max(2, Math.round((progress.interval || 1) * 2.6))),
+    mastered: Math.min(EXAM_MAX_INTERVAL_DAYS, Math.max(EXAM_MASTERED_MIN_INTERVAL_DAYS, Math.round((progress.interval || 1) * 4)))
   };
   const level =
     rating === "hard"
