@@ -851,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "93";
+const APP_VERSION = "94";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1627,7 +1627,23 @@ function createProgress() {
 }
 
 function makeId(term) {
-  return term.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const text = String(term || "");
+  const readable = text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\p{L}\p{N}-]+/gu, "-")
+    .replace(/-+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  if (readable && readable.length <= 120) return readable;
+  // 纯符号词条或超长词条：退化为稳定的短哈希，保证 id 唯一且非空
+  const key = text.trim().toLowerCase();
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `w-${(hash >>> 0).toString(36)}`;
 }
 
 function startOfToday() {
@@ -2634,7 +2650,7 @@ function renderProgress() {
     ["未学", (p) => p.seen === 0],
     ["初识", (p) => p.seen > 0 && p.level < 2],
     ["熟悉", (p) => p.level >= 2 && p.level < 4],
-    ["掌握", (p) => p.level >= 4],
+    ["掌握", (p) => p.level >= 4 && p.level < 5],
     ["完全掌握", (p) => p.level >= 5]
   ].map(([label, test]) => {
     const count = book.words.filter((word) => test(getProgress(word.id, book))).length;
