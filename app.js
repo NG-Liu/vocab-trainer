@@ -851,7 +851,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "94";
+const APP_VERSION = "95";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1024,7 +1024,11 @@ const DEFAULT_REVIEW_LIMIT = 50;
 const EXAM_FUZZY_INTERVAL_DAYS = 1;
 const EXAM_MAX_INTERVAL_DAYS = 14;
 const EXAM_MASTERED_MIN_INTERVAL_DAYS = 7;
-const HARD_RETRY_GAPS = [4, 10];
+const HARD_RETRY_GAPS = [4, 10, 20];
+const HARD_RETRY_OFFSETS = HARD_RETRY_GAPS.reduce((offsets, gap) => {
+  offsets.push((offsets[offsets.length - 1] || 0) + gap);
+  return offsets;
+}, []);
 const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
 const CLOUD_HISTORY_LIMIT = 500;
 const LIBRARY_BATCH_SIZE = 120;
@@ -1949,16 +1953,13 @@ function isRepeatHardReview(word) {
 function getHardReviewFeedback(wordId) {
   if (currentQueueType !== "due") return "已加入重点复习";
   const session = getTodaySession();
-  const isCurrentPendingHard = session.pendingHardId === wordId;
-  const hardReviewCount = Math.min(
+  const appearanceCount = Math.min(
     MAX_DAILY_HARD_REVIEWS,
     Math.max(0, Math.round(Number(session.hardReviewCounts?.[wordId]) || 0))
   );
-  if (hardReviewCount > 0 && !isCurrentPendingHard) return "本次为重复复习，进度按第一次“忘了”记录";
-  const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
-  if (retryGap !== undefined) return `已加入第 ${hardReviewCount + 1} 次复习，约 ${retryGap} 张后再出现`;
-  if (hardReviewCount >= MAX_DAILY_HARD_REVIEWS) return `当天已复习 ${hardReviewCount} 次，明天继续优先复习`;
-  return "已加入重点复习";
+  const retryCount = Math.max(0, appearanceCount - 1);
+  if (retryCount <= 0) return "当天不再复现，明天继续优先复习";
+  return `当天已安排复现 ${retryCount} 次`;
 }
 
 function normalizeText(value) {
@@ -2255,30 +2256,34 @@ function saveTodaySessionPosition() {
 function markTodaySessionPendingHard(wordId) {
   if (currentQueueType !== "due") return "已加入重点复习";
   const session = getTodaySession();
-  const previousCount = Math.min(
-    MAX_DAILY_HARD_REVIEWS,
-    Math.max(0, Math.round(Number(session.hardReviewCounts?.[wordId]) || 0))
-  );
-  const hardReviewCount = Math.min(MAX_DAILY_HARD_REVIEWS, previousCount + 1);
-  if (!session.hardReviewCounts || typeof session.hardReviewCounts !== "object") session.hardReviewCounts = {};
-  session.hardReviewCounts[wordId] = hardReviewCount;
   session.index = Math.min(currentIndex, session.queueIds.length);
   session.pendingHardId = wordId;
   session.completedWordIds = getUniqueWordIds(session.queueIds.slice(0, session.index));
 
-  const retryGap = HARD_RETRY_GAPS[hardReviewCount - 1];
-  let retryScheduled = false;
-  if (retryGap !== undefined && session.queueIds.length < session.limit * MAX_DAILY_HARD_REVIEWS) {
-    const retryIndex = Math.min(session.index + 1 + retryGap, session.queueIds.length);
-    session.queueIds.splice(retryIndex, 0, wordId);
-    retryScheduled = true;
+  if (!session.hardReviewCounts || typeof session.hardReviewCounts !== "object") session.hardReviewCounts = {};
+  const alreadyScheduled = Math.max(0, Math.round(Number(session.hardReviewCounts[wordId]) || 0)) > 0;
+
+  let inserted = 0;
+  if (!alreadyScheduled) {
+    // 一次性把当天全部复现位置插进队列：目标下标升序插入，先插入的位置不会被后面的插入影响
+    const maxQueueLength = session.limit * MAX_DAILY_HARD_REVIEWS;
+    const targets = HARD_RETRY_OFFSETS.map((offset) => session.index + 1 + offset);
+    for (let position = 0; position < targets.length; position += 1) {
+      if (session.queueIds.length >= maxQueueLength) break;
+      session.queueIds.splice(Math.min(targets[position], session.queueIds.length), 0, wordId);
+      inserted += 1;
+    }
+    session.hardReviewCounts[wordId] = Math.min(MAX_DAILY_HARD_REVIEWS, inserted + 1);
   }
+
   session.updatedAt = Date.now();
   saveState();
   currentQueue = buildTodayQueue();
 
-  if (retryScheduled) return `已加入第 ${hardReviewCount + 1} 次复习，约 ${retryGap} 张后再出现`;
-  return `当天已复习 ${hardReviewCount} 次，明天继续优先复习`;
+  if (alreadyScheduled) return `当天已安排复现 ${MAX_DAILY_HARD_REVIEWS - 1} 次`;
+  if (inserted <= 0) return "当天队列已满，明天继续优先复习";
+  if (inserted < HARD_RETRY_OFFSETS.length) return `已安排当天再复现 ${inserted} 次（受队列上限限制）`;
+  return `已安排当天再复现 ${inserted} 次，约 ${HARD_RETRY_OFFSETS.join("、")} 张后各出现一次`;
 }
 
 function scheduleNext(progress, rating, options = {}) {
@@ -2318,7 +2323,10 @@ function renderStats() {
   const reviewLimit = getReviewLimit();
   const allDue = book.words.filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today).length;
   const session = book.todaySession && book.todaySession.date === todayKey() ? getTodaySession() : null;
-  const due = session ? Math.max(0, session.queueIds.length - (session.index || 0)) : Math.min(reviewLimit, allDue);
+  // 只统计剩余的不同单词，不把「忘了」产生的复现副本重复计入
+  const due = session
+    ? getUniqueWordIds(session.queueIds.slice(session.index || 0)).length
+    : Math.min(reviewLimit, allDue);
   const mastered = book.words.filter((word) => (book.progress[word.id] || createProgress()).level >= 4).length;
   const todayHistory = book.history.filter((item) => item.at >= startOfToday());
   const accuracy = todayHistory.length
