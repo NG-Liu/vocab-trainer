@@ -843,7 +843,28 @@ const STARTER_WORDS = [
   ["degrade", "v. 降低质量；使降级；使丢脸", "Repeated exposure to sunlight can degrade the material."],
   ["implication", "n. 可能的影响；含义；牵连", "The report discusses the wider implications of the decision."],
   ["irreproducibility", "n. 不可重复性；难以复现", "The study's irreproducibility raised questions about the original findings."],
-  ["refrain", "v. 忍住；克制；避免；n. 副歌；叠句", "She refrained from commenting until all the facts were known."]
+  ["refrain", "v. 忍住；克制；避免；n. 副歌；叠句", "She refrained from commenting until all the facts were known."],
+  ["poll", "n. 民意调查；v. 对……进行民意调查；投票", "The newspaper commissioned a poll to gauge public opinion before the election."],
+  ["rate A alongside B", "把 A 与 B 相提并论；把 A 和 B 并列评价", "The report rates public transport alongside housing as a major concern for young families."],
+  ["sentiment", "n. 情绪；态度；情感；舆论", "Investor sentiment improved after the central bank signaled that interest rates would remain stable."],
+  ["dweller", "n. 居民；居住者", "City dwellers often sacrifice living space for shorter commutes."],
+  ["concrete", "adj. 具体的；确凿的；混凝土制的；n. 混凝土", "The committee asked for concrete evidence before approving the proposal."],
+  ["overshadow", "v. 使黯然失色；使显得不重要；遮蔽", "The team's victory was overshadowed by an injury to its captain."],
+  ["endorse", "v. 公开支持；赞同；（在票据上）背书", "The union refused to endorse the agreement until its members had read the final draft."],
+  ["explicitly", "adv. 明确地；明白地", "The contract explicitly states that late payments will incur a fee."],
+  ["likewise", "adv. 同样地；也", "The northern villages were badly affected, and the coastal towns suffered likewise."],
+  ["infrastructure", "n. 基础设施；基础建设", "Without reliable digital infrastructure, rural schools struggle to offer online lessons."],
+  ["identify", "v. 识别；确认；找出", "The researchers identified a previously overlooked cause of the decline."],
+  ["intrusion", "n. 闯入；侵扰；干涉", "The constant noise was an unwelcome intrusion into the family's quiet evening."],
+  ["disregard", "v. 不顾；漠视；n. 漠视；忽视", "Drivers who disregard the warning signs put both themselves and others at risk."],
+  ["let rip", "放开；尽情发泄；猛烈抨击", "Once the meeting ended, she let rip at the officials who had ignored her warnings."],
+  ["enviable", "adj. 令人羡慕的；值得羡慕的", "She has built an enviable reputation for careful, independent research."],
+  ["envious", "adj. 嫉妒的；羡慕的", "He was envious of his sister's confidence but proud of her success."],
+  ["coherence", "n. 连贯性；条理；一致性", "The editor praised the essay for its coherence and clear structure."],
+  ["permit", "v. 允许；准许；n. 许可证", "The museum does not permit visitors to touch the paintings."],
+  ["corrupt", "adj. 腐败的；贪污的；v. 使腐败；使堕落", "The investigation exposed a corrupt network that had diverted public funds."],
+  ["spectrum", "n. 范围；光谱；系列", "The course attracts students from a broad spectrum of academic backgrounds."],
+  ["meadow", "n. 草地；牧场", "A narrow path runs through the meadow to the river."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -851,7 +872,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "95";
+const APP_VERSION = "96";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
