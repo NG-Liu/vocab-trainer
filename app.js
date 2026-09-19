@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "99";
+const APP_VERSION = "100";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1299,6 +1299,8 @@ const els = {
   exportBackupButton: document.querySelector("#exportBackupButton"),
   importBackupButton: document.querySelector("#importBackupButton"),
   backupInput: document.querySelector("#backupInput"),
+  resetTodayQueueButton: document.querySelector("#resetTodayQueueButton"),
+  todayQueueStatus: document.querySelector("#todayQueueStatus"),
   dataStatus: document.querySelector("#dataStatus"),
   syncCodeInput: document.querySelector("#syncCodeInput"),
   createSyncCodeButton: document.querySelector("#createSyncCodeButton"),
@@ -1417,6 +1419,7 @@ function bindEvents() {
   els.exportBackupButton.addEventListener("click", downloadBackup);
   els.importBackupButton.addEventListener("click", () => els.backupInput.click());
   els.backupInput.addEventListener("change", handleBackupImport);
+  if (els.resetTodayQueueButton) els.resetTodayQueueButton.addEventListener("click", resetTodayQueue);
   els.refreshButton.addEventListener("click", forceRefreshApp);
   if (els.createSyncCodeButton) els.createSyncCodeButton.addEventListener("click", createCloudSyncConnection);
   if (els.connectSyncButton) els.connectSyncButton.addEventListener("click", connectCloudSync);
@@ -2582,9 +2585,11 @@ function renderStats() {
   const reviewLimit = getReviewLimit();
   const allDue = book.words.filter((word) => (book.progress[word.id] || createProgress()).dueAt <= today).length;
   const session = book.todaySession && book.todaySession.date === todayKey() ? getTodaySession() : null;
-  // 只统计剩余的不同单词，不把「忘了」产生的复现副本重复计入
+  // 「今日待复习」= 今日队列里还没复习过的不同单词数。
+  // 不能用游标位置来数：复现卡会跳着走，跨天残留的游标更会让它凭空变小或变大。
+  const reviewedToday = new Set(getTodayReviewedWordIds());
   const due = session
-    ? getUniqueWordIds(session.queueIds.slice(session.index || 0)).length
+    ? getUniqueWordIds(session.queueIds).filter((id) => !reviewedToday.has(id)).length
     : Math.min(reviewLimit, allDue);
   const mastered = book.words.filter((word) => (book.progress[word.id] || createProgress()).level >= 4).length;
   const todayHistory = book.history.filter((item) => item.at >= startOfToday());
@@ -3106,6 +3111,40 @@ async function handleBackupImport(event) {
   } finally {
     event.target.value = "";
   }
+}
+
+function setTodayQueueStatus(message, type) {
+  if (!els.todayQueueStatus) return;
+  els.todayQueueStatus.textContent = message;
+  els.todayQueueStatus.className = `submit-status${type ? ` is-${type}` : ""}`;
+}
+
+// 按当前进度重建今天的队列，并把队列游标归零。
+// 只重排「今天先看哪些词」，不触碰 progress / history / dueAt。
+function resetTodayQueue() {
+  const book = ensureCurrentBook();
+  const confirmed = window.confirm(
+    "将按当前进度重建今天的复习队列，并把队列进度归零。\n\n不会改动学习进度、复习记录和到期时间。继续吗？"
+  );
+  if (!confirmed) return;
+
+  book.todaySession = createTodaySession(todayKey(), book, getReviewLimit());
+  awaitingHardAdvance = false;
+  reviewAnswerWordId = null;
+  saveState();
+
+  if (currentQueueType === "due") {
+    currentQueue = buildTodayQueue();
+    currentIndex = 0;
+  }
+  renderAll();
+  renderCurrentCard();
+
+  const remaining = getUniqueWordIds(getTodaySession().queueIds).length;
+  setTodayQueueStatus(
+    remaining > 0 ? `已重建：今天还有 ${remaining} 个词待复习。` : "已重建：今天的词都复习完了。",
+    "success"
+  );
 }
 
 function replaceState(nextState) {
