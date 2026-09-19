@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "100";
+const APP_VERSION = "101";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1962,6 +1962,12 @@ function getTodaySession() {
     saveState();
   }
 
+  // 游标走完队尾却还有到期未复习的词：接到队尾继续，别提前宣布「已背完」
+  if (extendExhaustedTodayQueue(book.todaySession, book)) {
+    saveState();
+    refreshCurrentQueueFromSession();
+  }
+
   return book.todaySession;
 }
 
@@ -2468,16 +2474,41 @@ function createReviewEventId() {
   return `review-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}-${Date.now()}`;
 }
 
-// 跨天后把队列与游标一起归零，避免沿用昨天在队列中的位置
-function resetCursorForNewDay() {
+// 按会话当前的 queueIds 重建内存里的 currentQueue（不动游标）
+function refreshCurrentQueueFromSession() {
   if (currentQueueType !== "due") return;
   const book = ensureCurrentBook();
   const ids = book.todaySession && Array.isArray(book.todaySession.queueIds) ? book.todaySession.queueIds : [];
   const words = book.words;
   currentQueue = ids.map((id) => words.find((word) => word.id === id)).filter(Boolean);
+}
+
+// 跨天后把队列与游标一起归零，避免沿用昨天在队列中的位置
+function resetCursorForNewDay() {
+  if (currentQueueType !== "due") return;
+  refreshCurrentQueueFromSession();
   currentIndex = 0;
   awaitingHardAdvance = false;
   reviewAnswerWordId = null;
+}
+
+// 游标走完队尾、但队列里还有今天没复习过的词时，把这些词接到队尾继续背。
+// 否则会出现「提示已背完，却还剩一大半」的矛盾 —— 游标走完并不等于词复习过了。
+// 只补本日队列里被跳过的词，不引入队列外的新词，以免突破每日复习量。
+function extendExhaustedTodayQueue(session, book) {
+  const queueIds = Array.isArray(session.queueIds) ? session.queueIds : null;
+  if (!queueIds) return false;
+  const index = Math.max(0, Math.min(Number(session.index) || 0, queueIds.length));
+  if (index < queueIds.length) return false;                                   // 还没走到队尾
+  if (queueIds.length >= session.limit * MAX_DAILY_HARD_REVIEWS) return false; // 防无限增长
+
+  const reviewed = new Set(getTodayReviewedWordIds());
+  const pending = getUniqueWordIds(queueIds).filter((id) => !reviewed.has(id));
+  if (!pending.length) return false;                                           // 本日队列确实背完了
+
+  queueIds.push(...pending);
+  session.updatedAt = Date.now();
+  return true;
 }
 
 // 会话是否还停留在昨天（true 表示当前会话与新的一天不匹配）
