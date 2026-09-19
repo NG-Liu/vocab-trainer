@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "98";
+const APP_VERSION = "99";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1282,6 +1282,7 @@ let wordAudioRequestId = 0;
 const preparedWordAudio = new Map();
 
 const els = {
+  appVersion: document.querySelector("#appVersion"),
   dueCount: document.querySelector("#dueCount"),
   totalCount: document.querySelector("#totalCount"),
   masteredCount: document.querySelector("#masteredCount"),
@@ -1342,11 +1343,19 @@ const els = {
 
 init();
 
+function renderAppVersion() {
+  if (!els.appVersion) return;
+  // 单一来源：直接取 APP_VERSION，避免这里再维护一份版本号
+  els.appVersion.textContent = `v${APP_VERSION}`;
+  els.appVersion.title = `当前版本 v${APP_VERSION}（强制刷新可用 Ctrl+Shift+R）`;
+}
+
 function init() {
   ensureBooks();
   syncBookSelect();
   bindEvents();
   ensureKatex();
+  renderAppVersion();
   registerServiceWorker();
   renderAll();
   renderCloudSyncControls();
