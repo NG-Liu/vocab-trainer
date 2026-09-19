@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "102";
+const APP_VERSION = "103";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1280,6 +1280,10 @@ let libraryVisibleLimit = LIBRARY_BATCH_SIZE;
 let activeWordAudio = null;
 let wordAudioRequestId = 0;
 const preparedWordAudio = new Map();
+// ensureBooks() 的 seeding 签名缓存，见 booksSignature()
+let ensuredBooksSignature = null;
+// 本地存储写失败（通常配额满）时只提示一次，避免连点卡片弹一堆框
+let storageWriteFailed = false;
 
 const els = {
   appVersion: document.querySelector("#appVersion"),
@@ -1563,30 +1567,121 @@ function loadState() {
 }
 
 function saveState(options = {}) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storageWriteFailed = false;
+  } catch (error) {
+    // 配额写满（或浏览器禁用本地存储）不能把整条复习流程带崩：
+    // 内存里的进度仍然有效，但必须让用户知道没落盘，否则刷新后才发现白背了。
+    console.error("保存本地进度失败", error);
+    if (!storageWriteFailed) {
+      storageWriteFailed = true;
+      window.alert("本地进度写入失败，通常是存储空间已满。\n\n当前这次会话的进度只留在页面里，刷新会丢失。\n请先到「数据」面板导出备份，再删掉用不到的单词本或复习记录。");
+    }
+  }
   if (!options.skipCloudSync && !isApplyingCloudSync) scheduleCloudSync();
+}
+
+// 把一本书的原始数据收敛成应用能安全使用的形状。
+// 备份可能来自旧版本、被手工编辑过、或从别处导出，字段缺失/类型不对都必须挡住：
+// 这些数据会先写进 localStorage，一旦渲染抛错，下次打开页面会在 init 里直接白屏，
+// 用户不清站点数据就再也进不来。
+function normalizeBookState(value, fallbackId) {
+  const raw = value && typeof value === "object" ? value : {};
+  const numberOr = (input, fallback) => (Number.isFinite(Number(input)) ? Number(input) : fallback);
+
+  const seenWordIds = new Set();
+  const words = [];
+  (Array.isArray(raw.words) ? raw.words : []).forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const term = typeof item.term === "string" ? item.term : "";
+    if (!term.trim()) return;
+    const id = typeof item.id === "string" && item.id ? item.id : makeId(term);
+    if (!id || seenWordIds.has(id)) return; // 同一 id 只留第一份，否则 Map/查找会互相覆盖
+    seenWordIds.add(id);
+    words.push({
+      id,
+      term,
+      meaning: typeof item.meaning === "string" ? item.meaning : "",
+      example: typeof item.example === "string" ? item.example : ""
+    });
+  });
+
+  const progress = {};
+  if (raw.progress && typeof raw.progress === "object" && !Array.isArray(raw.progress)) {
+    Object.entries(raw.progress).forEach(([wordId, item]) => {
+      if (!seenWordIds.has(wordId)) return;
+      const base = createProgress();
+      const source = item && typeof item === "object" ? item : {};
+      progress[wordId] = {
+        level: Math.min(5, Math.max(0, numberOr(source.level, base.level))),
+        interval: Math.max(0, numberOr(source.interval, base.interval)),
+        dueAt: numberOr(source.dueAt, base.dueAt),
+        seen: Math.max(0, Math.round(numberOr(source.seen, base.seen))),
+        correct: Math.max(0, Math.round(numberOr(source.correct, base.correct))),
+        wrong: Math.max(0, Math.round(numberOr(source.wrong, base.wrong))),
+        lastReviewed: Number.isFinite(Number(source.lastReviewed)) ? Number(source.lastReviewed) : null
+      };
+    });
+  }
+  words.forEach((word) => {
+    if (!progress[word.id]) progress[word.id] = createProgress();
+  });
+
+  const seenEventIds = new Set();
+  const history = [];
+  (Array.isArray(raw.history) ? raw.history : []).forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const id = typeof item.id === "string" ? item.id : "";
+    const at = Number(item.at);
+    if (!id || !Number.isFinite(at)) return;
+    const rating = ["hard", "medium", "easy", "mastered"].includes(item.rating) ? item.rating : "hard";
+    const eventId = typeof item.eventId === "string" && item.eventId ? item.eventId : `${id}|${rating}|${at}`;
+    if (seenEventIds.has(eventId)) return;
+    seenEventIds.add(eventId);
+    history.push({
+      eventId,
+      id,
+      term: typeof item.term === "string" ? item.term : "",
+      rating,
+      correct: rating !== "hard",
+      at
+    });
+  });
+  history.sort((a, b) => b.at - a.at);
+
+  return {
+    id: typeof raw.id === "string" && raw.id ? raw.id : fallbackId,
+    name: typeof raw.name === "string" && raw.name ? raw.name : fallbackId,
+    sortMode: typeof raw.sortMode === "string" ? raw.sortMode : "alpha",
+    words,
+    progress,
+    history: history.slice(0, CLOUD_HISTORY_LIMIT),
+    todaySession: raw.todaySession && typeof raw.todaySession === "object" ? raw.todaySession : null
+  };
 }
 
 function normalizeState(parsed, fallback) {
   const value = parsed && typeof parsed === "object" ? parsed : {};
-  if (value.books && typeof value.books === "object") {
-    if (!value.books[DEFAULT_BOOK_ID]) value.books[DEFAULT_BOOK_ID] = getDefaultBook();
+  if (value.books && typeof value.books === "object" && !Array.isArray(value.books)) {
+    const books = {};
+    Object.entries(value.books).forEach(([bookId, bookValue]) => {
+      books[bookId] = normalizeBookState(bookValue, bookId);
+    });
+    if (!books[DEFAULT_BOOK_ID]) books[DEFAULT_BOOK_ID] = normalizeBookState(null, DEFAULT_BOOK_ID);
     return {
-      books: value.books,
-      currentBookId: isBuiltInBookId(value.currentBookId) && value.books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID,
+      books,
+      currentBookId: isBuiltInBookId(value.currentBookId) && books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID,
       reviewLimit: normalizeReviewLimit(value.reviewLimit)
     };
   }
   if (Array.isArray(value.words)) {
     return {
       books: {
-        [DEFAULT_BOOK_ID]: {
-          ...getDefaultBook(),
-          words: value.words,
-          progress: value.progress || {},
-          history: value.history || [],
-          todaySession: value.todaySession || null
-        }
+        [DEFAULT_BOOK_ID]: normalizeBookState(
+          { words: value.words, progress: value.progress, history: value.history, todaySession: value.todaySession },
+          DEFAULT_BOOK_ID
+        )
       },
       currentBookId: DEFAULT_BOOK_ID,
       reviewLimit: normalizeReviewLimit(value.reviewLimit)
@@ -1728,6 +1823,18 @@ function seedBookWords(book, definition) {
   return changed;
 }
 
+// seeding（把内置词表灌进词本、修正词条文案、按考纲压缩间隔）很贵：
+// 8 本词本上万个词条，而 ensureCurrentBook() 会被大量调用（getProgress、getTodaySession…），
+// 基准实测每次 ensureBooks() 约 7ms，点一张卡累计要跑七八次。
+// 用「词数 + 排序模式」当签名，签名没变就跳过 seeding。
+// 注意：凡是整体替换/大改词本的地方（导入备份、应用云端快照）都要把签名置空。
+function booksSignature() {
+  return BOOK_DEFINITIONS.map((definition) => {
+    const book = state.books[definition.id];
+    return book ? `${book.words.length}:${book.sortMode || ""}` : "-";
+  }).join("|");
+}
+
 function ensureBooks() {
   if (!state.books) state.books = {};
   let changed = false;
@@ -1751,13 +1858,21 @@ function ensureBooks() {
       book.name = definition.name;
       changed = true;
     }
-    if (seedBookWords(book, definition)) changed = true;
-    if (applyExamSprintSchedule(book)) changed = true;
   });
   if (!state.currentBookId || !state.books[state.currentBookId]) {
     state.currentBookId = DEFAULT_BOOK_ID;
     changed = true;
   }
+
+  if (booksSignature() !== ensuredBooksSignature) {
+    BOOK_DEFINITIONS.forEach((definition) => {
+      const book = state.books[definition.id];
+      if (seedBookWords(book, definition)) changed = true;
+      if (applyExamSprintSchedule(book)) changed = true;
+    });
+    ensuredBooksSignature = booksSignature();
+  }
+
   if (changed) saveState();
 }
 
@@ -2007,18 +2122,30 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
   }
 
   const allowedWordIds = new Set(baseQueueIds);
+  const hardReviewCounts = normalizeTodayHardReviewCounts(session.hardReviewCounts, allowedWordIds);
+  // 同一个词在队列里允许出现的次数：忘过的词是「1 次首见 + 复现」，其它词只允许 1 次。
+  // 超出额度的副本一律清掉 —— 旧版重排逻辑曾把词追加到队尾，让同一张卡在队列里出现两次，
+  // 既被显示成「第 2 次复习」，也让游标位置失去意义。这是一条自愈规则，跑在每次读取会话时。
+  const occurrenceBudget = (wordId) => Math.max(1, Math.round(Number(hardReviewCounts[wordId]) || 0));
   const maxQueueLength = limit * MAX_DAILY_HARD_REVIEWS;
-  const queueIds = previousQueueIds.filter((id) => allowedWordIds.has(id)).slice(0, maxQueueLength);
+  const queueIds = [];
+  const usedOccurrences = {};
+  let index = 0;
+  previousQueueIds.forEach((id, position) => {
+    if (!allowedWordIds.has(id)) return;
+    if (queueIds.length >= maxQueueLength) return;
+    const used = usedOccurrences[id] || 0;
+    if (used >= occurrenceBudget(id)) return;
+    usedOccurrences[id] = used + 1;
+    queueIds.push(id);
+    if (position < previousIndex) index += 1; // 游标只数保留下来的卡，被清掉的副本不占位
+  });
   baseQueueIds.forEach((id) => {
     if (!queueIds.includes(id)) queueIds.push(id);
   });
+  index = Math.min(index, queueIds.length);
 
-  const index = Math.min(
-    previousQueueIds.slice(0, previousIndex).filter((id) => allowedWordIds.has(id)).length,
-    queueIds.length
-  );
   const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
-  const hardReviewCounts = normalizeTodayHardReviewCounts(session.hardReviewCounts, allowedWordIds);
   const completedWordIds = normalizeTodayCompletedWordIds(
     [...(session.completedWordIds || []), ...previousQueueIds.slice(0, previousIndex)],
     allowedWordIds
@@ -2619,7 +2746,7 @@ function scheduleNext(progress, rating, options = {}) {
   return { level, interval, dueAt };
 }
 
-function getProgress(id, book = ensureCurrentBook()) {
+function getProgress(id, book = state.books[state.currentBookId] || ensureCurrentBook()) {
   if (!book.progress[id]) book.progress[id] = createProgress();
   return book.progress[id];
 }
@@ -3202,6 +3329,8 @@ function resetTodayQueue() {
 function replaceState(nextState) {
   Object.keys(state).forEach((key) => delete state[key]);
   Object.assign(state, nextState);
+  // 整体换掉了词本，seeding 必须重跑
+  ensuredBooksSignature = null;
 }
 
 function getBackupSummary(backup) {
@@ -3671,6 +3800,8 @@ function applyCloudSyncSnapshot(snapshot) {
         : null;
       orderBookWords(book, definition);
     });
+    // 云端快照可能带回内置词表里没有的词/大改过的词本，seeding 必须重跑
+    ensuredBooksSignature = null;
     saveState({ skipCloudSync: true });
   } finally {
     isApplyingCloudSync = false;
