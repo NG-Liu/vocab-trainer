@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "101";
+const APP_VERSION = "102";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1962,10 +1962,11 @@ function getTodaySession() {
     saveState();
   }
 
-  // 游标走完队尾却还有到期未复习的词：接到队尾继续，别提前宣布「已背完」
+  // 游标走完队尾却还有没复习的词：重排成今天的剩余队列，别提前宣布「已背完」
   if (extendExhaustedTodayQueue(book.todaySession, book)) {
     saveState();
-    refreshCurrentQueueFromSession();
+    // 队列被重排，内存里的游标必须跟着回队首，否则仍会落在队尾直接显示「已完成」
+    resetCursorForNewDay();
   }
 
   return book.todaySession;
@@ -2106,12 +2107,16 @@ function renderCurrentCard() {
   if (!hasWord) {
     reviewAnswerWordId = null;
     hideDictionaryLink();
-    if (currentQueueType === "due") {
-      const total = getUniqueWordIds(getTodaySession().queueIds).length;
-      els.queueLabel.textContent = `今日复习已完成 · ${total} / ${total}`;
-      els.promptText.textContent = `今天的 ${total} 个已经背完`;
-      els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
-    } else {
+      if (currentQueueType === "due") {
+        const session = getTodaySession();
+        const queueWordIds = new Set(session.queueIds);
+        const total = getUniqueWordIds(session.queueIds).length;
+        // 用真实记录数，与卡片头保持同一口径（走到这里时队列里已无未复习的词）
+        const completed = getTodayReviewedWordIds().filter((id) => queueWordIds.has(id)).length;
+        els.queueLabel.textContent = `今日复习已完成 · ${completed} / ${total}`;
+        els.promptText.textContent = `今天的 ${completed} 个已经背完`;
+        els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
+      } else {
       els.queueLabel.textContent = "没有待复习单词";
       els.promptText.textContent = "当前队列清空了";
       els.promptHint.textContent = "可以切换到其他队列继续练。";
@@ -2204,9 +2209,16 @@ function getCurrentQueueLabel() {
     // 不能用游标位置：复现卡会跳着走，跨天残留的游标也会让这个数字虚高。
     const queueWordIds = new Set(session.queueIds);
     const completed = getTodayReviewedWordIds().filter((id) => queueWordIds.has(id)).length;
-    const reviewNumber = word
+    // 「第 N 次复习」只对真正的复现卡有意义：忘过的词当天排满 4 次出现（1 首见 + 3 复现）。
+    // 不能直接数这个词在队列里出现过几次 —— 队列重排时同一个词可能出现两次，
+    // 那只是同一张卡被重新排进队列，并不是「已经复习过第二遍」。
+    const appearanceCap = word
+      ? Math.max(1, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0))
+      : 1;
+    const occurrence = word
       ? session.queueIds.slice(0, currentIndex + 1).filter((id) => id === word.id).length
       : 0;
+    const reviewNumber = Math.min(occurrence, appearanceCap);
     const retryLabel = reviewNumber > 1 ? ` · 第 ${reviewNumber} 次复习` : "";
     return `${completed} / ${total}${retryLabel}`;
   }
@@ -2492,21 +2504,30 @@ function resetCursorForNewDay() {
   reviewAnswerWordId = null;
 }
 
-// 游标走完队尾、但队列里还有今天没复习过的词时，把这些词接到队尾继续背。
+// 游标走完队尾、但当天队列里还有没复习过的词时，把这些词重新排成今天的队列继续背。
 // 否则会出现「提示已背完，却还剩一大半」的矛盾 —— 游标走完并不等于词复习过了。
-// 只补本日队列里被跳过的词，不引入队列外的新词，以免突破每日复习量。
+// 注意：不能把它们的 id 追加到队尾。那样同一个词会在队列里出现两次，
+// 会被当成「第 2 次复习」显示（其实一次都还没复习），队列长度也会虚涨。
+// 只保留本日队列自己的词，不引入队列外的新词，以免突破每日复习量。
 function extendExhaustedTodayQueue(session, book) {
   const queueIds = Array.isArray(session.queueIds) ? session.queueIds : null;
   if (!queueIds) return false;
   const index = Math.max(0, Math.min(Number(session.index) || 0, queueIds.length));
-  if (index < queueIds.length) return false;                                   // 还没走到队尾
-  if (queueIds.length >= session.limit * MAX_DAILY_HARD_REVIEWS) return false; // 防无限增长
+  if (index < queueIds.length) return false; // 还没走到队尾
 
   const reviewed = new Set(getTodayReviewedWordIds());
-  const pending = getUniqueWordIds(queueIds).filter((id) => !reviewed.has(id));
-  if (!pending.length) return false;                                           // 本日队列确实背完了
+  const remaining = [];
+  const seen = new Set();
+  for (const id of queueIds) {
+    if (reviewed.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    remaining.push(id);
+  }
+  if (!remaining.length) return false; // 本日队列确实都复习过了
 
-  queueIds.push(...pending);
+  session.queueIds = remaining;
+  session.index = 0;
+  session.pendingHardId = null;
   session.updatedAt = Date.now();
   return true;
 }
