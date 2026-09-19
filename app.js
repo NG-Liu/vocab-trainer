@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "97";
+const APP_VERSION = "98";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1931,6 +1931,8 @@ function getTodaySession() {
   if (!book.todaySession || book.todaySession.date !== date) {
     book.todaySession = createTodaySession(date, book, reviewLimit);
     saveState();
+    // 新一天：队列游标必须跟着归零，否则会把昨天的位置写进今天的会话
+    resetCursorForNewDay();
     return book.todaySession;
   }
 
@@ -2134,7 +2136,16 @@ function isRepeatHardReview(word) {
   if (!word || currentQueueType !== "due" || awaitingHardAdvance) return false;
   const session = getTodaySession();
   const hardReviewCount = Math.max(0, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0));
-  return hardReviewCount > 0;
+  if (hardReviewCount <= 0) return false;
+  // 只有真正的复现卡才跳过：该词在这次游标之前已经出现过。
+  // 第 1 次出现（原始卡）必须正常记录，否则会把「忘了」的原始评分丢掉。
+  const occurrence = session.queueIds.slice(0, currentIndex + 1).filter((id) => id === word.id).length;
+  if (occurrence > 1) return true;
+  // 兜底：队列重建后原始卡可能又落到游标之后，此时以当天已有记录为准
+  const since = startOfToday();
+  return (ensureCurrentBook().history || []).some(
+    (item) => item && item.id === word.id && Number(item.at) >= since
+  );
 }
 
 function getHardReviewFeedback(wordId) {
@@ -2171,7 +2182,10 @@ function getCurrentQueueLabel() {
     const word = currentQueue[currentIndex];
     const session = getTodaySession();
     const total = getUniqueWordIds(session.queueIds).length;
-    const completed = getUniqueWordIds(session.queueIds.slice(0, currentIndex)).length;
+    // 已复习数取当天真实记录里、属于今日队列的不同单词数。
+    // 不能用游标位置：复现卡会跳着走，跨天残留的游标也会让这个数字虚高。
+    const queueWordIds = new Set(session.queueIds);
+    const completed = getTodayReviewedWordIds().filter((id) => queueWordIds.has(id)).length;
     const reviewNumber = word
       ? session.queueIds.slice(0, currentIndex + 1).filter((id) => id === word.id).length
       : 0;
@@ -2359,7 +2373,18 @@ function rateCurrent(rating) {
   const word = currentQueue[currentIndex];
   if (!word) return;
 
+  // 跨天检测必须放在任何 getTodaySession() 之前：
+  // 它内部会补建当天会话并把游标归零，晚一步判断就会把昨天的游标写进新会话。
+  const rolledOver = isSessionStaleForToday();
+
   if (rating === "hard" && awaitingHardAdvance) {
+    if (rolledOver) {
+      resetCursorForNewDay();
+      renderAll();
+      renderCurrentCard();
+      toggleReviewControls(true);
+      return;
+    }
     advanceToNext();
     return;
   }
@@ -2371,6 +2396,16 @@ function rateCurrent(rating) {
 
   const demoteToUnmastered = rating === "hard" && getProgress(word.id).level >= 4;
   recordRating(word, rating, { demoteToUnmastered, render: rating !== "hard" });
+
+  if (rolledOver) {
+    // 这次评分照常写入进度，但新的一天要从队首重新开始
+    resetCursorForNewDay();
+    renderAll();
+    renderCurrentCard();
+    els.feedbackText.textContent = "已进入新的一天，今日队列重新开始。";
+    toggleReviewControls(true);
+    return;
+  }
 
   if (rating === "hard") {
     const retryMessage = markTodaySessionPendingHard(word.id);
@@ -2419,6 +2454,34 @@ function createReviewEventId() {
   const bytes = new Uint8Array(16);
   globalThis.crypto?.getRandomValues?.(bytes);
   return `review-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}-${Date.now()}`;
+}
+
+// 跨天后把队列与游标一起归零，避免沿用昨天在队列中的位置
+function resetCursorForNewDay() {
+  if (currentQueueType !== "due") return;
+  const book = ensureCurrentBook();
+  const ids = book.todaySession && Array.isArray(book.todaySession.queueIds) ? book.todaySession.queueIds : [];
+  const words = book.words;
+  currentQueue = ids.map((id) => words.find((word) => word.id === id)).filter(Boolean);
+  currentIndex = 0;
+  awaitingHardAdvance = false;
+  reviewAnswerWordId = null;
+}
+
+// 会话是否还停留在昨天（true 表示当前会话与新的一天不匹配）
+function isSessionStaleForToday() {
+  const book = ensureCurrentBook();
+  return !book.todaySession || book.todaySession.date !== todayKey();
+}
+
+// 当天真实复习过的不同单词，以 history 为准，不受队列游标影响
+function getTodayReviewedWordIds() {
+  const since = startOfToday();
+  const seen = new Set();
+  (ensureCurrentBook().history || []).forEach((item) => {
+    if (item && typeof item.id === "string" && Number(item.at) >= since) seen.add(item.id);
+  });
+  return [...seen];
 }
 
 function advanceToNext() {
