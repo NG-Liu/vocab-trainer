@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "103";
+const APP_VERSION = "105";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1782,6 +1782,34 @@ function orderBookWords(book, definition = getBookDefinition(book.id)) {
   return before !== after;
 }
 
+// 词条 term 被修正后 id 会变，老设备/云端里按旧 id 存的进度就成了孤儿。
+// 各词本数据文件末尾会挂一张 window.LEGACY_ID_ALIAS = { 旧id: 新id }，
+// 这里在新 id 尚无进度时，把旧 id 的 progress / history 继承过来（并把旧键删掉，避免重复计数）。
+function inheritLegacyProgress(book, newId) {
+  const alias = window.LEGACY_ID_ALIAS;
+  if (!alias || typeof alias !== "object") return false;
+  let changed = false;
+  Object.keys(alias).forEach((oldId) => {
+    if (alias[oldId] !== newId) return;
+    if (book.progress[oldId]) {
+      // 新 id 已有真实进度时不要覆盖，只在它还是空白时继承
+      if (!book.progress[newId] || book.progress[newId].seen === 0) {
+        book.progress[newId] = book.progress[oldId];
+      }
+      delete book.progress[oldId];
+      changed = true;
+    }
+    if (Array.isArray(book.history) && book.history.length) {
+      let touched = false;
+      book.history.forEach((item) => {
+        if (item && item.wordId === oldId) { item.wordId = newId; touched = true; }
+      });
+      if (touched) changed = true;
+    }
+  });
+  return changed;
+}
+
 function seedBookWords(book, definition) {
   const words = definition.words;
   const sortMode = definition.sortMode || "alpha";
@@ -1798,6 +1826,8 @@ function seedBookWords(book, definition) {
     if (!existingWord) {
       book.words.push({ ...word });
       book.progress[word.id] = createProgress();
+      // 该 id 是「旧 id 改名后」的结果时，把老进度继承过来
+      if (inheritLegacyProgress(book, word.id)) changed = true;
       changed = true;
       needsOrdering = true;
       return;
@@ -1813,6 +1843,8 @@ function seedBookWords(book, definition) {
       existingWord.example = word.example;
       changed = true;
     }
+
+    if (inheritLegacyProgress(book, word.id)) changed = true;
 
     if (!book.progress[word.id]) {
       book.progress[word.id] = createProgress();
