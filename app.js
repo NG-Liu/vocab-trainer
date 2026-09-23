@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "106";
+const APP_VERSION = "107";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1288,6 +1288,7 @@ let storageWriteFailed = false;
 const els = {
   appVersion: document.querySelector("#appVersion"),
   dueCount: document.querySelector("#dueCount"),
+  dueTotalCount: document.querySelector("#dueTotalCount"),
   totalCount: document.querySelector("#totalCount"),
   masteredCount: document.querySelector("#masteredCount"),
   accuracyToday: document.querySelector("#accuracyToday"),
@@ -2259,8 +2260,30 @@ function getDueWordsForToday(book) {
     });
 }
 
+// 队列里可能残留「今天已经评过」的卡：跨设备合并、重建队列都会把别的批次的词带进来。
+// 它们不像「忘了」的复现卡那样有「再看一遍」的用途，所以渲染时直接静默跳过 ——
+// 否则用户得一张张点过去（实测一次能积 40 多张）。
+// 真复现卡（hardReviewCounts > 0）保持原样，仍然让用户再看一遍。
+function skipReviewedCardsAhead() {
+  if (currentQueueType !== "due" || awaitingHardAdvance) return;
+  const session = getTodaySession();
+  const reviewed = new Set(getTodayReviewedWordIds());
+  const start = currentIndex;
+  let guard = 0;
+  while (currentIndex >= 0 && currentIndex < currentQueue.length && guard <= currentQueue.length) {
+    guard += 1;
+    const word = currentQueue[currentIndex];
+    if (!word) break;
+    const isHardRepeat = Math.max(0, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0)) > 0;
+    if (isHardRepeat || !reviewed.has(word.id)) break;
+    currentIndex += 1;
+  }
+  if (currentIndex !== start) saveTodaySessionPosition();
+}
+
 function renderCurrentCard() {
   stopWordAudio();
+  skipReviewedCardsAhead();
   const word = currentQueue[currentIndex];
   const nextWord = currentQueue[currentIndex + 1];
   const hasWord = Boolean(word);
@@ -2676,9 +2699,11 @@ function resetCursorForNewDay() {
 
 // 游标走完队尾、但当天队列里还有没复习过的词时，把这些词重新排成今天的队列继续背。
 // 否则会出现「提示已背完，却还剩一大半」的矛盾 —— 游标走完并不等于词复习过了。
-// 注意：不能把它们的 id 追加到队尾。那样同一个词会在队列里出现两次，
+// 注意：v106 之后 reconcileTodaySession 会在读会话时把游标自愈回「第一张未复习的卡」，
+// 所以这里实际上已经很难触发（游标到不了队尾就会先被拉回）。保留它作为兜底，
+// 不要以为它还是主路径 —— 主路径是那条自愈规则。
+// 也不能把剩余词的 id 追加到队尾：那样同一个词会在队列里出现两次，
 // 会被当成「第 2 次复习」显示（其实一次都还没复习），队列长度也会虚涨。
-// 只保留本日队列自己的词，不引入队列外的新词，以免突破每日复习量。
 function extendExhaustedTodayQueue(session, book) {
   const queueIds = Array.isArray(session.queueIds) ? session.queueIds : null;
   if (!queueIds) return false;
@@ -2831,8 +2856,18 @@ function renderStats() {
   const accuracy = todayHistory.length
     ? Math.round((todayHistory.filter((item) => item.correct).length / todayHistory.length) * 100)
     : 0;
+  // 「今日共到期」= 所有已到期（含逾期）的词，不受每日复习量限制。
+  // 与「今日待复习」是两个概念：前者是今天该背的总量，后者是今天队列里还剩多少（上限就是每日复习量）。
+  // 当日到期数超过每日复习量时，默认到期日在前，超出的部分顺延到后面几天。
+  const overdue = book.words.filter((word) => (book.progress[word.id] || createProgress()).dueAt < startOfToday()).length;
 
   els.dueCount.textContent = due;
+  if (els.dueTotalCount) {
+    els.dueTotalCount.textContent = `今日共到期 ${allDue}`;
+    els.dueTotalCount.title = overdue > 0
+      ? `今天到期的全部单词（含 ${overdue} 个已逾期）。每日复习量是 ${reviewLimit}，超出的部分会顺延到后面几天。`
+      : `今天到期的全部单词。每日复习量是 ${reviewLimit}，超出的部分会顺延到后面几天。`;
+  }
   els.totalCount.textContent = book.words.length;
   els.masteredCount.textContent = mastered;
   els.accuracyToday.textContent = `${accuracy}%`;
