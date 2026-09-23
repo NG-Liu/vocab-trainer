@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "105";
+const APP_VERSION = "106";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2177,6 +2177,17 @@ function reconcileTodaySession(session, book, limit = getReviewLimit()) {
   });
   index = Math.min(index, queueIds.length);
 
+  // 自愈：游标不该越过「今天一次都没复习过」的卡。单机流程下不会发生
+  // （游标只会跨过已评分的卡和复现卡），但跨设备合并曾把别的设备的游标整段搬过来，
+  // 直接落到队尾。这里把游标拉回第一张未复习的卡 —— 只会往回，不会往前。
+  const reviewedOnDate = new Set(getTodayReviewedWordIds());
+  for (let position = 0; position < index; position += 1) {
+    if (!reviewedOnDate.has(queueIds[position])) {
+      index = position;
+      break;
+    }
+  }
+
   const pendingHardId = queueIds[index] === session.pendingHardId ? session.pendingHardId : null;
   const completedWordIds = normalizeTodayCompletedWordIds(
     [...(session.completedWordIds || []), ...previousQueueIds.slice(0, previousIndex)],
@@ -2705,6 +2716,19 @@ function getTodayReviewedWordIds() {
     if (item && typeof item.id === "string" && Number(item.at) >= since) seen.add(item.id);
   });
   return [...seen];
+}
+
+// 指定日期（YYYY-MM-DD）复习过的不同单词，用于跨设备合并会话时对齐游标
+function getReviewedWordIdsOnDate(history, dateKey) {
+  const ids = new Set();
+  if (!dateKey) return ids;
+  (history || []).forEach((item) => {
+    if (!item || typeof item.id !== "string") return;
+    const at = Number(item.at);
+    if (!Number.isFinite(at)) return;
+    if (todayKey(new Date(at)) === dateKey) ids.add(item.id);
+  });
+  return ids;
 }
 
 function advanceToNext() {
@@ -3665,7 +3689,7 @@ function mergeCloudBook(localBook, remoteBook) {
     extraWords: Array.from(extraWords.values()),
     progress,
     history,
-    todaySession: pickNewerCloudTodaySession(localBook.todaySession, remoteBook.todaySession)
+    todaySession: pickNewerCloudTodaySession(localBook.todaySession, remoteBook.todaySession, history)
   };
 }
 
@@ -3746,14 +3770,20 @@ function mergeCloudHistory(localHistory, remoteHistory) {
   return Array.from(history.values()).sort((a, b) => b.at - a.at).slice(0, CLOUD_HISTORY_LIMIT);
 }
 
-function pickNewerCloudTodaySession(local, remote) {
+function pickNewerCloudTodaySession(local, remote, mergedHistory = []) {
   if (!local) return remote;
   if (!remote) return local;
   if (local.date !== remote.date) return local.date > remote.date ? local : remote;
   const limit = Math.max(local.limit, remote.limit);
   const maxQueueLength = limit * MAX_DAILY_HARD_REVIEWS;
   const queueIds = mergeCloudQueueIds(local.queueIds, remote.queueIds, maxQueueLength);
-  const index = Math.min(queueIds.length, Math.max(local.index, remote.index));
+  // 游标绝不能在两台设备之间取 max。两边的 queueIds 是各自独立排出来的，位置根本不可比：
+  // 一台设备刚点过「重建今日队列」（队列全新、游标 0），另一台设备的游标可能已经在队尾，
+  // 取 max 会把队尾那个位置搬过来 —— 表现为「明明还没背，卡片头却跳到尽头、剩余量乱跳」。
+  // 改为按当天真实复习记录定位：游标停在第一张还没复习过的卡上，两台设备用同一份合并记录，结果一致。
+  const reviewed = getReviewedWordIdsOnDate(mergedHistory, local.date);
+  let index = 0;
+  while (index < queueIds.length && reviewed.has(queueIds[index])) index += 1;
   const pendingCandidates = [local, remote].filter(
     (session) => session.pendingHardId && session.index === index && queueIds[index] === session.pendingHardId
   );
