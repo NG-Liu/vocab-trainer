@@ -1030,7 +1030,35 @@ const STARTER_WORDS = [
   ["assure", "v. 向……保证；使确信；确保", "I can assure you that the parcel was sent."],
   ["premium", "n. 保险费；额外费用；adj. 优质的；高价的", "The premium for the insurance rose last year."],
   ["architecture", "n. 建筑学；建筑风格；结构", "The city is famous for its modern architecture."],
-  ["architect", "n. 建筑师；设计师；缔造者", "She trained as an architect in Milan."]
+  ["architect", "n. 建筑师；设计师；缔造者", "She trained as an architect in Milan."],
+  ["tragic", "adj. 悲剧的；悲惨的；不幸的", "It was a tragic accident that no one could have foreseen."],
+  ["undermine", "v. 逐渐削弱；暗中破坏；动摇；挖…的墙脚", "Constant delays undermined confidence in the project."],
+  ["infuriating", "adj. 令人恼火的；使人愤怒的", "The printer keeps jamming, which is absolutely infuriating."],
+  ["undercover", "adj. 秘密的；卧底的；暗中进行的", "An undercover officer spent a year inside the gang."],
+  ["sneak", "v. 偷偷溜走；偷偷携带；瞒着做；n. 打小报告的人；adj. 突然的；出其不意的", "He tried to sneak out of the office early."],
+  ["screener", "n. 筛查员；安检员；筛选程序", "The screener checked every bag before boarding."],
+  ["be supposed to", "应该；按规定要；据称", "We are supposed to arrive before nine."],
+  ["long past time", "早就该……的时候；早就过了该做的时候", "It is long past time to replace this broken system."],
+  ["divert", "v. 使转向；转移（注意力）；使改道；挪用", "The police diverted traffic away from the square."],
+  ["astronomer", "n. 天文学者；天文学家", "The astronomer discovered a new comet last year."],
+  ["astronomy", "n. 天文学", "She has loved astronomy since she was a child."],
+  ["erupt", "v. 爆发；喷发；突然发生；（牙齿）萌出；（疹子）发出", "The volcano erupted without any warning."],
+  ["observatory", "n. 天文台；观象台；瞭望台", "The observatory sits on top of the mountain."],
+  ["cosmos", "n. 宇宙；天地万物；秩序井然的体系", "The new telescope can see deep into the cosmos."],
+  ["dormant", "adj. 休眠的；蛰伏的；暂停活动的；搁置的", "The dormant volcano has not erupted for centuries."],
+  ["volcano", "n. 火山", "The island was formed by an underwater volcano."],
+  ["worship", "v. 崇拜；敬仰；做礼拜；n. 崇拜；礼拜；敬仰", "Ancient people worshipped the sun and the moon."],
+  ["bulk", "n. 体积；巨大的体积；大部分；散装；v. 使显得庞大；使增大", "The bulk of the work is already finished."],
+  ["unsurpassed", "adj. 无与伦比的；未被超越的", "Her knowledge of the subject is unsurpassed."],
+  ["vocal", "adj. 直言不讳的；畅所欲言的；嗓音的；发声的；n. 声乐作品", "He has been vocal about the need for change."],
+  ["presence", "n. 出席；在场；存在；风度；仪态", "Your presence at the meeting is required."],
+  ["holiness", "n. 神圣；圣洁；圣德", "The holiness of the place impressed every visitor."],
+  ["relic", "n. 遗迹；遗物；圣物；残余", "The museum keeps relics from the old temple."],
+  ["disassemble", "v. 拆卸；拆开；分解", "He disassembled the engine to find the fault."],
+  ["primal", "adj. 原始的；最初的；首要的", "Fear is one of the most primal human emotions."],
+  ["ancestral", "adj. 祖先的；祖传的；世袭的", "They returned to their ancestral village."],
+  ["starry", "adj. 布满星星的；星光闪烁的；闪闪发光的", "We slept outside under a clear starry sky."],
+  ["compromise", "n. 妥协；折中方案；中间物；v. 妥协；让步；使泄密；危害", "Both sides finally reached a compromise."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1038,7 +1066,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "108";
+const APP_VERSION = "109";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
