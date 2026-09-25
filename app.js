@@ -1038,7 +1038,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "107";
+const APP_VERSION = "108";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1803,7 +1803,12 @@ function inheritLegacyProgress(book, newId) {
     if (Array.isArray(book.history) && book.history.length) {
       let touched = false;
       book.history.forEach((item) => {
-        if (item && item.wordId === oldId) { item.wordId = newId; touched = true; }
+        // 复习历史的字段是 item.id（recordRating 写入）；item.wordId 是早期写法，兼容一下
+        if (item && (item.id === oldId || item.wordId === oldId)) {
+          item.id = newId;
+          if (item.wordId === oldId) item.wordId = newId;
+          touched = true;
+        }
       });
       if (touched) changed = true;
     }
