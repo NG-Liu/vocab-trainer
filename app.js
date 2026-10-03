@@ -1258,7 +1258,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "111";
+const APP_VERSION = "112";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2587,9 +2587,21 @@ function renderCurrentCard() {
   els.showAnswerButton.classList.remove("is-hidden");
 }
 
-function flashReviewCard() {
+// 卡片切换动画只在「真的换了一张卡」时播放（v112）。
+// 原来每次 renderCurrentCard() 都重放一次，而它有 9 个调用点 —— 刷新页面、切换词本、
+// 云同步落地、显示/隐藏答案都会触发，于是每次刷新卡片都会往下位移 4px 再弹回来，
+// 表现为「卡片抖一下」。现在只在卡片 id 发生变化时播。
+let lastAnimatedCardKey = null;
+
+function flashReviewCard(force = false) {
   const card = document.querySelector("#reviewCard");
   if (!card) return;
+  const word = currentQueue[currentIndex];
+  // 同一张卡重复渲染（刷新、重渲染、翻回来看释义）不播动画；
+  // 队列里没有卡时也要清空标记，否则从空队列回到有卡会漏播。
+  const key = word ? `${currentQueueType}:${currentIndex}:${word.id}` : null;
+  if (!force && key === lastAnimatedCardKey) return;
+  lastAnimatedCardKey = key;
   card.classList.remove("is-advancing");
   window.requestAnimationFrame(() => card.classList.add("is-advancing"));
 }
