@@ -1258,7 +1258,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "112";
+const APP_VERSION = "113";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2490,15 +2490,21 @@ function getDueWordsForToday(book) {
 let skippedCardNotice = 0;
 
 // 队列里可能残留「今天已经评过」的卡：跨设备合并、重建队列、用户在词表页提前评分都会带进来。
-// 它们不像「忘了」的复现卡那样有「再看一遍」的用途，所以渲染时跳过 ——
+// 它们不像「忘了」的复现卡那样有「再看一遍」的用途，所以跳过 ——
 // 否则用户得一张张点过去（实测一次能积 40 多张）。
 // 真复现卡（hardReviewCounts > 0）保持原样，仍然让用户再看一遍。
 //
-// ⚠️ 但「跳过」必须让用户看得见（v109 修复）：
-// 早先这里只改游标、不给任何提示，表现为「我还没点，卡片自己跳到下一张」——
-// 用户完全不知道刚才那张被吞掉了，还以为漏背了词。
-// 现在连续跳过多张时，在卡片上留一行说明，跳过一张时也给 feedback 文案。
-function skipReviewedCardsAhead() {
+// ⚠️⚠️ 只能跳「用户已经走过的那一段」（v109 → v113 两次修复）：
+// v107 引入本函数时，任何一次 renderCurrentCard() 都会重扫游标所在位置，
+// 于是「云同步落地 / 定时重渲染 / 页面刷新」这类**用户没点任何按钮**的重渲染，
+// 会把用户正看着的那张卡直接吞掉换成下一张 —— 表现为「我还没点，卡就自己跳走了」。
+// 用户反馈了两次（v109 加了提示文案、v112 修了动画），但提示只能解释、解释不了「凭空消失」。
+//
+// 现在的规则：默认不跳。只有用户**主动前进**（advanceToNext，即点了「下一个」或评分）
+// 时，才把路过的「今天已评过、非复现」的残留卡清掉，并记下跳过张数用于提示。
+// 其它一切重渲染（同步落地、切词本、切队列、刷新、翻看释义）都原样保留当前卡。
+function skipReviewedCardsAhead({ allowSkip = false } = {}) {
+  if (!allowSkip) return;
   if (currentQueueType !== "due" || awaitingHardAdvance) return;
   const session = getTodaySession();
   const reviewed = new Set(getTodayReviewedWordIds());
@@ -3023,6 +3029,10 @@ function advanceToNext() {
   stopWordAudio();
   reviewAnswerWordId = null;
   currentIndex += 1;
+  // 只有「用户主动点了下一个」这一条路径才允许跳过残留卡。
+  // 此时跳过是合理的：用户已经翻过这一张，路上的重复卡不必再占用一次点击。
+  // 其它所有渲染路径（云同步落地、刷新、切队列…）都不跳，避免卡片凭空消失（v113）。
+  skipReviewedCardsAhead({ allowSkip: true });
   saveTodaySessionPosition();
   renderAll();
   renderCurrentCard();
