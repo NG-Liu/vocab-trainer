@@ -451,6 +451,18 @@ textarea {
   color: var(--muted);
 }
 
+/* v109：刚刚静默跳过「今天已评过」的卡时给出的说明。
+   跳过是必要的（否则要一张张点过几十张），但必须让用户看见，
+   否则会表现为「我还没点，卡片自己跳走了」。 */
+.feedback.is-skipped-notice {
+  color: #92400e;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
 .answer-box {
   max-width: 100%;
   padding: 16px 18px;

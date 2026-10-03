@@ -1258,7 +1258,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "110";
+const APP_VERSION = "111";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2485,25 +2485,39 @@ function getDueWordsForToday(book) {
     });
 }
 
-// 队列里可能残留「今天已经评过」的卡：跨设备合并、重建队列都会把别的批次的词带进来。
-// 它们不像「忘了」的复现卡那样有「再看一遍」的用途，所以渲染时直接静默跳过 ——
+// 刚刚被静默跳过的卡数（0 = 没有）。renderCurrentCard 用它决定要不要在卡片上说明。
+// 声明放在这里是因为模块级 let 不会自动提升到使用点之前，renderCurrentCard 在文件更靠后处。
+let skippedCardNotice = 0;
+
+// 队列里可能残留「今天已经评过」的卡：跨设备合并、重建队列、用户在词表页提前评分都会带进来。
+// 它们不像「忘了」的复现卡那样有「再看一遍」的用途，所以渲染时跳过 ——
 // 否则用户得一张张点过去（实测一次能积 40 多张）。
 // 真复现卡（hardReviewCounts > 0）保持原样，仍然让用户再看一遍。
+//
+// ⚠️ 但「跳过」必须让用户看得见（v109 修复）：
+// 早先这里只改游标、不给任何提示，表现为「我还没点，卡片自己跳到下一张」——
+// 用户完全不知道刚才那张被吞掉了，还以为漏背了词。
+// 现在连续跳过多张时，在卡片上留一行说明，跳过一张时也给 feedback 文案。
 function skipReviewedCardsAhead() {
   if (currentQueueType !== "due" || awaitingHardAdvance) return;
   const session = getTodaySession();
   const reviewed = new Set(getTodayReviewedWordIds());
   const start = currentIndex;
   let guard = 0;
+  const skippedWords = [];
   while (currentIndex >= 0 && currentIndex < currentQueue.length && guard <= currentQueue.length) {
     guard += 1;
     const word = currentQueue[currentIndex];
     if (!word) break;
     const isHardRepeat = Math.max(0, Math.round(Number(session.hardReviewCounts?.[word.id]) || 0)) > 0;
     if (isHardRepeat || !reviewed.has(word.id)) break;
+    skippedWords.push(word);
     currentIndex += 1;
   }
-  if (currentIndex !== start) saveTodaySessionPosition();
+  if (currentIndex !== start) {
+    saveTodaySessionPosition();
+    skippedCardNotice = skippedWords.length;
+  }
 }
 
 function renderCurrentCard() {
@@ -2546,6 +2560,18 @@ function renderCurrentCard() {
 
   els.queueLabel.textContent = getCurrentQueueLabel();
   els.feedbackText.textContent = "";
+  // v109：刚跳过了「今天已经评过」的卡，要让用户看见这件事，
+  // 否则表现为「我还没点、卡片自己跳走了」，还会误以为自己漏背了词。
+  if (skippedCardNotice > 0) {
+    const skipped = skippedCardNotice;
+    skippedCardNotice = 0;
+    els.feedbackText.textContent = skipped === 1
+      ? "已跳过 1 个今天复习过的单词。"
+      : `已跳过 ${skipped} 个今天复习过的单词。`;
+    els.feedbackText.classList.add("is-skipped-notice");
+  } else {
+    els.feedbackText.classList.remove("is-skipped-notice");
+  }
   renderCardFace(els.promptText, word.term, mathBook, "display");
   renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
   renderCardFace(els.answerText, word.meaning, mathBook, "display");
@@ -4111,7 +4137,13 @@ function applyCloudSyncSnapshot(snapshot) {
       Object.entries(cloudBook.progress).forEach(([wordId, progress]) => {
         if (existingWordIds.has(wordId)) book.progress[wordId] = { ...createProgress(), ...progress };
       });
-      book.history = cloudBook.history.map((item) => ({ ...item }));
+      // 云端快照的 history 是「合并后」的结果，正常情况下是本地历史的超集。
+      // 但合并按 eventId 去重、且只保留最近 CLOUD_HISTORY_LIMIT 条，
+      // 一旦云端那份比本地旧（或为空），整体替换就会抹掉本机当天的复习记录 ——
+      // 那些词立刻变成「今天没复习过」，游标被自愈回队首，用户正看着的卡就被换掉
+      // （v109 修复：表现为「还没点，下一张自己跳过去了」）。
+      // 这里取并集，保证「本地已发生的复习」永远不会因为一次同步而消失。
+      book.history = mergeCloudHistory(book.history, cloudBook.history).map((item) => ({ ...item }));
       book.todaySession = cloudBook.todaySession
         ? {
             ...cloudBook.todaySession,
@@ -4132,7 +4164,14 @@ function applyCloudSyncSnapshot(snapshot) {
   renderAll();
   if (currentQueueType === "due" && currentIndex >= 0) {
     currentQueue = buildTodayQueue();
-    currentIndex = getTodaySession().index;
+    // 游标不能跟着云端走。云端会话的 index 是「另一台设备（或另一条合并分支）算出来的位置」，
+    // 两边的 queueIds 各自独立排出来，位置不可比 —— 无条件覆盖会让用户正看着的卡被换掉，
+    // 表现为「还没点，下一张卡自己跳过去了」（v109 修复，实测能稳定复现）。
+    // 只允许把游标往回拉，绝不往前推：往回是收敛（重看一遍已复习的卡，无害），
+    // 往前跳则会跳过用户还没点过的卡。真正的进度由 pickNewerCloudTodaySession 从合并后的
+    // history 推导，已经写进了 session.index，这里只需要保证本地视图不比它更靠后。
+    const mergedIndex = Math.max(0, Math.min(getTodaySession().index, currentQueue.length));
+    if (mergedIndex < currentIndex) currentIndex = mergedIndex;
     renderCurrentCard();
   }
 }
