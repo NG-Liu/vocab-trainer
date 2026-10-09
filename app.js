@@ -1258,7 +1258,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "114";
+const APP_VERSION = "115";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2560,6 +2560,9 @@ function renderCurrentCard() {
       els.promptHint.textContent = "可以切换到其他队列继续练。";
     }
     els.answerBox.classList.add("is-hidden");
+    // v115：无词状态下答案框是 visibility 占位（不再 display:none），
+    // 必须清掉上一张卡残留的释义，否则卡片中间会悬一块不可见的空白。
+    renderCardFace(els.answerText, "", mathBook, "text");
     els.feedbackText.textContent = "";
     return;
   }

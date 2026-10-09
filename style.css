@@ -478,6 +478,15 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+/* v115：答案框常驻占位（visibility 而非 display:none，仅限复习卡）。
+   答案内容在 renderCurrentCard 切卡时就已填好，这里只是把它留出空间藏起来，
+   点「显示答案」前后卡片总高不变 —— 单词和评分按钮都纹丝不动。
+   （全局 .is-hidden 是 display:none !important，这里必须同样加 !important 才覆盖得住） */
+.review-card .answer-box.is-hidden {
+  display: block !important;
+  visibility: hidden;
+}
+
 .dictionary-link {
   display: inline-flex;
   align-items: center;
