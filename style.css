@@ -487,6 +487,16 @@ textarea {
   visibility: hidden;
 }
 
+/* v116：词典链接同样常驻占位（仅英语本）。数学本由 JS 加 is-removed 彻底移除。 */
+.review-card .dictionary-link.is-hidden {
+  display: inline-flex !important;
+  visibility: hidden;
+}
+
+.review-card .dictionary-link.is-removed {
+  display: none !important;
+}
+
 .dictionary-link {
   display: inline-flex;
   align-items: center;

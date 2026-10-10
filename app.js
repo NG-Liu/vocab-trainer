@@ -1258,7 +1258,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "115";
+const APP_VERSION = "116";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2563,6 +2563,8 @@ function renderCurrentCard() {
     // v115：无词状态下答案框是 visibility 占位（不再 display:none），
     // 必须清掉上一张卡残留的释义，否则卡片中间会悬一块不可见的空白。
     renderCardFace(els.answerText, "", mathBook, "text");
+    // v116：无词时词典链接彻底移除（不占位），避免空带
+    if (els.dictionaryLink) els.dictionaryLink.classList.add("is-removed");
     els.feedbackText.textContent = "";
     return;
   }
@@ -2588,6 +2590,9 @@ function renderCurrentCard() {
     els.dictionaryLink.href = buildDictionaryUrl(word.term);
   }
   els.answerBox.classList.toggle("is-hidden", !answerVisible);
+  // v116：词典链接也做占位（is-hidden = visibility 隐藏但仍占位，见 style.css），
+  // 否则点「显示答案」后词典链接出现会再推一次按钮。数学本没有词典链接，用 is-removed 彻底移除不占位。
+  if (els.dictionaryLink) els.dictionaryLink.classList.toggle("is-removed", !dictionaryAllowed);
   hideDictionaryLink();
   if (answerVisible && dictionaryAllowed) {
     showDictionaryLink();
