@@ -1250,7 +1250,29 @@ const STARTER_WORDS = [
   ["superficial", "adj. 表面的；肤浅的；皮毛的", "The report gives only a superficial analysis of the problem."],
   ["fruitful", "adj. 富有成效的；多产的；果实累累的", "The talks between the two sides were very fruitful."],
   ["minority", "n. 少数；少数群体；少数派", "Only a minority of students failed the final exam."],
-  ["miniature", "n. 微型模型；微缩画；adj. 微型的；小型的", "The children built a miniature village out of clay."]
+  ["miniature", "n. 微型模型；微缩画；adj. 微型的；小型的", "The children built a miniature village out of clay."],
+  ["prosecute", "v. 起诉；检控；依法进行", "The police decided to prosecute him for fraud."],
+  ["bribery", "n. 行贿；受贿；贿赂行为", "The official was jailed for taking bribery."],
+  ["prosecution", "n. 起诉；检控；控方", "The prosecution presented strong evidence in court."],
+  ["lenient", "adj. 宽大的；宽容的；仁慈的", "The judge was lenient because it was his first offense."],
+  ["rule out", "排除；不把……考虑在内", "The doctors ruled out a broken arm, just a bad bruise."],
+  ["evaluate", "v. 评估；评价；估算", "Teachers evaluate each student's progress every term."],
+  ["corporate", "adj. 公司的；法人的；团体的", "She works in the corporate finance department."],
+  ["nostalgia", "n. 怀旧；乡愁；念旧", "The old song filled him with nostalgia for his childhood."],
+  ["rustle", "v. 发出沙沙声；n. 沙沙声", "Dry leaves rustled in the gentle autumn wind."],
+  ["ditch", "v. 抛弃；丢弃；摆脱；n. 沟渠", "He ditched his old friends after becoming famous."],
+  ["dwarf", "v. 使显得矮小；使相形见绌；n. 侏儒；矮星", "The new tower dwarfs every building around it."],
+  ["overhead", "n. 经常费用；运营成本；adj. 头顶上的；adv. 在头顶上方", "The company cut overhead costs to survive the recession."],
+  ["accelerate", "v. 加速；加快；促进", "The car accelerated smoothly onto the highway."],
+  ["incite", "v. 煽动；激起；鼓动", "He was arrested for inciting the crowd to violence."],
+  ["starve", "v. 挨饿；饿死；使饿死", "Thousands of people starved during the long siege."],
+  ["arbiter", "n. 仲裁者；权威；裁决人", "The supreme court is the final arbiter of constitutional questions."],
+  ["adornment", "n. 装饰；装饰品", "The room was simple, with little adornment."],
+  ["compliance", "n. 服从；遵守；合规", "The factory is in full compliance with safety rules."],
+  ["misinterpret", "v. 误解；曲解", "She misinterpreted his silence as anger."],
+  ["defy", "v. 违反；反抗；公然抵制；使成为不可能", "The protesters defied the ban and gathered anyway."],
+  ["shed light on", "阐明；使……清楚易懂", "The study sheds light on how memories form."],
+  ["consistent", "adj. 一致的；始终如一的；相符的", "His story is consistent with the evidence."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1258,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "116";
+const APP_VERSION = "117";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
