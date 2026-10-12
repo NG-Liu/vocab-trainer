@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "119";
+const APP_VERSION = "120";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1588,7 +1588,15 @@ const els = {
   submitStatus: document.querySelector("#submitStatus"),
   levelBars: document.querySelector("#levelBars"),
   historyList: document.querySelector("#historyList"),
-  themeToggle: document.querySelector("#themeToggle")
+  themeToggle: document.querySelector("#themeToggle"),
+  immersiveBar: document.querySelector("#immersiveBar"),
+  immersiveMenuButton: document.querySelector("#immersiveMenuButton"),
+  immersiveExitButton: document.querySelector("#immersiveExitButton"),
+  immersiveExitButton2: document.querySelector("#immersiveExitButton2"),
+  immersiveMenu: document.querySelector("#immersiveMenu"),
+  immersiveLabel: document.querySelector("#immersiveLabel"),
+  reviewCard: document.querySelector("#reviewCard"),
+  reviewBody: document.querySelector("#reviewBody")
 };
 
 init();
@@ -1671,6 +1679,12 @@ function bindEvents() {
   }
   els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
+  if (els.reviewCard) {
+    els.reviewCard.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      revealAnswer();
+    });
+  }
   if (els.promptAudioButton) {
     els.promptAudioButton.addEventListener("click", () => {
       playWordAudio(els.promptAudioButton.dataset.audioTerm, els.promptAudioButton);
@@ -1708,6 +1722,23 @@ function bindEvents() {
   els.installButton.addEventListener("click", installApp);
   if (els.themeToggle) {
     els.themeToggle.addEventListener("click", toggleTheme);
+  }
+  if (els.immersiveMenuButton) els.immersiveMenuButton.addEventListener("click", openImmersiveMenu);
+  if (els.immersiveExitButton) els.immersiveExitButton.addEventListener("click", exitImmersive);
+  if (els.immersiveExitButton2) els.immersiveExitButton2.addEventListener("click", exitImmersive);
+  if (els.immersiveMenu) {
+    els.immersiveMenu.addEventListener("click", (event) => {
+      const nav = event.target.closest("[data-nav]");
+      if (nav) {
+        closeImmersiveMenu();
+        if (nav.dataset.nav !== "studyView") {
+          exitImmersive();
+          switchView(nav.dataset.nav);
+        }
+        return;
+      }
+      if (event.target === els.immersiveMenu) closeImmersiveMenu();
+    });
   }
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.dataButton.addEventListener("click", openDataSheet);
@@ -2312,6 +2343,9 @@ function switchView(viewId) {
   clearLibraryOrderFreeze();
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === viewId));
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("is-active", view.id === viewId));
+  document.body.classList.toggle("focus-study", viewId === "studyView");
+  document.body.classList.remove("immersive");
+  closeImmersiveMenu();
   renderAll();
 }
 
@@ -2320,7 +2354,25 @@ function startSession() {
   currentQueue = buildQueue(currentQueueType);
   currentIndex = currentQueueType === "due" ? getTodaySession().index : 0;
   reviewAnswerWordId = null;
+  if (els.immersiveLabel) {
+    const opt = els.queueType && els.queueType.selectedOptions ? els.queueType.selectedOptions[0] : null;
+    els.immersiveLabel.textContent = opt ? opt.textContent.trim() : "复习中";
+  }
+  document.body.classList.add("immersive");
   renderCurrentCard();
+}
+
+function openImmersiveMenu() {
+  if (els.immersiveMenu) els.immersiveMenu.classList.remove("is-hidden");
+}
+
+function closeImmersiveMenu() {
+  if (els.immersiveMenu) els.immersiveMenu.classList.add("is-hidden");
+}
+
+function exitImmersive() {
+  document.body.classList.remove("immersive");
+  closeImmersiveMenu();
 }
 
 function applyExamSprintSchedule(book) {
@@ -2607,6 +2659,7 @@ function renderCurrentCard() {
   const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
   const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
+  if (els.reviewCard) els.reviewCard.classList.toggle("is-revealed", answerVisible);
   updatePromptAudioButton(word, hasWord && !mathBook);
   if (word && !mathBook) prepareWordAudio(word.term);
   if (nextWord && !mathBook) prepareWordAudio(nextWord.term);
@@ -2637,6 +2690,7 @@ function renderCurrentCard() {
     // v116：无词时词典链接彻底移除（不占位），避免空带
     if (els.dictionaryLink) els.dictionaryLink.classList.add("is-removed");
     els.feedbackText.textContent = "";
+    if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
     return;
   }
 
@@ -2656,7 +2710,7 @@ function renderCurrentCard() {
   }
   renderCardFace(els.promptText, word.term, mathBook, "display");
   renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
-  renderCardFace(els.answerText, word.meaning, mathBook, "display");
+  renderCardFace(els.answerText, word.meaning || "（没有释义）", mathBook, "display");
   if (els.dictionaryLink && dictionaryAllowed) {
     els.dictionaryLink.href = buildDictionaryUrl(word.term);
   }
@@ -2670,6 +2724,7 @@ function renderCurrentCard() {
   }
   if (answerVisible && awaitingHardAdvance) els.feedbackText.textContent = `${getHardReviewFeedback(word.id)}，先看一下释义。`;
   els.showAnswerButton.classList.remove("is-hidden");
+  if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
 }
 
 // 卡片切换动画只在「真的换了一张卡」时播放（v112）。
@@ -2775,6 +2830,7 @@ function revealAnswer() {
   if (!word) return;
   reviewAnswerWordId = word.id;
   els.answerBox.classList.remove("is-hidden");
+  if (els.reviewCard) els.reviewCard.classList.add("is-revealed");
   if (shouldShowDictionaryLink()) showDictionaryLink();
   els.feedbackText.textContent = "";
 }
@@ -2790,7 +2846,8 @@ function hideDictionaryLink() {
 }
 
 function shouldShowDictionaryLink(book = ensureCurrentBook()) {
-  return !isMathBook(book);
+  // v120 全屏无容器：去掉 Cambridge 词典链接，界面更干净
+  return false;
 }
 
 function buildDictionaryUrl(term) {
