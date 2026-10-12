@@ -430,11 +430,17 @@ body.focus-study .stats-strip {
   margin: 0;
   max-width: 100%;
   font-family: var(--font-serif);
-  font-size: clamp(3rem, 14vw, 5.25rem);
+  font-size: clamp(1.8rem, 8vw, 3rem);
   font-weight: 500;
-  line-height: 1.02;
+  line-height: 1.2;
   letter-spacing: -0.5px;
-  overflow-wrap: anywhere;
+}
+
+/* v121 单词态：超大字号 + 不拆行（配合 fitPromptTextToWidth 缩到实际宽度）；提示文字用上面较小的字号，不溢出 */
+#promptText.is-word {
+  font-size: clamp(3rem, 14vw, 5.25rem);
+  line-height: 1.02;
+  white-space: nowrap;
 }
 
 .prompt-line {

@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "121";
+const APP_VERSION = "122";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1699,6 +1699,13 @@ function bindEvents() {
   els.rateButtons.forEach((button) => {
     button.addEventListener("click", () => rateCurrent(button.dataset.rating));
   });
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("resize", () => {
+      if (document.body.classList.contains("immersive") && currentQueue[currentIndex] && !isMathBook()) {
+        fitPromptTextToWidth();
+      }
+    });
+  }
 
   els.searchInput.addEventListener("input", () => {
     clearInlineReview();
@@ -2388,6 +2395,7 @@ function exitImmersive() {
   if (els.answerBox) els.answerBox.classList.add("is-hidden");
   if (els.queueLabel) els.queueLabel.textContent = "";
   if (els.promptText) els.promptText.textContent = "轻点任意处开始";
+  if (els.promptText) els.promptText.classList.remove("is-word");
   if (els.promptHint) els.promptHint.textContent = "";
   if (els.showAnswerButton) els.showAnswerButton.textContent = "";
   if (els.feedbackText) els.feedbackText.textContent = "";
@@ -2712,6 +2720,7 @@ function renderCurrentCard() {
     els.feedbackText.textContent = "";
     if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
     if (els.showAnswerButton) els.showAnswerButton.textContent = "轻按退出全屏";
+    if (els.promptText) els.promptText.classList.remove("is-word");
     return;
   }
 
@@ -2747,6 +2756,8 @@ function renderCurrentCard() {
   els.showAnswerButton.classList.remove("is-hidden");
   if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
   if (els.showAnswerButton) els.showAnswerButton.textContent = "轻点任意处显示释义";
+  if (els.promptText) els.promptText.classList.add("is-word");
+  if (!mathBook) fitPromptTextToWidth();
 }
 
 // 卡片切换动画只在「真的换了一张卡」时播放（v112）。
@@ -2855,6 +2866,22 @@ function revealAnswer() {
   if (els.reviewCard) els.reviewCard.classList.add("is-revealed");
   if (shouldShowDictionaryLink()) showDictionaryLink();
   els.feedbackText.textContent = "";
+}
+
+// v121：单个单词不拆行，按容器宽度自动缩字号（短词大、长词小，始终单行）
+function fitPromptTextToWidth() {
+  const el = els.promptText;
+  if (!el) return;
+  el.style.fontSize = "";
+  if (!el.clientWidth) return;
+  const min = 22;
+  let size = parseFloat(getComputedStyle(el).fontSize) || 48;
+  let guard = 0;
+  while (el.scrollWidth > el.clientWidth && size > min && guard < 150) {
+    size -= 1;
+    el.style.fontSize = size + "px";
+    guard += 1;
+  }
 }
 
 function showDictionaryLink() {
