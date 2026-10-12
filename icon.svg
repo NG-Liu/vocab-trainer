@@ -1,7 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#176b87"/>
-  <path d="M138 120h236c25 0 44 19 44 44v250c0 10-8 18-18 18H150c-31 0-56-25-56-56V164c0-25 19-44 44-44z" fill="#fffdf8"/>
-  <path d="M140 120h212v250H140c-26 0-46 16-46 37V164c0-25 19-44 46-44z" fill="#f7f4ee"/>
-  <path d="M158 180h156M158 234h196M158 288h144" stroke="#176b87" stroke-width="28" stroke-linecap="round"/>
-  <path d="M358 120v168l-40-28-40 28V120z" fill="#2f8f6b"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d3fbf"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffefb"/>
+      <stop offset="1" stop-color="#f5f2ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="152" y="122" width="228" height="284" rx="30" fill="#ffffff" opacity="0.26"/>
+  <rect x="128" y="104" width="240" height="300" rx="32" fill="url(#card)"/>
+  <text x="250" y="322" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'Songti SC', serif" font-size="196" font-weight="700" fill="#1d3fbf">A</text>
+  <rect x="176" y="348" width="144" height="16" rx="8" fill="#c7d6f8"/>
+  <rect x="204" y="376" width="88" height="13" rx="6.5" fill="#dbe4fa"/>
+  <path d="M318 104h28v100l-14-19-14 19z" fill="#f59e0b"/>
 </svg>

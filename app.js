@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "122";
+const APP_VERSION = "123";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1704,6 +1704,9 @@ function bindEvents() {
       if (document.body.classList.contains("immersive") && currentQueue[currentIndex] && !isMathBook()) {
         fitPromptTextToWidth();
       }
+    });
+    window.addEventListener("load", () => {
+      window.setTimeout(hideSplash, 320);
     });
   }
 
@@ -2401,6 +2404,14 @@ function exitImmersive() {
   if (els.feedbackText) els.feedbackText.textContent = "";
   if (els.promptAudioButton) els.promptAudioButton.classList.add("is-hidden");
   toggleReviewControls(false);
+}
+
+// v123 启动画面：加载完成后淡出并移除
+function hideSplash() {
+  const splash = document.querySelector("#splash");
+  if (!splash) return;
+  splash.classList.add("is-hidden");
+  window.setTimeout(() => splash.remove(), 520);
 }
 
 function applyExamSprintSchedule(book) {

@@ -736,6 +736,67 @@ body.immersive .immersive-bar {
   margin-top: var(--sp-2);
 }
 
+/* v123 启动画面：蓝渐变全屏 + 卡片字母 + 应用名，加载完成后淡出 */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  background: linear-gradient(160deg, #3b82f6, #1d3fbf);
+  transition: opacity 440ms ease;
+}
+
+.splash.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 112px;
+  height: 140px;
+  border-radius: 20px;
+  background: #fffefb;
+  box-shadow: 0 20px 44px rgba(8, 18, 56, 0.3);
+}
+
+.splash-letter {
+  font-family: var(--font-serif);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1d3fbf;
+}
+
+.splash-line {
+  width: 54px;
+  height: 7px;
+  border-radius: 4px;
+  background: #c7d6f8;
+}
+
+.splash-line.short {
+  width: 32px;
+  background: #dbe4fa;
+}
+
+.splash-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+}
+
 /* v118：评分按钮「白底 + 彩色文字 + 左侧色条」，让「开始」是唯一实心主按钮 */
 .rate-button {
   border: 1px solid var(--line);
