@@ -1,16 +1,20 @@
-const CACHE_NAME = "word-trainer-v124";
+const CACHE_NAME = "word-trainer-v125";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=124",
-  "./cloud-sync.js?v=124",
-  "./core-book-data.js?v=124",
-  "./cet4-book-data.js?v=124",
-  "./cet6-book-data.js?v=124",
-  "./app.js?v=124",
-  "./submission-config.js?v=124",
-  "./manifest.webmanifest?v=124",
-  "./icon.svg?v=124"
+  "./style.css?v=125",
+  "./cloud-sync.js?v=125",
+  "./core-book-data.js?v=125",
+  "./cet4-book-data.js?v=125",
+  "./cet6-book-data.js?v=125",
+  "./app.js?v=125",
+  "./submission-config.js?v=125",
+  "./manifest.webmanifest?v=125",
+  "./icon.svg?v=125",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -45,6 +49,7 @@ self.addEventListener("fetch", (event) => {
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/manifest.webmanifest") ||
       url.pathname.endsWith("/icon.svg") ||
+      url.pathname.includes("/icons/") ||
       url.pathname.endsWith("/sw.js"));
 
   if (url.hostname === "cdn.jsdelivr.net") {
