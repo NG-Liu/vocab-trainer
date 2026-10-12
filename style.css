@@ -327,6 +327,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: center;
   gap: var(--sp-3);
   margin-bottom: var(--sp-3);
 }

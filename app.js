@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "120";
+const APP_VERSION = "121";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1559,7 +1559,6 @@ const els = {
   tabs: document.querySelectorAll(".tab"),
   queueType: document.querySelector("#queueType"),
   reviewLimit: document.querySelector("#reviewLimit"),
-  startButton: document.querySelector("#startButton"),
   queueLabel: document.querySelector("#queueLabel"),
   promptText: document.querySelector("#promptText"),
   promptAudioButton: document.querySelector("#promptAudioButton"),
@@ -1677,12 +1676,19 @@ function bindEvents() {
   if (els.reviewLimit) {
     els.reviewLimit.addEventListener("change", updateReviewLimit);
   }
-  els.startButton.addEventListener("click", startSession);
   els.showAnswerButton.addEventListener("click", () => revealAnswer());
   if (els.reviewCard) {
     els.reviewCard.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
-      revealAnswer();
+      if (document.body.classList.contains("immersive")) {
+        if (currentQueue[currentIndex]) {
+          revealAnswer();
+        } else {
+          exitImmersive();
+        }
+      } else {
+        startSession();
+      }
     });
   }
   if (els.promptAudioButton) {
@@ -2373,6 +2379,20 @@ function closeImmersiveMenu() {
 function exitImmersive() {
   document.body.classList.remove("immersive");
   closeImmersiveMenu();
+  // 退出全屏背词后自动回到开始界面：清空队列/游标/答案态，界面复位
+  currentQueue = [];
+  currentIndex = 0;
+  reviewAnswerWordId = null;
+  awaitingHardAdvance = false;
+  if (els.reviewCard) els.reviewCard.classList.remove("is-revealed");
+  if (els.answerBox) els.answerBox.classList.add("is-hidden");
+  if (els.queueLabel) els.queueLabel.textContent = "";
+  if (els.promptText) els.promptText.textContent = "轻点任意处开始";
+  if (els.promptHint) els.promptHint.textContent = "";
+  if (els.showAnswerButton) els.showAnswerButton.textContent = "";
+  if (els.feedbackText) els.feedbackText.textContent = "";
+  if (els.promptAudioButton) els.promptAudioButton.classList.add("is-hidden");
+  toggleReviewControls(false);
 }
 
 function applyExamSprintSchedule(book) {
@@ -2691,6 +2711,7 @@ function renderCurrentCard() {
     if (els.dictionaryLink) els.dictionaryLink.classList.add("is-removed");
     els.feedbackText.textContent = "";
     if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
+    if (els.showAnswerButton) els.showAnswerButton.textContent = "轻按退出全屏";
     return;
   }
 
@@ -2725,6 +2746,7 @@ function renderCurrentCard() {
   if (answerVisible && awaitingHardAdvance) els.feedbackText.textContent = `${getHardReviewFeedback(word.id)}，先看一下释义。`;
   els.showAnswerButton.classList.remove("is-hidden");
   if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
+  if (els.showAnswerButton) els.showAnswerButton.textContent = "轻点任意处显示释义";
 }
 
 // 卡片切换动画只在「真的换了一张卡」时播放（v112）。
