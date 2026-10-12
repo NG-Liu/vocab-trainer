@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "117";
+const APP_VERSION = "119";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1587,7 +1587,8 @@ const els = {
   submitButton: document.querySelector("#submitButton"),
   submitStatus: document.querySelector("#submitStatus"),
   levelBars: document.querySelector("#levelBars"),
-  historyList: document.querySelector("#historyList")
+  historyList: document.querySelector("#historyList"),
+  themeToggle: document.querySelector("#themeToggle")
 };
 
 init();
@@ -1605,11 +1606,56 @@ function init() {
   bindEvents();
   ensureKatex();
   renderAppVersion();
+  applyStoredTheme();
   registerServiceWorker();
   renderAll();
   renderCloudSyncControls();
   startCloudSyncPolling();
   if (cloudSyncConnection.code) scheduleCloudSync(0);
+}
+
+/* v119 暗色模式：主题存在 localStorage（key 见 THEME_STORAGE_KEY），
+   首屏由 index.html 头部的内联脚本先落地防闪，这里只负责图标与切换。
+   三态：light / dark / 未选择（未选择时跟随系统 prefers-color-scheme）。 */
+const THEME_STORAGE_KEY = "vocab-trainer-theme";
+
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function applyStoredTheme() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(THEME_STORAGE_KEY);
+  } catch (error) {
+    stored = null;
+  }
+  const prefersDark =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = stored === "dark" || stored === "light" ? stored : prefersDark ? "dark" : "light";
+  setTheme(theme, false);
+}
+
+function setTheme(theme, persist = true) {
+  document.documentElement.setAttribute("data-theme", theme);
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (error) {
+      /* 隐私模式下写不进去，忽略即可，当前会话仍然生效 */
+    }
+  }
+  if (els.themeToggle) {
+    const dark = theme === "dark";
+    els.themeToggle.textContent = dark ? "☀" : "☾";
+    els.themeToggle.title = dark ? "切换到亮色" : "切换到暗色";
+    els.themeToggle.setAttribute("aria-label", els.themeToggle.title);
+  }
+}
+
+function toggleTheme() {
+  setTheme(currentTheme() === "dark" ? "light" : "dark");
 }
 
 function bindEvents() {
@@ -1660,6 +1706,9 @@ function bindEvents() {
   els.importButton.addEventListener("click", importBulkWords);
   els.submitForm.addEventListener("submit", submitVocabularyFile);
   els.installButton.addEventListener("click", installApp);
+  if (els.themeToggle) {
+    els.themeToggle.addEventListener("click", toggleTheme);
+  }
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
@@ -3251,10 +3300,10 @@ function renderInlineReviewCard(word) {
       <p class="feedback">${inlineReviewPendingHard ? "已加入重点复习，先看一下释义。" : ""}</p>
       <div class="inline-review-actions">
         <button class="ghost-button inline-show-answer" type="button"${inlineReviewAnswerVisible || inlineReviewPendingHard ? " disabled" : ""}>显示答案</button>
-        <button class="rate-button hard inline-rate-button${hardClass}" type="button" data-rating="hard">${hardLabel}</button>
         <button class="rate-button medium inline-rate-button" type="button" data-rating="medium"${inlineReviewPendingHard ? " disabled" : ""}>模糊</button>
+        <button class="rate-button mastered inline-rate-button" type="button" data-rating="mastered"${inlineReviewPendingHard ? " disabled" : ""}>掌握</button>
+        <button class="rate-button hard inline-rate-button${hardClass}" type="button" data-rating="hard">${hardLabel}</button>
         <button class="rate-button easy inline-rate-button" type="button" data-rating="easy"${inlineReviewPendingHard ? " disabled" : ""}>记住</button>
-        <button class="rate-button mastered inline-rate-button" type="button" data-rating="mastered"${inlineReviewPendingHard ? " disabled" : ""}>完全掌握</button>
       </div>
     </article>
   `;

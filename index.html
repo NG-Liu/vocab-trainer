@@ -6,21 +6,34 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="背单词" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>背单词</title>
-    <link rel="manifest" href="manifest.webmanifest?v=117" />
-    <link rel="icon" href="icon.svg?v=117" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=117" />
-    <link rel="stylesheet" href="style.css?v=117" />
+    <script>
+      /* v119 暗色模式：在样式表之前落地主题，避免首屏白屏闪烁（FOUC）。
+         与 app.js 的 THEME_STORAGE_KEY 保持一致；读不到时跟随系统。 */
+      (function () {
+        try {
+          var t = localStorage.getItem("vocab-trainer-theme");
+          if (t !== "dark" && t !== "light") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="manifest" href="manifest.webmanifest?v=119" />
+    <link rel="icon" href="icon.svg?v=119" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=119" />
+    <link rel="stylesheet" href="style.css?v=119" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Vocabulary Trainer</p>
+        <div class="brand">
           <h1>背单词 <span class="version-badge" id="appVersion" title="当前版本">v—</span></h1>
         </div>
         <div class="header-actions">
@@ -35,6 +48,9 @@
           <button class="icon-button" id="refreshButton" title="刷新网页" aria-label="刷新网页">
             <span aria-hidden="true">↻</span>
           </button>
+          <button class="icon-button" id="themeToggle" title="切换到暗色" aria-label="切换到暗色">
+            <span aria-hidden="true">☾</span>
+          </button>
           <button class="data-button" id="dataButton" title="数据管理" aria-label="数据管理">
             <span aria-hidden="true">⇅</span>
             <span>数据</span>
@@ -42,22 +58,22 @@
         </div>
       </header>
 
-        <section class="stats-grid" aria-label="学习统计">
-          <div class="stat-tile">
-            <span>今日待复习</span>
+        <section class="stats-strip" aria-label="学习统计">
+          <div class="stat-item">
+            <span class="stat-label">今日待复习</span>
             <strong id="dueCount">0</strong>
             <small class="stat-note" id="dueTotalCount">今日共到期 0</small>
           </div>
-        <div class="stat-tile">
-          <span>词库总数</span>
+        <div class="stat-item">
+          <span class="stat-label">词库总数</span>
           <strong id="totalCount">0</strong>
         </div>
-        <div class="stat-tile">
-          <span>掌握词数</span>
+        <div class="stat-item">
+          <span class="stat-label">掌握词数</span>
           <strong id="masteredCount">0</strong>
         </div>
-        <div class="stat-tile">
-          <span>今日正确率</span>
+        <div class="stat-item">
+          <span class="stat-label">今日正确率</span>
           <strong id="accuracyToday">0%</strong>
         </div>
       </section>
@@ -71,56 +87,60 @@
 
       <main>
         <section id="studyView" class="view is-active">
-          <div class="study-layout">
-            <aside class="study-panel">
-              <div class="field">
-                <label for="queueType">队列</label>
-                <select id="queueType">
-                  <option value="due">今日复习</option>
-                  <option value="unmastered">未掌握单词</option>
-                  <option value="mastered">已掌握单词</option>
-                  <option value="new">未学单词</option>
-                  <option value="all">全部混合</option>
-                  <option value="wrong">错词优先</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="reviewLimit">每日复习量</label>
-                <select id="reviewLimit">
-                  <option value="50">50 个</option>
-                  <option value="100">100 个</option>
-                  <option value="150">150 个</option>
-                  <option value="200">200 个</option>
-                </select>
-              </div>
-              <button class="primary-button" id="startButton">开始</button>
-            </aside>
+          <div class="study-controls">
+            <div class="control-chip">
+              <label for="queueType">队列</label>
+              <select id="queueType">
+                <option value="due">今日复习</option>
+                <option value="unmastered">未掌握单词</option>
+                <option value="mastered">已掌握单词</option>
+                <option value="new">未学单词</option>
+                <option value="all">全部混合</option>
+                <option value="wrong">错词优先</option>
+              </select>
+            </div>
+            <div class="control-chip">
+              <label for="reviewLimit">每日复习量</label>
+              <select id="reviewLimit">
+                <option value="50">50 个</option>
+                <option value="100">100 个</option>
+                <option value="150">150 个</option>
+                <option value="200">200 个</option>
+              </select>
+            </div>
+            <button class="primary-button" id="startButton">开始</button>
+          </div>
 
-            <section class="review-stage" aria-live="polite">
+          <section class="review-stage" aria-live="polite">
               <div class="review-card" id="reviewCard">
-                <p class="queue-label" id="queueLabel">准备开始</p>
-                <div class="prompt-line">
-                  <h2 id="promptText">选择队列后开始复习</h2>
-                  <button class="audio-button prompt-audio-button is-hidden" id="promptAudioButton" type="button" title="播放发音" aria-label="播放发音">
-                    <span aria-hidden="true">🔊</span>
-                  </button>
+                <div class="review-head">
+                  <p class="queue-label" id="queueLabel">准备开始</p>
                 </div>
-                <p class="subtle-text" id="promptHint">当前词库已内置你的首批单词。</p>
-                <div class="answer-box is-hidden" id="answerBox">
-                  <span id="answerText"></span>
+                <div class="review-body">
+                  <div class="prompt-line">
+                    <h2 id="promptText">选择队列后开始复习</h2>
+                    <button class="audio-button prompt-audio-button is-hidden" id="promptAudioButton" type="button" title="播放发音" aria-label="播放发音">
+                      <span aria-hidden="true">🔊</span>
+                    </button>
+                  </div>
+                  <p class="subtle-text prompt-hint" id="promptHint">当前词库已内置你的首批单词。</p>
                 </div>
-                <a class="dictionary-link is-hidden" id="dictionaryLink" href="#" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>
-                <p class="feedback" id="feedbackText"></p>
+                <div class="review-reveal">
+                  <div class="answer-box is-hidden" id="answerBox">
+                    <span id="answerText"></span>
+                  </div>
+                  <a class="dictionary-link is-hidden" id="dictionaryLink" href="#" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>
+                  <p class="feedback" id="feedbackText"></p>
+                </div>
                 <div class="review-actions">
                   <button class="ghost-button" id="showAnswerButton">显示答案</button>
-                  <button class="rate-button hard" data-rating="hard">忘了</button>
                   <button class="rate-button medium" data-rating="medium">模糊</button>
+                  <button class="rate-button mastered" data-rating="mastered">掌握</button>
+                  <button class="rate-button hard" data-rating="hard">忘了</button>
                   <button class="rate-button easy" data-rating="easy">记住</button>
-                  <button class="rate-button mastered" data-rating="mastered">完全掌握</button>
                 </div>
               </div>
             </section>
-          </div>
         </section>
 
         <section id="libraryView" class="view">
@@ -134,6 +154,13 @@
               <option value="wrong">错词</option>
             </select>
           </div>
+          <p class="legend" aria-label="状态图例">
+            <span class="legend-item"><i class="status-dot new"></i>未学</span>
+            <span class="legend-item"><i class="status-dot learning"></i>学习中</span>
+            <span class="legend-item"><i class="status-dot wrong"></i>错词</span>
+            <span class="legend-item"><i class="status-dot mastered"></i>已掌握</span>
+            <span class="legend-item"><i class="status-dot mastered-strong"></i>完全掌握</span>
+          </p>
 
           <div class="library-layout">
             <section class="word-list" id="wordList" aria-label="词库列表"></section>
@@ -265,11 +292,11 @@
 
     <button class="meaning-bulk-button is-hidden" id="toggleAllMeaningsButton" type="button">全部显示</button>
 
-    <script src="submission-config.js?v=117"></script>
-    <script src="cloud-sync.js?v=117"></script>
-    <script src="core-book-data.js?v=117"></script>
-    <script src="cet4-book-data.js?v=117"></script>
-    <script src="cet6-book-data.js?v=117"></script>
-    <script src="app.js?v=117"></script>
+    <script src="submission-config.js?v=119"></script>
+    <script src="cloud-sync.js?v=119"></script>
+    <script src="core-book-data.js?v=119"></script>
+    <script src="cet4-book-data.js?v=119"></script>
+    <script src="cet6-book-data.js?v=119"></script>
+    <script src="app.js?v=119"></script>
   </body>
 </html>
