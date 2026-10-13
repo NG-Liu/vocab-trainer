@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "130";
+const APP_VERSION = "131";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1594,6 +1594,7 @@ const els = {
   historyList: document.querySelector("#historyList"),
   themeToggle: document.querySelector("#themeToggle"),
   immersiveBar: document.querySelector("#immersiveBar"),
+  immersiveExitBar: document.querySelector("#immersiveExitBar"),
   immersiveExitButton: document.querySelector("#immersiveExitButton"),
   immersiveLabel: document.querySelector("#immersiveLabel"),
   immersiveTimerText: document.querySelector("#immersiveTimerText"),
@@ -1748,6 +1749,13 @@ function bindEvents() {
   }
   // v129：左上角菜单整体删除（用户反馈没用）——退出改走底部居中的按钮
   if (els.immersiveExitButton) els.immersiveExitButton.addEventListener("click", exitImmersive);
+  // v131：底部退出按钮默认不显示（手机有系统返回键/手势、桌面有 Esc）。
+  // 只有 iOS「添加到主屏幕」的独立应用没有任何系统返回方式，才显示它，否则会退不出去。
+  if (els.immersiveExitBar && needsImmersiveExitButton()) els.immersiveExitBar.classList.add("is-needed");
+  // v131：桌面端 Esc = 退出全屏背词
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.classList.contains("immersive")) exitImmersive();
+  });
   // v130：手机的返回键 / 侧滑返回 —— 处于全屏背词时先退出全屏，而不是直接离开页面
   window.addEventListener("popstate", () => {
     if (document.body.classList.contains("immersive")) exitImmersive({ fromPopstate: true });
@@ -2466,6 +2474,17 @@ function updateAccuracyRing() {
     els.rateRing.classList.toggle("is-mid", percent >= 70 && percent < 90);
     els.rateRing.classList.toggle("is-low", percent < 70);
   }
+}
+
+// v131：底部退出按钮只在「没有任何系统返回方式」的环境显示 —— 即 iOS 添加到主屏后的独立应用。
+// Android 有返回键/手势、iOS Safari 有侧滑、桌面有 Esc 与浏览器后退，这些都不需要额外的按钮。
+function needsImmersiveExitButton() {
+  const nav = window.navigator || {};
+  if (nav.standalone === true) return true;
+  const standalone =
+    typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches;
+  const isIOS = /iPad|iPhone|iPod/.test(String(nav.userAgent || ""));
+  return Boolean(standalone && isIOS);
 }
 
 function exitImmersive(options) {

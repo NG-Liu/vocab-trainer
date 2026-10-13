@@ -783,7 +783,8 @@ body.immersive .immersive-bar {
   letter-spacing: -0.2px;
 }
 
-/* v129 底部：退出按钮（原来右上角孤零零一个叉太丑，移到底部居中） */
+/* v129 底部：退出按钮（原来右上角孤零零一个叉太丑，移到底部居中）
+   v131：默认不显示 —— 手机用系统返回、桌面用 Esc；只有 iOS 主屏独立应用（无系统返回）才由 JS 打上 is-needed 显示 */
 .immersive-exit-bar {
   display: none;
   position: fixed;
@@ -795,7 +796,7 @@ body.immersive .immersive-bar {
   pointer-events: none;
 }
 
-body.immersive .immersive-exit-bar {
+body.immersive .immersive-exit-bar.is-needed {
   display: flex;
 }
 
