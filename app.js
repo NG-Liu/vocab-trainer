@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "126";
+const APP_VERSION = "127";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2763,7 +2763,8 @@ function renderCurrentCard() {
   if (answerVisible && dictionaryAllowed) {
     showDictionaryLink();
   }
-  if (answerVisible && awaitingHardAdvance) els.feedbackText.textContent = `${getHardReviewFeedback(word.id)}，先看一下释义。`;
+  // v127：复现卡上也不再显示「当天已安排复现 N 次，先看一下释义。」——评分与复现两处都不再出现
+  // 这类复现安排说明（用户反馈多余）。getHardReviewFeedback() 保留但不参与渲染。
   els.showAnswerButton.classList.remove("is-hidden");
   if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
   if (els.showAnswerButton) els.showAnswerButton.textContent = "轻点任意处显示释义";
@@ -3096,12 +3097,14 @@ function rateCurrent(rating) {
   }
 
   if (rating === "hard") {
-    const retryMessage = markTodaySessionPendingHard(word.id);
+    // v127：不再显示「已安排当天再复现 N 次，约 4、14、34 张后各出现一次，先看一下释义。」
+    // 这类复现安排说明（用户反馈：太长、没用）。队列插入行为完全不变，只是不再弹这句话。
+    markTodaySessionPendingHard(word.id);
     revealAnswer();
     awaitingHardAdvance = true;
     renderAll();
     if (currentQueueType === "due") renderCurrentCard();
-    els.feedbackText.textContent = `${demoteToUnmastered ? "已降为未掌握，" : ""}${retryMessage}，先看一下释义。`;
+    els.feedbackText.textContent = demoteToUnmastered ? "已降为未掌握。" : "";
     toggleReviewControls(true);
     return;
   }
