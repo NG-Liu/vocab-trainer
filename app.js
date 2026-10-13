@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "127";
+const APP_VERSION = "128";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2395,6 +2395,8 @@ function exitImmersive() {
   reviewAnswerWordId = null;
   awaitingHardAdvance = false;
   if (els.reviewCard) els.reviewCard.classList.remove("is-revealed");
+  // v128：回到开始界面（无当前单词）时收起评分按钮
+  if (els.reviewCard) els.reviewCard.classList.add("is-empty");
   if (els.answerBox) els.answerBox.classList.add("is-hidden");
   if (els.queueLabel) els.queueLabel.textContent = "";
   if (els.promptText) els.promptText.textContent = "轻点任意处开始";
@@ -2699,6 +2701,8 @@ function renderCurrentCard() {
   awaitingHardAdvance = isPendingHard(word);
   const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
   if (els.reviewCard) els.reviewCard.classList.toggle("is-revealed", answerVisible);
+  // v128：没有当前单词（未开始/队列清空）时收起评分按钮 —— 开始界面下那四个按钮用不上（用户反馈）
+  if (els.reviewCard) els.reviewCard.classList.toggle("is-empty", !hasWord);
   updatePromptAudioButton(word, hasWord && !mathBook);
   if (word && !mathBook) prepareWordAudio(word.term);
   if (nextWord && !mathBook) prepareWordAudio(nextWord.term);

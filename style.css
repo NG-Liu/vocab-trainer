@@ -643,6 +643,11 @@ body.focus-study .stats-strip {
   margin-top: var(--sp-1);
 }
 
+/* v128：没有当前单词时（开始界面 / 队列清空）收起评分按钮 —— 那四个钮此时用不上 */
+.review-card.is-empty .review-actions {
+  display: none;
+}
+
 /* v120 沉浸态：点「开始」后隐藏常规框架，全屏背词；左上角菜单进入其他信息 */
 body.immersive .topbar,
 body.immersive .stats-strip,
