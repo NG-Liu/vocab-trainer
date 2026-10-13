@@ -816,6 +816,31 @@ body.immersive .immersive-exit-bar.is-needed {
   transform: translateY(-1px);
 }
 
+/* v134：点单词复制后的轻提示（出现在顶栏下方居中，不遮住单词和手指） */
+.copy-toast {
+  position: fixed;
+  top: calc(62px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 55;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.copy-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* v123 启动画面：蓝渐变全屏 + 卡片字母 + 应用名，加载完成后淡出。
    v124：只在「独立应用」模式（从桌面图标启动）显示；浏览器标签页 / 刷新不显示，避免闪屏 */
 .splash {

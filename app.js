@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "133";
+const APP_VERSION = "134";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1465,6 +1465,7 @@ const LIBRARY_BATCH_SIZE = 120;
 // 因为 init() 在本文件中部就被调用，后面的 const 会撞上暂时性死区）
 let sessionStartedAt = 0;
 let sessionTimerId = 0;
+let copyToastTimer = 0;
 const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
@@ -1591,6 +1592,7 @@ const els = {
   immersiveBar: document.querySelector("#immersiveBar"),
   immersiveExitBar: document.querySelector("#immersiveExitBar"),
   immersiveExitButton: document.querySelector("#immersiveExitButton"),
+  copyToast: document.querySelector("#copyToast"),
   immersiveLabel: document.querySelector("#immersiveLabel"),
   immersiveTimerText: document.querySelector("#immersiveTimerText"),
   rateRing: document.querySelector("#rateRing"),
@@ -1754,6 +1756,8 @@ function bindEvents() {
   window.addEventListener("popstate", () => {
     if (document.body.classList.contains("immersive")) exitImmersive({ fromPopstate: true });
   });
+  // v134：点单词文本 → 复制到剪贴板（点击继续冒泡到卡片，所以「点任意处揭示」照旧生效）
+  if (els.promptText) els.promptText.addEventListener("click", copyCurrentWord);
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
   els.exportBackupButton.addEventListener("click", downloadBackup);
@@ -2435,6 +2439,57 @@ function updateAccuracyRing() {
 
 // v131：底部退出按钮只在「没有任何系统返回方式」的环境显示 —— 即 iOS 添加到主屏后的独立应用。
 // Android 有返回键/手势、iOS Safari 有侧滑、桌面有 Esc 与浏览器后退，这些都不需要额外的按钮。
+// v134：点单词文本 → 复制到剪贴板，并弹一个小提示。
+// 注意不要 stopPropagation：点击仍会冒泡到卡片，「点任意处揭示」的行为保持不变。
+function copyCurrentWord() {
+  const word = currentQueue[currentIndex];
+  if (!word || !word.term) return;
+  copyTextToClipboard(word.term)
+    .then(() => showCopyToast(`已复制 ${word.term}`))
+    .catch(() => showCopyToast("复制失败"));
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    // 剪贴板 API 在页面失焦、非安全上下文等情况下会 reject —— 失败时转用 execCommand 兜底
+    return navigator.clipboard.writeText(text).catch(() => legacyCopyText(text));
+  }
+  return legacyCopyText(text);
+}
+
+function legacyCopyText(text) {
+  return new Promise((resolve, reject) => {
+    try {
+      const input = document.createElement("textarea");
+      input.value = text;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.top = "-1000px";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(input);
+      if (ok) resolve();
+      else reject(new Error("execCommand copy failed"));
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function showCopyToast(message) {
+  const toast = els.copyToast;
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  if (copyToastTimer) window.clearTimeout(copyToastTimer);
+  copyToastTimer = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    copyToastTimer = 0;
+  }, 1400);
+}
+
 function needsImmersiveExitButton() {
   const nav = window.navigator || {};
   if (nav.standalone === true) return true;
