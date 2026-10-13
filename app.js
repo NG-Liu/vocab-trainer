@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "128";
+const APP_VERSION = "129";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1461,6 +1461,11 @@ const HARD_RETRY_OFFSETS = HARD_RETRY_GAPS.reduce((offsets, gap) => {
 const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
 const CLOUD_HISTORY_LIMIT = 500;
 const LIBRARY_BATCH_SIZE = 120;
+// v129 沉浸态顶栏：左上角计时器 / 右上角正确率环（必须放在文件前部的初始化区，
+// 因为 init() 在本文件中部就被调用，后面的 const 会撞上暂时性死区）
+let sessionStartedAt = 0;
+let sessionTimerId = 0;
+const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
@@ -1589,11 +1594,12 @@ const els = {
   historyList: document.querySelector("#historyList"),
   themeToggle: document.querySelector("#themeToggle"),
   immersiveBar: document.querySelector("#immersiveBar"),
-  immersiveMenuButton: document.querySelector("#immersiveMenuButton"),
   immersiveExitButton: document.querySelector("#immersiveExitButton"),
-  immersiveExitButton2: document.querySelector("#immersiveExitButton2"),
-  immersiveMenu: document.querySelector("#immersiveMenu"),
   immersiveLabel: document.querySelector("#immersiveLabel"),
+  immersiveTimerText: document.querySelector("#immersiveTimerText"),
+  rateRing: document.querySelector("#rateRing"),
+  rateRingValue: document.querySelector("#rateRingValue"),
+  rateRingText: document.querySelector("#rateRingText"),
   reviewCard: document.querySelector("#reviewCard"),
   reviewBody: document.querySelector("#reviewBody")
 };
@@ -1739,23 +1745,8 @@ function bindEvents() {
   if (els.themeToggle) {
     els.themeToggle.addEventListener("click", toggleTheme);
   }
-  if (els.immersiveMenuButton) els.immersiveMenuButton.addEventListener("click", openImmersiveMenu);
+  // v129：左上角菜单整体删除（用户反馈没用）——退出改走底部居中的按钮
   if (els.immersiveExitButton) els.immersiveExitButton.addEventListener("click", exitImmersive);
-  if (els.immersiveExitButton2) els.immersiveExitButton2.addEventListener("click", exitImmersive);
-  if (els.immersiveMenu) {
-    els.immersiveMenu.addEventListener("click", (event) => {
-      const nav = event.target.closest("[data-nav]");
-      if (nav) {
-        closeImmersiveMenu();
-        if (nav.dataset.nav !== "studyView") {
-          exitImmersive();
-          switchView(nav.dataset.nav);
-        }
-        return;
-      }
-      if (event.target === els.immersiveMenu) closeImmersiveMenu();
-    });
-  }
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
@@ -2361,7 +2352,6 @@ function switchView(viewId) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("is-active", view.id === viewId));
   document.body.classList.toggle("focus-study", viewId === "studyView");
   document.body.classList.remove("immersive");
-  closeImmersiveMenu();
   renderAll();
 }
 
@@ -2375,20 +2365,72 @@ function startSession() {
     els.immersiveLabel.textContent = opt ? opt.textContent.trim() : "复习中";
   }
   document.body.classList.add("immersive");
+  startSessionTimer();
+  updateAccuracyRing();
   renderCurrentCard();
 }
 
-function openImmersiveMenu() {
-  if (els.immersiveMenu) els.immersiveMenu.classList.remove("is-hidden");
+// v129 左上角计时器：从进入全屏开始计到退出（不落盘，刷新即重来）
+function startSessionTimer() {
+  sessionStartedAt = Date.now();
+  updateSessionTimer();
+  if (sessionTimerId) window.clearInterval(sessionTimerId);
+  sessionTimerId = window.setInterval(updateSessionTimer, 1000);
 }
 
-function closeImmersiveMenu() {
-  if (els.immersiveMenu) els.immersiveMenu.classList.add("is-hidden");
+function stopSessionTimer() {
+  if (sessionTimerId) window.clearInterval(sessionTimerId);
+  sessionTimerId = 0;
+  sessionStartedAt = 0;
+  if (els.immersiveTimerText) els.immersiveTimerText.textContent = "0:00";
+}
+
+function updateSessionTimer() {
+  if (!els.immersiveTimerText || !sessionStartedAt) return;
+  const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000));
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  els.immersiveTimerText.textContent =
+    minutes >= 60
+      ? `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      : `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+// v129 右上角正确率环：今日（本词本）所有复习记录里 correct 的占比
+function getTodayAccuracy() {
+  const book = ensureCurrentBook();
+  const start = startOfToday();
+  const events = (book.history || []).filter((event) => event && Number(event.at) >= start);
+  if (!events.length) return null;
+  const correct = events.reduce((count, event) => count + (event.correct ? 1 : 0), 0);
+  return correct / events.length;
+}
+
+function updateAccuracyRing() {
+  const value = els.rateRingValue;
+  const text = els.rateRingText;
+  if (!value || !text) return;
+  const ratio = getTodayAccuracy();
+  value.style.strokeDasharray = String(RATE_RING_CIRCUMFERENCE);
+  if (ratio === null) {
+    value.style.strokeDashoffset = String(RATE_RING_CIRCUMFERENCE);
+    text.textContent = "--";
+    if (els.rateRing) els.rateRing.classList.remove("is-high", "is-mid", "is-low");
+    return;
+  }
+  value.style.strokeDashoffset = String(RATE_RING_CIRCUMFERENCE * (1 - ratio));
+  const percent = Math.round(ratio * 100);
+  text.textContent = `${percent}%`;
+  if (els.rateRing) {
+    els.rateRing.classList.toggle("is-high", percent >= 90);
+    els.rateRing.classList.toggle("is-mid", percent >= 70 && percent < 90);
+    els.rateRing.classList.toggle("is-low", percent < 70);
+  }
 }
 
 function exitImmersive() {
   document.body.classList.remove("immersive");
-  closeImmersiveMenu();
+  stopSessionTimer();
   // 退出全屏背词后自动回到开始界面：清空队列/游标/答案态，界面复位
   currentQueue = [];
   currentIndex = 0;
@@ -3347,6 +3389,8 @@ function renderStats() {
   els.totalCount.textContent = book.words.length;
   els.masteredCount.textContent = mastered;
   els.accuracyToday.textContent = `${accuracy}%`;
+  // v129：同步沉浸态右上角的正确率环
+  updateAccuracyRing();
 }
 
 function renderWordList() {

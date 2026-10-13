@@ -686,69 +686,139 @@ body.immersive .review-reveal {
   left: 0;
   right: 0;
   z-index: 40;
+  /* v129：三栏（左=计时 / 中=进度 / 右=正确率环），中间那栏始终居中 */
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: var(--sp-3);
-  padding: 10px 12px;
+  padding: 10px 14px;
 }
 
 body.immersive .immersive-bar {
-  display: flex;
+  display: grid;
+}
+
+/* v129 左上：本次学习时长（点开始起计到退出全屏） */
+.immersive-timer {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+  box-shadow: var(--shadow-soft);
+}
+
+.immersive-timer-icon {
+  font-size: 0.92em;
+  line-height: 1;
 }
 
 .immersive-label {
+  justify-self: center;
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 500;
 }
-.immersive-menu {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: var(--overlay);
+
+/* v129 右上：今日正确率环（SVG 描边，颜色按高低分档） */
+.rate-ring {
+  justify-self: end;
+  position: relative;
+  width: 40px;
+  height: 40px;
 }
 
-.immersive-menu-panel {
+.rate-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.rate-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.rate-ring-track {
+  stroke: var(--line);
+}
+
+.rate-ring-value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 97.4;
+  stroke-dashoffset: 97.4;
+  transition: stroke-dashoffset 420ms ease, stroke 240ms ease;
+}
+
+.rate-ring.is-high .rate-ring-value {
+  stroke: #22c55e;
+}
+
+.rate-ring.is-mid .rate-ring-value {
+  stroke: #f59e0b;
+}
+
+.rate-ring.is-low .rate-ring-value {
+  stroke: #ef4444;
+}
+
+.rate-ring-text {
   position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(280px, 82vw);
-  padding: var(--sp-5) var(--sp-4);
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.immersive-menu-title {
-  margin: var(--sp-3) 0 var(--sp-1);
+  inset: 0;
+  display: grid;
+  place-items: center;
   color: var(--muted);
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
-.immersive-menu-item {
-  min-height: 46px;
-  padding: 0 var(--sp-3);
-  border: 0;
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--ink);
-  font-size: var(--text-base);
+/* v129 底部：退出按钮（原来右上角孤零零一个叉太丑，移到底部居中） */
+.immersive-exit-bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  justify-content: center;
+  pointer-events: none;
+}
+
+body.immersive .immersive-exit-bar {
+  display: flex;
+}
+
+.immersive-exit-button {
+  pointer-events: auto;
+  min-height: 44px;
+  padding: 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
   font-family: var(--font-sans);
-  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
   cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
-.immersive-menu-item:hover {
-  background: var(--accent-soft);
-}
-
-.immersive-menu-exit {
-  color: var(--accent);
-  margin-top: var(--sp-2);
+.immersive-exit-button:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 /* v123 启动画面：蓝渐变全屏 + 卡片字母 + 应用名，加载完成后淡出。

@@ -25,11 +25,11 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="manifest" href="manifest.webmanifest?v=128" />
-    <link rel="icon" href="icons/icon-192.png?v=128" sizes="192x192" type="image/png" />
-    <link rel="icon" href="icon.svg?v=128" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=128" />
-    <link rel="stylesheet" href="style.css?v=128" />
+    <link rel="manifest" href="manifest.webmanifest?v=129" />
+    <link rel="icon" href="icons/icon-192.png?v=129" sizes="192x192" type="image/png" />
+    <link rel="icon" href="icon.svg?v=129" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=129" />
+    <link rel="stylesheet" href="style.css?v=129" />
   </head>
   <body class="focus-study">
     <div class="splash" id="splash" aria-hidden="true">
@@ -235,23 +235,24 @@
       </main>
     </div>
 
-    <!-- v120 沉浸态：点「开始」后进入全屏背词；左上角菜单进入其他信息 -->
+    <!-- v129 沉浸态顶栏：左=本次学习计时，中=队列进度，右=今日正确率环；退出按钮移到底部居中 -->
     <div class="immersive-bar" id="immersiveBar">
-      <button class="icon-button" id="immersiveMenuButton" title="菜单" aria-label="菜单"><span aria-hidden="true">☰</span></button>
+      <span class="immersive-timer" id="immersiveTimer" title="本次学习时长">
+        <span class="immersive-timer-icon" aria-hidden="true">⏱</span>
+        <span id="immersiveTimerText">0:00</span>
+      </span>
       <span class="immersive-label" id="immersiveLabel">复习中</span>
-      <button class="icon-button" id="immersiveExitButton" title="退出全屏背词" aria-label="退出全屏背词"><span aria-hidden="true">⤫</span></button>
+      <div class="rate-ring" id="rateRing" title="今日正确率" aria-label="今日正确率">
+        <svg viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="rate-ring-track" cx="18" cy="18" r="15.5"></circle>
+          <circle class="rate-ring-value" id="rateRingValue" cx="18" cy="18" r="15.5"></circle>
+        </svg>
+        <span class="rate-ring-text" id="rateRingText">--</span>
+      </div>
     </div>
 
-    <div class="immersive-menu is-hidden" id="immersiveMenu" role="dialog" aria-modal="true" aria-label="导航菜单">
-      <div class="immersive-menu-panel">
-        <p class="immersive-menu-title">学习</p>
-        <button class="immersive-menu-item" type="button" data-nav="studyView">继续背单词</button>
-        <button class="immersive-menu-item" type="button" data-nav="libraryView">词库</button>
-        <button class="immersive-menu-item" type="button" data-nav="progressView">进度</button>
-        <button class="immersive-menu-item" type="button" data-nav="submitView">共建</button>
-        <p class="immersive-menu-title">本次</p>
-        <button class="immersive-menu-item immersive-menu-exit" type="button" id="immersiveExitButton2">退出全屏背词</button>
-      </div>
+    <div class="immersive-exit-bar" id="immersiveExitBar">
+      <button class="immersive-exit-button" id="immersiveExitButton" type="button">退出全屏背词</button>
     </div>
 
     <div class="install-sheet is-hidden" id="installSheet" role="dialog" aria-modal="true" aria-labelledby="installTitle">
@@ -318,11 +319,11 @@
 
     <button class="meaning-bulk-button is-hidden" id="toggleAllMeaningsButton" type="button">全部显示</button>
 
-    <script src="submission-config.js?v=128"></script>
-    <script src="cloud-sync.js?v=128"></script>
-    <script src="core-book-data.js?v=128"></script>
-    <script src="cet4-book-data.js?v=128"></script>
-    <script src="cet6-book-data.js?v=128"></script>
-    <script src="app.js?v=128"></script>
+    <script src="submission-config.js?v=129"></script>
+    <script src="cloud-sync.js?v=129"></script>
+    <script src="core-book-data.js?v=129"></script>
+    <script src="cet4-book-data.js?v=129"></script>
+    <script src="cet6-book-data.js?v=129"></script>
+    <script src="app.js?v=129"></script>
   </body>
 </html>
