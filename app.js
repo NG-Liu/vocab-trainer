@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "129";
+const APP_VERSION = "130";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1621,6 +1621,7 @@ function init() {
   renderAppVersion();
   applyStoredTheme();
   registerServiceWorker();
+  clearStaleImmersiveHistory();
   renderAll();
   renderCloudSyncControls();
   startCloudSyncPolling();
@@ -1747,6 +1748,10 @@ function bindEvents() {
   }
   // v129：左上角菜单整体删除（用户反馈没用）——退出改走底部居中的按钮
   if (els.immersiveExitButton) els.immersiveExitButton.addEventListener("click", exitImmersive);
+  // v130：手机的返回键 / 侧滑返回 —— 处于全屏背词时先退出全屏，而不是直接离开页面
+  window.addEventListener("popstate", () => {
+    if (document.body.classList.contains("immersive")) exitImmersive({ fromPopstate: true });
+  });
   els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
@@ -2365,9 +2370,44 @@ function startSession() {
     els.immersiveLabel.textContent = opt ? opt.textContent.trim() : "复习中";
   }
   document.body.classList.add("immersive");
+  pushImmersiveHistoryEntry();
   startSessionTimer();
   updateAccuracyRing();
   renderCurrentCard();
+}
+
+// v130：手机返回键 / 手势返回 = 退出全屏背词，而不是直接离开页面。
+// 进沉浸态时压一条历史记录：返回键先被 popstate 吃掉并退出沉浸；
+// 点底部按钮退出时则把这条记录回退掉，保持历史干净。
+// 注意：测试台的 window 桩没有 history，全部走能力检查 + try/catch。
+function pushImmersiveHistoryEntry() {
+  try {
+    if (!window.history || typeof window.history.pushState !== "function") return;
+    if (history.state && history.state.vocabImmersive) return;
+    history.pushState({ vocabImmersive: true }, "");
+  } catch (error) {
+    /* 沙箱/预览环境不支持时静默跳过 */
+  }
+}
+
+function popImmersiveHistoryEntry() {
+  try {
+    if (!window.history || typeof window.history.back !== "function") return;
+    if (history.state && history.state.vocabImmersive) history.back();
+  } catch (error) {
+    /* 同上 */
+  }
+}
+
+// 刷新后 body 已不是沉浸态，但 history.state 还留着标记 —— 清掉，
+// 否则第一次按返回键会被白白吃掉（用户感觉"返回没反应"）。
+function clearStaleImmersiveHistory() {
+  try {
+    if (!window.history || typeof window.history.replaceState !== "function") return;
+    if (history.state && history.state.vocabImmersive) history.replaceState(null, "");
+  } catch (error) {
+    /* 同上 */
+  }
 }
 
 // v129 左上角计时器：从进入全屏开始计到退出（不落盘，刷新即重来）
@@ -2428,9 +2468,12 @@ function updateAccuracyRing() {
   }
 }
 
-function exitImmersive() {
+function exitImmersive(options) {
+  // v130：区分来源 —— 用户按手机返回键（popstate）进来时不能再回退历史，否则会直接离开页面
+  const fromPopstate = Boolean(options && options.fromPopstate);
   document.body.classList.remove("immersive");
   stopSessionTimer();
+  if (!fromPopstate) popImmersiveHistoryEntry();
   // 退出全屏背词后自动回到开始界面：清空队列/游标/答案态，界面复位
   currentQueue = [];
   currentIndex = 0;
