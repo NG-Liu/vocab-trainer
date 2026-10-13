@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "132";
+const APP_VERSION = "133";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1469,7 +1469,6 @@ const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
-let deferredInstallPrompt = null;
 let isReloadingForUpdate = false;
 
 const state = loadState();
@@ -1540,10 +1539,6 @@ const els = {
   masteredCount: document.querySelector("#masteredCount"),
   accuracyToday: document.querySelector("#accuracyToday"),
   bookSelect: document.querySelector("#bookSelect"),
-  installButton: document.querySelector("#installButton"),
-  installSheet: document.querySelector("#installSheet"),
-  installMessage: document.querySelector("#installMessage"),
-  closeInstallSheet: document.querySelector("#closeInstallSheet"),
   refreshButton: document.querySelector("#refreshButton"),
   dataButton: document.querySelector("#dataButton"),
   dataSheet: document.querySelector("#dataSheet"),
@@ -1743,7 +1738,6 @@ function bindEvents() {
 
   els.importButton.addEventListener("click", importBulkWords);
   els.submitForm.addEventListener("submit", submitVocabularyFile);
-  els.installButton.addEventListener("click", installApp);
   if (els.themeToggle) {
     els.themeToggle.addEventListener("click", toggleTheme);
   }
@@ -1760,7 +1754,6 @@ function bindEvents() {
   window.addEventListener("popstate", () => {
     if (document.body.classList.contains("immersive")) exitImmersive({ fromPopstate: true });
   });
-  els.closeInstallSheet.addEventListener("click", closeInstallSheet);
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
   els.exportBackupButton.addEventListener("click", downloadBackup);
@@ -1779,16 +1772,6 @@ function bindEvents() {
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && cloudSyncConnection.code) scheduleCloudSync(250);
-  });
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-  });
-
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    showInstallSheet("已添加到桌面。");
   });
 }
 
@@ -1856,25 +1839,6 @@ async function forceRefreshApp() {
   }
 }
 
-async function installApp() {
-  if (!deferredInstallPrompt) {
-    showInstallSheet(getManualInstallMessage());
-    return;
-  }
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-}
-
-function showInstallSheet(message) {
-  els.installMessage.textContent = message;
-  els.installSheet.classList.remove("is-hidden");
-}
-
-function closeInstallSheet() {
-  els.installSheet.classList.add("is-hidden");
-}
-
 function openDataSheet() {
   setDataStatus("");
   renderCloudSyncControls();
@@ -1884,13 +1848,6 @@ function openDataSheet() {
 function closeDataSheet() {
   els.dataSheet.classList.add("is-hidden");
   if (els.backupInput) els.backupInput.value = "";
-}
-
-function getManualInstallMessage() {
-  const ua = navigator.userAgent || "";
-  const isApple = /iPhone|iPad|iPod/i.test(ua);
-  if (isApple) return "在 Safari 打开本页，点击分享按钮，然后选择“添加到主屏幕”。";
-  return "请打开浏览器菜单，选择“安装应用”或“添加到主屏幕”。";
 }
 
 function loadState() {

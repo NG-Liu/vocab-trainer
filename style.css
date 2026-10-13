@@ -172,14 +172,12 @@ h2 {
 }
 
 .icon-button,
-.data-button,
-.install-button {
+.data-button {
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 
 .icon-button:hover,
 .data-button:hover,
-.install-button:hover,
 .primary-button:hover,
 .ghost-button:hover,
 .rate-button:hover {
@@ -223,27 +221,6 @@ h2 {
 
 .data-button span:first-child {
   font-size: 1rem;
-  line-height: 1;
-}
-
-.install-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 108px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--accent);
-  border-radius: var(--r-md);
-  background: var(--accent);
-  color: white;
-  font-weight: 700;
-  box-shadow: var(--shadow-soft);
-}
-
-.install-button span:first-child {
-  font-size: 1.05rem;
   line-height: 1;
 }
 
@@ -992,7 +969,6 @@ textarea {
 
 /* ---------- 弹层 ---------- */
 
-.install-sheet,
 .data-sheet {
   position: fixed;
   inset: 0;
@@ -1004,7 +980,6 @@ textarea {
   backdrop-filter: blur(6px);
 }
 
-.install-panel,
 .data-panel {
   position: relative;
   width: min(420px, 100%);
@@ -1015,11 +990,6 @@ textarea {
   box-shadow: var(--shadow);
 }
 
-.install-panel h2 {
-  margin-bottom: var(--sp-2);
-}
-
-.install-panel p,
 .data-panel p {
   margin-bottom: 0;
   color: var(--muted);
@@ -1618,7 +1588,6 @@ textarea {
 
   .icon-button,
   .data-button,
-  .install-button,
   .book-picker select {
     height: 40px;
   }
@@ -1627,19 +1596,12 @@ textarea {
     width: 40px;
   }
 
-  .install-button {
-    min-width: 40px;
-    width: 40px;
-    padding: 0;
-  }
-
   .data-button {
     min-width: 40px;
     width: 40px;
     padding: 0;
   }
 
-  .install-button span:last-child,
   .data-button span:last-child {
     position: absolute;
     width: 1px;
@@ -1749,7 +1711,6 @@ textarea {
     padding: 0 var(--sp-2);
   }
 
-  .install-panel,
   .data-panel {
     padding: var(--sp-4);
   }
