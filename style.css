@@ -186,6 +186,14 @@ h2 {
   transform: translateY(-1px);
 }
 
+/* v132：卡片区关掉系统点击高亮后，按钮改用按下反馈，不然点了没有手感 */
+.primary-button:active,
+.ghost-button:active,
+.rate-button:active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.97);
+}
+
 .icon-button {
   width: 40px;
   height: 40px;
@@ -422,6 +430,15 @@ body.focus-study .stats-strip {
   text-align: center;
   cursor: pointer;
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* v132：点单词附近的空白处会闪出一大块淡蓝色 —— 那是移动端对可点击区域的默认「点击高亮」
+   （.review-body 整块是 cursor:pointer，高亮盖满整块）。该属性是**继承**的，
+   设在卡片上即可覆盖整块；同时禁止选中卡片里的文字，长按不再弹选择手柄。 */
+.review-card {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .review-card.is-revealed .review-body {
