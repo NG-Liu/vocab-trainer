@@ -662,7 +662,16 @@ body.immersive .review-card {
   min-height: 0;
   max-height: 100dvh;
   padding-top: 64px;
+  /* v126：释义抽屉与评分按钮整块上移到「屏幕中下」（按钮组底边约在 80% 高度），
+     原来贴着屏幕最底边，单手拇指够不着。（抽屉是相对 .review-reveal 定位的，随之上移） */
+  padding-bottom: clamp(120px, 20dvh, 260px);
   overflow: hidden;
+}
+
+/* v126：沉浸态占位区收紧，给矮屏（如 640px 高）腾出单词区空间。
+   抽屉是相对 .review-reveal 底边定位的，改这个高度不会挪动抽屉位置。 */
+body.immersive .review-reveal {
+  min-height: 104px;
 }
 
 .immersive-bar {
@@ -687,7 +696,6 @@ body.immersive .immersive-bar {
   font-size: var(--text-sm);
   font-weight: 500;
 }
-
 .immersive-menu {
   position: fixed;
   inset: 0;
