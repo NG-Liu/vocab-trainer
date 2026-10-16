@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "134";
+const APP_VERSION = "136";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1460,7 +1460,18 @@ const HARD_RETRY_OFFSETS = HARD_RETRY_GAPS.reduce((offsets, gap) => {
 }, []);
 const MAX_DAILY_HARD_REVIEWS = HARD_RETRY_GAPS.length + 1;
 const CLOUD_HISTORY_LIMIT = 500;
+// v136 每日统计表：history 环形缓冲只有 CLOUD_HISTORY_LIMIT(500) 条 ≈ 2.5 天，
+// 更早的逐条评分会被挤掉——所以单份备份只有最近两三天的明细，10 天前的某天评了什么无从查起。
+// 这里每次评分顺手聚合一条当日记录存在 state.dailyStats（{d,n,e,m,h,x,c} = 日期/总数/easy/medium/hard/mastered/正确数），
+// 随导出备份、导入备份一起走，明细级历史因此不再依赖「每天手动存备份再拼」。
+// 730 条上限 ≈ 两年，体积约 50KB，对 5MB 的导入上限和 localStorage 配额都可忽略。
+// 口径 = 本机所有词本的评分总和（数学词本偶尔刷几条也会并进来）。
+const DAILY_STATS_LIMIT = 730;
 const LIBRARY_BATCH_SIZE = 120;
+// v135 顽固词视图：累计错误数达到该阈值的词进「顽固词」筛选，按终身错误率排序。
+// 阈值集中在此，方便以后调整。注意 wrong 是终身计数器（只增不减），
+// 所以顽固词池会随每天的 hard 评分持续增长，不会自净——这是要做常驻视图的原因。
+const STUBBORN_WRONG_THRESHOLD = 5;
 // v129 沉浸态顶栏：左上角计时器 / 右上角正确率环（必须放在文件前部的初始化区，
 // 因为 init() 在本文件中部就被调用，后面的 const 会撞上暂时性死区）
 let sessionStartedAt = 0;
@@ -1550,6 +1561,7 @@ const els = {
   resetTodayQueueButton: document.querySelector("#resetTodayQueueButton"),
   todayQueueStatus: document.querySelector("#todayQueueStatus"),
   dataStatus: document.querySelector("#dataStatus"),
+  dailyStatsInfo: document.querySelector("#dailyStatsInfo"),
   syncCodeInput: document.querySelector("#syncCodeInput"),
   createSyncCodeButton: document.querySelector("#createSyncCodeButton"),
   connectSyncButton: document.querySelector("#connectSyncButton"),
@@ -1846,6 +1858,7 @@ async function forceRefreshApp() {
 function openDataSheet() {
   setDataStatus("");
   renderCloudSyncControls();
+  updateDailyStatsInfo();
   els.dataSheet.classList.remove("is-hidden");
 }
 
@@ -1976,7 +1989,8 @@ function normalizeState(parsed, fallback) {
     return {
       books,
       currentBookId: isBuiltInBookId(value.currentBookId) && books[value.currentBookId] ? value.currentBookId : DEFAULT_BOOK_ID,
-      reviewLimit: normalizeReviewLimit(value.reviewLimit)
+      reviewLimit: normalizeReviewLimit(value.reviewLimit),
+      dailyStats: normalizeDailyStats(value.dailyStats)
     };
   }
   if (Array.isArray(value.words)) {
@@ -1988,7 +2002,8 @@ function normalizeState(parsed, fallback) {
         )
       },
       currentBookId: DEFAULT_BOOK_ID,
-      reviewLimit: normalizeReviewLimit(value.reviewLimit)
+      reviewLimit: normalizeReviewLimit(value.reviewLimit),
+      dailyStats: []
     };
   }
   return fallback;
@@ -3232,6 +3247,69 @@ function rateCurrent(rating) {
   advanceToNext();
 }
 
+function toDailyCount(value) {
+  return Math.max(0, Math.round(Number(value) || 0));
+}
+
+// v136：导入/加载时净化每日统计表——字段校验、按日期去重（同日保留 n 更大的）、按日期排序、截到上限。
+function normalizeDailyStats(value) {
+  if (!Array.isArray(value)) return [];
+  const byDate = new Map();
+  value.forEach((item) => {
+    if (!item || typeof item.d !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.d)) return;
+    const entry = {
+      d: item.d,
+      n: toDailyCount(item.n),
+      e: toDailyCount(item.e),
+      m: toDailyCount(item.m),
+      h: toDailyCount(item.h),
+      x: toDailyCount(item.x),
+      c: toDailyCount(item.c)
+    };
+    const prev = byDate.get(item.d);
+    if (!prev || entry.n >= prev.n) byDate.set(item.d, entry);
+  });
+  return Array.from(byDate.values())
+    .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0))
+    .slice(-DAILY_STATS_LIMIT);
+}
+
+function getDailyStats() {
+  if (!Array.isArray(state.dailyStats)) state.dailyStats = [];
+  return state.dailyStats;
+}
+
+// v136：每次评分调用一次。当天条目不存在就建一条；超过上限丢最旧。
+function recordDailyRating(rating, correct) {
+  const stats = getDailyStats();
+  const key = todayKey();
+  let entry = stats.find((item) => item.d === key);
+  if (!entry) {
+    entry = { d: key, n: 0, e: 0, m: 0, h: 0, x: 0, c: 0 };
+    stats.push(entry);
+    if (stats.length > DAILY_STATS_LIMIT) stats.splice(0, stats.length - DAILY_STATS_LIMIT);
+  }
+  entry.n += 1;
+  if (rating === "easy") entry.e += 1;
+  else if (rating === "medium") entry.m += 1;
+  else if (rating === "hard") entry.h += 1;
+  else if (rating === "mastered") entry.x += 1;
+  if (correct) entry.c += 1;
+}
+
+// v136：数据面板「本地备份」里的一行说明——让用户直接看到备份里带了多少天统计。
+function updateDailyStatsInfo() {
+  if (!els.dailyStatsInfo) return;
+  const stats = getDailyStats();
+  if (!stats.length) {
+    els.dailyStatsInfo.textContent = "每日统计：暂无记录（每次评分自动累积一条，随备份导出/导入）。";
+    return;
+  }
+  const total = stats.reduce((sum, item) => sum + (item.n || 0), 0);
+  els.dailyStatsInfo.textContent =
+    `每日统计：已记录 ${stats.length} 天（${stats[0].d} ~ ${stats[stats.length - 1].d}），共 ${total} 次评分，随备份导出/导入。`;
+}
+
 function recordRating(word, rating, options = {}) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
@@ -3256,6 +3334,7 @@ function recordRating(word, rating, options = {}) {
     at: reviewedAt
   });
   book.history = book.history.slice(0, CLOUD_HISTORY_LIMIT);
+  recordDailyRating(rating, correct);
   saveState();
   if (options.render !== false) renderAll();
 }
@@ -3429,6 +3508,7 @@ function renderAll() {
   renderStats();
   renderWordList();
   renderProgress();
+  updateDailyStatsInfo();
 }
 
 function renderStats() {
@@ -3467,6 +3547,16 @@ function renderStats() {
   updateAccuracyRing();
 }
 
+// v135 顽固词徽章：累计错误达到阈值的词在词表行里显示「错 N · M%」。
+// 放在 .word-term（flex 容器）里，不占 grid 列，无需改 .word-row 的网格定义。
+// title 里给完整数字，徽章本身只放浓缩信息，避免行宽被撑爆。
+function renderWrongBadge(progress) {
+  if (!isStubbornWord(progress)) return "";
+  const total = (progress.correct || 0) + (progress.wrong || 0);
+  const percent = Math.round(wordErrorRate(progress) * 100);
+  return `<span class="word-wrong-badge" title="累计错 ${progress.wrong} 次 / 共复习 ${total} 次">错 ${progress.wrong} · ${percent}%</span>`;
+}
+
 function renderWordList() {
   const book = ensureCurrentBook();
   const libraryActive = document.querySelector("#libraryView")?.classList.contains("is-active");
@@ -3491,6 +3581,7 @@ function renderWordList() {
           <div class="word-term">
             <span class="word-term-text">${formatInlineContent(word.term, isMathBook())}</span>
             ${renderAudioButton(word.term)}
+            ${renderWrongBadge(progress)}
           </div>
           <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
           <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
@@ -3557,7 +3648,7 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
   const query = normalizeText(els.searchInput.value);
   const filter = els.statusFilter.value;
   const positions = getBookWordPositions(book);
-  return book.words
+  const matched = book.words
     .filter((word) => {
       const progress = getProgress(word.id, book);
       const text = `${word.term} ${word.meaning}`.toLowerCase();
@@ -3567,10 +3658,16 @@ function getVisibleLibraryWords(book = ensureCurrentBook()) {
         (filter === "new" && progress.seen === 0) ||
         (filter === "learning" && progress.seen > 0 && progress.level < 4) ||
         (filter === "mastered" && progress.level >= 4) ||
-        (filter === "wrong" && progress.wrong > 0);
+        (filter === "wrong" && progress.wrong > 0) ||
+        (filter === "stubborn" && isStubbornWord(progress));
       return matchesQuery && matchesFilter;
-    })
-    .sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book, positions));
+    });
+  // v135：顽固词视图按「终身错误率」降序——最顽固的最先看到。
+  // 不能用默认的 compareLibraryWordsByUnfamiliarity（level 升序主导），
+  // 否则 76% 在 L4+ 的顽固词会全部沉到 L0~L3 词下面，视图就失去意义。
+  return filter === "stubborn"
+    ? matched.sort((a, b) => compareStubbornWords(a, b, book, positions))
+    : matched.sort((a, b) => compareLibraryWordsByUnfamiliarity(a, b, book, positions));
 }
 
 function getFrozenLibraryWords(book) {
@@ -3605,6 +3702,28 @@ function clearLibraryOrderFreeze() {
 
 function resetLibraryVisibleLimit() {
   libraryVisibleLimit = LIBRARY_BATCH_SIZE;
+}
+
+function isStubbornWord(progress) {
+  return (progress?.wrong || 0) >= STUBBORN_WRONG_THRESHOLD;
+}
+
+// 终身错误率 = wrong / (correct + wrong)。没复习过的词返回 0。
+function wordErrorRate(progress) {
+  const total = (progress?.correct || 0) + (progress?.wrong || 0);
+  return total > 0 ? (progress.wrong || 0) / total : 0;
+}
+
+// v135 顽固词排序：错误率降序 → 错误绝对数降序 → 词表默认序。
+// 错误率衡量「顽固程度」，错误数衡量「积累量」：rival 错 5/8（63%）比 derive 错 16/37（43%）更顽固。
+function compareStubbornWords(a, b, book, positions = getBookWordPositions(book)) {
+  const pa = book.progress[a.id] || createProgress();
+  const pb = book.progress[b.id] || createProgress();
+  return (
+    wordErrorRate(pb) - wordErrorRate(pa) ||
+    (pb.wrong || 0) - (pa.wrong || 0) ||
+    compareWordsForBook(a, b, book, positions)
+  );
 }
 
 function compareLibraryWordsByUnfamiliarity(a, b, book, positions = getBookWordPositions(book)) {
@@ -4252,7 +4371,22 @@ function createCloudSyncSnapshot() {
       todaySession: normalizeCloudTodaySession(book.todaySession)
     };
   });
-  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+  // v136：每日统计表随云同步走——换设备/重装后统计不丢。
+  // 合并策略见 mergeCloudDailyStats：按日期取 n 更大的一条（实际用法是单机学习、云端做备份，
+  // 做了功课的那台就是 n 最大的；多设备同一天分头学是边缘情况，取 max 不会比丢数据更糟）。
+  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books, dailyStats: normalizeDailyStats(state.dailyStats) };
+}
+
+// v136：每日统计的云端合并——按日期取 n 更大的一条，排序后截到上限。
+function mergeCloudDailyStats(localStats, remoteStats) {
+  const byDate = new Map();
+  localStats.concat(remoteStats).forEach((entry) => {
+    const prev = byDate.get(entry.d);
+    if (!prev || entry.n >= prev.n) byDate.set(entry.d, entry);
+  });
+  return Array.from(byDate.values())
+    .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0))
+    .slice(-DAILY_STATS_LIMIT);
 }
 
 function mergeCloudSyncSnapshots(localSnapshot, remoteSnapshot) {
@@ -4264,7 +4398,11 @@ function mergeCloudSyncSnapshots(localSnapshot, remoteSnapshot) {
     const remoteBook = remote.books[definition.id] || getEmptyCloudBook();
     books[definition.id] = mergeCloudBook(localBook, remoteBook);
   });
-  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+  return {
+    schemaVersion: CLOUD_SYNC_SCHEMA_VERSION,
+    books,
+    dailyStats: mergeCloudDailyStats(local.dailyStats, remote.dailyStats)
+  };
 }
 
 function normalizeCloudSnapshot(snapshot) {
@@ -4294,7 +4432,8 @@ function normalizeCloudSnapshot(snapshot) {
       todaySession: normalizeCloudTodaySession(source.todaySession)
     };
   });
-  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books };
+  // v136：旧版云端快照没有 dailyStats 字段，normalizeDailyStats(undefined) 返回 []，向后兼容
+  return { schemaVersion: CLOUD_SYNC_SCHEMA_VERSION, books, dailyStats: normalizeDailyStats(snapshot.dailyStats) };
 }
 
 function mergeCloudBook(localBook, remoteBook) {
@@ -4497,6 +4636,9 @@ function applyCloudSyncSnapshot(snapshot) {
         : null;
       orderBookWords(book, definition);
     });
+    // v136：每日统计表随合并结果落地（normalized.dailyStats 已是本地+云端按日期合并后的结果）。
+    // 深拷贝一份，避免和 snapshot 对象共享引用被后续改动带偏。
+    state.dailyStats = normalized.dailyStats.map((item) => ({ ...item }));
     // 云端快照可能带回内置词表里没有的词/大改过的词本，seeding 必须重跑
     ensuredBooksSignature = null;
     saveState({ skipCloudSync: true });

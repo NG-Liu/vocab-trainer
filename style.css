@@ -1191,12 +1191,34 @@ textarea {
   border-radius: var(--r-sm);
 }
 
+/* v136 每日统计说明行（数据面板「本地备份」内） */
+.backup-note {
+  margin: var(--sp-2) 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
 .word-meaning {
   min-width: 0;
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+/* v135 顽固词徽章：词表行内显示「错 N · M%」，跟着 .word-term 的 flex 排列 */
+.word-wrong-badge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: var(--r-full);
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: default;
 }
 
 .status-dot {
@@ -1769,6 +1791,11 @@ textarea {
 
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
   --shadow-soft: 0 4px 14px rgba(0, 0, 0, 0.26);
+}
+
+/* v135 顽固词徽章暗色配色：换成 300 级亮红，与评分按钮的暗色方案一致 */
+:root[data-theme="dark"] .word-wrong-badge {
+  color: #fca5a5;
 }
 
 /* 评分按钮：白底彩字方案在暗色下换成 300 级亮文字，色条保持 500 级 */

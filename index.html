@@ -25,11 +25,11 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="manifest" href="manifest.webmanifest?v=134" />
-    <link rel="icon" href="icons/icon-192.png?v=134" sizes="192x192" type="image/png" />
-    <link rel="icon" href="icon.svg?v=134" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=134" />
-    <link rel="stylesheet" href="style.css?v=134" />
+    <link rel="manifest" href="manifest.webmanifest?v=136" />
+    <link rel="icon" href="icons/icon-192.png?v=136" sizes="192x192" type="image/png" />
+    <link rel="icon" href="icon.svg?v=136" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=136" />
+    <link rel="stylesheet" href="style.css?v=136" />
   </head>
   <body class="focus-study">
     <div class="splash" id="splash" aria-hidden="true">
@@ -155,6 +155,7 @@
               <option value="learning">学习中</option>
               <option value="mastered">已掌握</option>
               <option value="wrong">错词</option>
+              <option value="stubborn">顽固词</option>
             </select>
           </div>
           <p class="legend" aria-label="状态图例">
@@ -292,6 +293,7 @@
             <button class="ghost-button" id="importBackupButton" type="button">导入备份</button>
           </div>
           <input id="backupInput" class="is-hidden" type="file" accept=".json,application/json" />
+          <p class="backup-note" id="dailyStatsInfo" role="status" aria-live="polite"></p>
           <p class="submit-status" id="dataStatus" role="status" aria-live="polite"></p>
         </section>
 
@@ -308,11 +310,11 @@
 
     <button class="meaning-bulk-button is-hidden" id="toggleAllMeaningsButton" type="button">全部显示</button>
 
-    <script src="submission-config.js?v=134"></script>
-    <script src="cloud-sync.js?v=134"></script>
-    <script src="core-book-data.js?v=134"></script>
-    <script src="cet4-book-data.js?v=134"></script>
-    <script src="cet6-book-data.js?v=134"></script>
-    <script src="app.js?v=134"></script>
+    <script src="submission-config.js?v=136"></script>
+    <script src="cloud-sync.js?v=136"></script>
+    <script src="core-book-data.js?v=136"></script>
+    <script src="cet4-book-data.js?v=136"></script>
+    <script src="cet6-book-data.js?v=136"></script>
+    <script src="app.js?v=136"></script>
   </body>
 </html>
