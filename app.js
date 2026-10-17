@@ -1280,7 +1280,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "136";
+const APP_VERSION = "137";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1477,7 +1477,29 @@ const STUBBORN_WRONG_THRESHOLD = 5;
 let sessionStartedAt = 0;
 let sessionTimerId = 0;
 let copyToastTimer = 0;
+let lastAutoPlayedKey = null;
+let autoPlayWordAudio = loadAutoPlayWordAudio();
 const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
+
+// v135：卡片自动发音开关（默认关）。只存用户的显式选择，不落云端。
+const AUTO_PLAY_AUDIO_KEY = "vocab-trainer-auto-audio";
+
+function loadAutoPlayWordAudio() {
+  try {
+    return localStorage.getItem(AUTO_PLAY_AUDIO_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function saveAutoPlayWordAudio(value) {
+  try {
+    if (value) localStorage.setItem(AUTO_PLAY_AUDIO_KEY, "1");
+    else localStorage.removeItem(AUTO_PLAY_AUDIO_KEY);
+  } catch (error) {
+    /* 隐私模式下写不进去，忽略即可 */
+  }
+}
 const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
@@ -1605,6 +1627,7 @@ const els = {
   immersiveExitBar: document.querySelector("#immersiveExitBar"),
   immersiveExitButton: document.querySelector("#immersiveExitButton"),
   copyToast: document.querySelector("#copyToast"),
+  autoAudioToggle: document.querySelector("#autoAudioToggle"),
   immersiveLabel: document.querySelector("#immersiveLabel"),
   immersiveTimerText: document.querySelector("#immersiveTimerText"),
   rateRing: document.querySelector("#rateRing"),
@@ -1770,6 +1793,16 @@ function bindEvents() {
   });
   // v134：点单词文本 → 复制到剪贴板（点击继续冒泡到卡片，所以「点任意处揭示」照旧生效）
   if (els.promptText) els.promptText.addEventListener("click", copyCurrentWord);
+  // v135：自动发音开关（存 localStorage；打开时立刻试播当前卡，关闭时停掉正在播的）
+  if (els.autoAudioToggle) {
+    els.autoAudioToggle.checked = autoPlayWordAudio;
+    els.autoAudioToggle.addEventListener("change", () => {
+      autoPlayWordAudio = els.autoAudioToggle.checked;
+      saveAutoPlayWordAudio(autoPlayWordAudio);
+      if (autoPlayWordAudio) maybeAutoPlayWordAudio();
+      else stopWordAudio();
+    });
+  }
   els.dataButton.addEventListener("click", openDataSheet);
   els.closeDataSheet.addEventListener("click", closeDataSheet);
   els.exportBackupButton.addEventListener("click", downloadBackup);
@@ -2839,6 +2872,7 @@ function renderCurrentCard() {
   if (nextWord && !mathBook) prepareWordAudio(nextWord.term);
   toggleReviewControls(hasWord);
   flashReviewCard();
+  maybeAutoPlayWordAudio();
 
   if (!hasWord) {
     reviewAnswerWordId = null;
@@ -3067,6 +3101,23 @@ function renderAudioButton(term) {
       aria-label="${escapeHtml(label)}"
     ><span aria-hidden="true">🔊</span></button>
   `;
+}
+
+// v135：开关打开时，每换到一张新卡就自动朗读单词。
+// 去重键与卡片切换动画同源（队列类型:下标:词 id）—— 同一张卡重复渲染（揭示、刷新、同步落地）不重播。
+function maybeAutoPlayWordAudio() {
+  if (!autoPlayWordAudio || !els.promptAudioButton) return;
+  const word = currentQueue[currentIndex];
+  if (!word || isMathBook()) return;
+  const key = `${currentQueueType}:${currentIndex}:${word.id}`;
+  if (key === lastAutoPlayedKey) return;
+  lastAutoPlayedKey = key;
+  // 让卡片切换动画先起步；这一小段延迟也能让 iOS 把播放挂在用户最近的激活栈上。
+  window.setTimeout(() => {
+    if (!autoPlayWordAudio) return;
+    if (currentQueue[currentIndex] !== word) return;
+    playWordAudio(word.term, els.promptAudioButton);
+  }, 120);
 }
 
 function updatePromptAudioButton(word, visible) {

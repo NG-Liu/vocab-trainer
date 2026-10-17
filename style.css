@@ -336,6 +336,22 @@ h2 {
   width: auto;
 }
 
+/* v135：自动发音开关 —— 横排、点击区做大（手机拇指） */
+.control-chip-toggle {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+}
+
+.control-chip-toggle input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .study-controls .primary-button {
   width: auto;
   min-width: 108px;
