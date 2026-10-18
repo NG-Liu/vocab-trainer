@@ -1272,7 +1272,55 @@ const STARTER_WORDS = [
   ["misinterpret", "v. 误解；曲解", "She misinterpreted his silence as anger."],
   ["defy", "v. 违反；反抗；公然抵制；使成为不可能", "The protesters defied the ban and gathered anyway."],
   ["shed light on", "阐明；使……清楚易懂", "The study sheds light on how memories form."],
-  ["consistent", "adj. 一致的；始终如一的；相符的", "His story is consistent with the evidence."]
+  ["consistent", "adj. 一致的；始终如一的；相符的", "His story is consistent with the evidence."],
+  ["intermediate", "adj. 中间的；中级的；n. 中间体", "This course is designed for intermediate learners."],
+  ["acrobat", "n. 杂技演员", "The acrobat flew through the air with ease."],
+  ["beast", "n. 野兽；凶残的人", "The beast escaped from its cage last night."],
+  ["debate", "n. 辩论；争论；v. 辩论；争论", "The two candidates held a televised debate."],
+  ["notorious", "adj. 声名狼藉的；臭名昭著的", "The city is notorious for its heavy traffic."],
+  ["monotonous", "adj. 单调的；千篇一律的", "The work was dull and monotonous."],
+  ["monopoly", "n. 垄断；独占；专卖权", "No company has a monopoly on good ideas."],
+  ["policy", "n. 政策；方针；保险单", "The new policy takes effect next month."],
+  ["vary", "v. 变化；不同；改变", "Prices vary from store to store."],
+  ["variation", "n. 变化；变体；变异", "There is wide variation in the test scores."],
+  ["alter", "v. 改变；修改；更改", "Nothing can alter what has happened."],
+  ["diverse", "adj. 多样的；不同的", "The class is diverse in age and background."],
+  ["reverse", "v. 逆转；反转；n. 相反；背面", "The court reversed the earlier decision."],
+  ["avert", "v. 避免；转移（目光、想法）", "He averted his eyes from the screen."],
+  ["anniversary", "n. 周年纪念日", "They celebrated their tenth anniversary."],
+  ["annual", "adj. 每年的；一年一次的；n. 年刊", "The annual report is due in March."],
+  ["versatile", "adj. 多才多艺的；多用途的", "A knife is a versatile kitchen tool."],
+  ["evolve", "v. 进化；逐步发展", "Languages evolve over many centuries."],
+  ["revolve", "v. 旋转；环绕；以……为中心", "The earth revolves around the sun."],
+  ["spy", "n. 间谍；侦察者；v. 侦察", "The spy smuggled documents out of the country."],
+  ["inspection", "n. 检查；检验；视察", "The bridge passed its safety inspection."],
+  ["spectator", "n. 观众；旁观者", "Thousands of spectators filled the stadium."],
+  ["spectacular", "adj. 壮观的；惊人的", "The view from the peak is spectacular."],
+  ["perspective", "n. 观点；视角；透视", "Travel gives you a fresh perspective."],
+  ["promising", "adj. 有前途的；有希望的", "She is a promising young researcher."],
+  ["prosper", "v. 繁荣；兴旺；成功", "The farm prospered after the rains came."],
+  ["conspicuous", "adj. 显眼的；引人注目的", "He was conspicuous in a bright red coat."],
+  ["despise", "v. 鄙视；厌恶；看不起", "I despise dishonesty in any form."],
+  ["commute", "v. 通勤；n. 通勤路程", "She commutes an hour to work every day."],
+  ["mutual", "adj. 相互的；彼此的；共同的", "The deal was built on mutual trust."],
+  ["associate", "v. 联想；交往；n. 同事；adj. 副的", "Most people associate red with danger."],
+  ["integrate", "v. 整合；融合；使一体化", "The system integrates voice and data."],
+  ["emigrate", "v. 移居国外；移民出境", "His family emigrated to Canada in 1998."],
+  ["immigrant", "n. 移民；侨民", "The city has welcomed new immigrants."],
+  ["migrant", "n. 移民；候鸟；adj. 迁徙的", "Migrant workers arrive each spring."],
+  ["segregate", "v. 隔离；分开；实行种族隔离", "The machine segregates coins by size."],
+  ["unify", "v. 统一；使成一体", "The treaty unified the two kingdoms."],
+  ["adjoin", "v. 毗连；邻接", "The garage adjoins the main house."],
+  ["insulate", "v. 隔离；使隔热（绝缘）", "Foam insulates the pipe from the cold."],
+  ["arbitrary", "adj. 任意的；武断的；专横的", "The deadline seemed arbitrary to everyone."],
+  ["coincide", "v. 同时发生；一致；重合", "Her arrival coincided with the storm."],
+  ["incident", "n. 事件；事变；（政治）事故", "The incident was reported on the news."],
+  ["pesticide", "n. 杀虫剂；农药", "Pesticides protect crops from insects."],
+  ["precise", "adj. 精确的；准确的；确切的", "We need precise measurements for the test."],
+  ["concise", "adj. 简洁的；简明的", "Keep your answer short and concise."],
+  ["grocery", "n. 食品杂货店；杂货", "I shop at the grocery every Friday."],
+  ["scenery", "n. 风景；景色；舞台布景", "The mountain scenery is breathtaking."],
+  ["landscape", "n. 风景；地貌；v. 美化环境", "The desert landscape stretches for miles."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1280,7 +1328,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "138";
+const APP_VERSION = "139";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
