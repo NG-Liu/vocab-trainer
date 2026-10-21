@@ -1328,7 +1328,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "139";
+const APP_VERSION = "140";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1484,6 +1484,12 @@ const CET4_BOOK_WORDS = (window.CET4_BOOK_ENTRIES || []).map(([term, meaning, ex
 const CET6_BOOK_ID = "cet6";
 const CET6_BOOK_NAME = "大学英语六级词汇";
 const CET6_BOOK_WORDS = (window.CET6_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+// 微电子器件 · 简答题：一本「电子书」词本——没有评分、没有每日任务，只做随手翻卡 + 目录自选。
+// 数据在 microelectronics-book-data.js，词条格式 [题号+题目, 答案原文, 章节 · 原书页 N]；
+// 第三个字段落 example 位：目录页按它分组，卡片上也顺带显示出处。
+const MICRO_DEVICES_BOOK_ID = "micro-devices";
+const MICRO_DEVICES_BOOK_NAME = "微电子器件 · 简答题";
+const MICRO_DEVICES_BOOK_WORDS = (window.MICROELECTRONICS_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: CORE_BOOK_ID, name: CORE_BOOK_NAME, words: CORE_BOOK_WORDS, sortMode: "sequence" },
@@ -1492,9 +1498,13 @@ const BOOK_DEFINITIONS = [
   { id: INTEGRAL_BOOK_ID, name: INTEGRAL_BOOK_NAME, words: INTEGRAL_BOOK_WORDS },
   { id: THEOREM_BOOK_ID, name: THEOREM_BOOK_NAME, words: THEOREM_BOOK_WORDS },
   { id: TAYLOR_BOOK_ID, name: TAYLOR_BOOK_NAME, words: TAYLOR_BOOK_WORDS },
+  { id: MICRO_DEVICES_BOOK_ID, name: MICRO_DEVICES_BOOK_NAME, words: MICRO_DEVICES_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
+// noRating = 随手复习本：整本书按原顺序翻卡，没有 忘了/模糊/记住/掌握，没有今日队列与每日复习量。
+// 这类词本的 todaySession 不存每日会话，只存「翻到第几张」（见 getCasualCursor/saveCasualCursor）。
+const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID]);
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
 const DEFAULT_REVIEW_LIMIT = 50;
@@ -1682,7 +1692,21 @@ const els = {
   rateRingValue: document.querySelector("#rateRingValue"),
   rateRingText: document.querySelector("#rateRingText"),
   reviewCard: document.querySelector("#reviewCard"),
-  reviewBody: document.querySelector("#reviewBody")
+  reviewBody: document.querySelector("#reviewBody"),
+  // v140 随手复习本（微电子器件 · 简答题）：翻卡按钮 / 目录页 / 统计条标签
+  casualPrevButton: document.querySelector("#casualPrevButton"),
+  casualNextButton: document.querySelector("#casualNextButton"),
+  reviewActions: document.querySelector("#reviewActions"),
+  catalogTab: document.querySelector("#catalogTab"),
+  libraryTab: document.querySelector("#libraryTab"),
+  submitTab: document.querySelector("#submitTab"),
+  progressTab: document.querySelector("#progressTab"),
+  catalogSearch: document.querySelector("#catalogSearch"),
+  catalogList: document.querySelector("#catalogList"),
+  dueLabel: document.querySelector("#dueLabel"),
+  totalLabel: document.querySelector("#totalLabel"),
+  masteredLabel: document.querySelector("#masteredLabel"),
+  accuracyLabel: document.querySelector("#accuracyLabel")
 };
 
 init();
@@ -1787,9 +1811,30 @@ function bindEvents() {
   els.rateButtons.forEach((button) => {
     button.addEventListener("click", () => rateCurrent(button.dataset.rating));
   });
+  // v140：随手复习本的翻卡按钮（评分按钮在 is-casual 下被 CSS 隐藏）
+  if (els.casualPrevButton) {
+    els.casualPrevButton.addEventListener("click", () => advanceCasualCard(-1));
+  }
+  if (els.casualNextButton) {
+    els.casualNextButton.addEventListener("click", () => advanceCasualCard(1));
+  }
+  // v140：目录页 —— 搜索 + 点题开背
+  if (els.catalogSearch) {
+    els.catalogSearch.addEventListener("input", () => {
+      clearInlineReview();
+      renderCatalog();
+    });
+  }
+  if (els.catalogList) {
+    els.catalogList.addEventListener("click", (event) => {
+      const row = event.target instanceof Element ? event.target.closest(".catalog-row") : null;
+      if (!row || !els.catalogList.contains(row)) return;
+      openCasualCard(row.dataset.catalogWordId);
+    });
+  }
   if (typeof window.addEventListener === "function") {
     window.addEventListener("resize", () => {
-      if (document.body.classList.contains("immersive") && currentQueue[currentIndex] && !isMathBook()) {
+      if (document.body.classList.contains("immersive") && currentQueue[currentIndex] && !isMathBook() && !isNoRatingBook()) {
         fitPromptTextToWidth();
       }
     });
@@ -2426,6 +2471,11 @@ function switchView(viewId) {
 }
 
 function startSession() {
+  // 随手复习本：不看队列下拉，直接从上次翻到的位置继续
+  if (isNoRatingBook()) {
+    startCasualSession();
+    return;
+  }
   currentQueueType = els.queueType.value;
   currentQueue = buildQueue(currentQueueType);
   currentIndex = currentQueueType === "due" ? getTodaySession().index : 0;
@@ -2653,6 +2703,8 @@ function applyExamSprintSchedule(book) {
 
 function buildQueue(type) {
   const book = ensureCurrentBook();
+  // 随手复习本不分队列：整本书按原顺序就是队列（在目录里点哪张，就从哪张开始）
+  if (isNoRatingBook(book)) return buildCasualQueue();
   const words = book.words;
   const progress = book.progress;
   if (type === "due") return buildTodayQueue();
@@ -2685,7 +2737,91 @@ function buildTodayQueue() {
   return session.queueIds.map((id) => words.find((word) => word.id === id)).filter(Boolean);
 }
 
+/* ============================================================
+   随手复习本（noRating）——「微电子器件 · 简答题」
+   设计前提（用户原话）：这个词库不要评分系统，仅做随手复习卡片；
+   不设计每日任务；要一个目录页，可以查找、选择，自己选卡片背诵。
+   所以整本书就是一本电子书：
+   ① 卡片页：上一张 / 下一张 随手翻，翻到尾回卷到第 1 张；
+      翻到的位置落盘（book.todaySession.index），刷新、重开、换设备导入备份都接着看。
+   ② 目录页：按章节列出全部题目、可搜索，点哪张就从哪张开始背。
+   ⚠️ todaySession 在这里只存 { index, updatedAt }，不带 date
+      —— 它绝不参与任何「今日会话」逻辑：getTodaySession() 对随手复习本直接返回空壳，
+      reconcileTodaySession / buildTodayQueue / resetCursorForNewDay 一条都别碰它。
+   ⚠️ 同步：normalizeCloudTodaySession 要求 date 字段，随手复习本的游标过不了云端
+      （会被归一成 null），所以 applyCloudSyncSnapshot 对随手复习本保留本地游标不覆盖。
+   ============================================================ */
+function isNoRatingBook(book = ensureCurrentBook()) {
+  return NO_RATING_BOOK_IDS.has(book.id);
+}
+
+// 卡片渲染方式：plain=纯文本（单词本）/ math=整段 LaTeX（数学本）/ mixed=文字与 $...$ 混排（随手复习本）
+function getCardRenderKind(book = ensureCurrentBook()) {
+  if (isMathBook(book)) return "math";
+  if (isNoRatingBook(book)) return "mixed";
+  return "plain";
+}
+
+// 随手复习本的「章」：example 位存的是「章节 · 原书页 N」，取分号前那段当章名
+function casualChapterOf(word) {
+  const chapter = String(word?.example || "").split("·")[0].trim();
+  return chapter || "其他";
+}
+
+function getCasualCursor(book = ensureCurrentBook()) {
+  const total = book.words.length;
+  if (!total) return 0;
+  const raw = Number(book.todaySession && typeof book.todaySession === "object" ? book.todaySession.index : 0);
+  if (!Number.isFinite(raw) || raw < 0) return 0;
+  return Math.min(Math.floor(raw), total - 1);
+}
+
+function saveCasualCursor(index, book = ensureCurrentBook()) {
+  const total = book.words.length;
+  const safe = total > 0 ? ((Math.round(index) % total) + total) % total : 0;
+  book.todaySession = { index: safe, updatedAt: Date.now() };
+  saveState();
+}
+
+function buildCasualQueue() {
+  return ensureCurrentBook().words.slice();
+}
+
+function startCasualSession() {
+  const book = ensureCurrentBook();
+  currentQueueType = "all";
+  currentQueue = buildCasualQueue();
+  currentIndex = book.words.length ? getCasualCursor(book) : -1;
+  reviewAnswerWordId = null;
+  awaitingHardAdvance = false;
+  document.body.classList.add("immersive");
+  pushImmersiveHistoryEntry();
+  startSessionTimer();
+  updateAccuracyRing();
+  renderCurrentCard();
+}
+
+// 随手翻卡：step=1 下一张 / -1 上一张，到头回卷（电子书式，没有「背完」一说）
+function advanceCasualCard(step = 1) {
+  const book = ensureCurrentBook();
+  if (!book.words.length) return;
+  const total = book.words.length;
+  const next = ((currentIndex + step) % total + total) % total;
+  currentIndex = next;
+  reviewAnswerWordId = null;
+  saveCasualCursor(next, book);
+  renderCurrentCard();
+}
+
 function getTodaySession() {
+  // 随手复习本没有每日任务：任何路径都不该在这里生成/改写它的 todaySession
+  // （那个对象只存翻卡位置）。返回空壳即可，绝不 saveState、绝不按日期重建。
+  if (isNoRatingBook()) {
+    const book = ensureCurrentBook();
+    return book.todaySession && typeof book.todaySession === "object"
+      ? book.todaySession
+      : { date: "", limit: getReviewLimit(), queueIds: [], index: 0, pendingHardId: null, hardReviewCounts: {}, completedWordIds: [], updatedAt: 0 };
+  }
   const book = ensureCurrentBook();
   const date = todayKey();
   const reviewLimit = getReviewLimit();
@@ -2909,15 +3045,18 @@ function renderCurrentCard() {
   const nextWord = currentQueue[currentIndex + 1];
   const hasWord = Boolean(word);
   const mathBook = isMathBook();
+  const casualBook = isNoRatingBook();
+  // 随手复习本走 mixed 渲染（文字 + $...$），数学本走 math（整段 LaTeX），其余纯文本
+  const renderKind = getCardRenderKind();
   const dictionaryAllowed = shouldShowDictionaryLink();
   awaitingHardAdvance = isPendingHard(word);
   const answerVisible = Boolean(word && (reviewAnswerWordId === word.id || awaitingHardAdvance));
   if (els.reviewCard) els.reviewCard.classList.toggle("is-revealed", answerVisible);
   // v128：没有当前单词（未开始/队列清空）时收起评分按钮 —— 开始界面下那四个按钮用不上（用户反馈）
   if (els.reviewCard) els.reviewCard.classList.toggle("is-empty", !hasWord);
-  updatePromptAudioButton(word, hasWord && !mathBook);
-  if (word && !mathBook) prepareWordAudio(word.term);
-  if (nextWord && !mathBook) prepareWordAudio(nextWord.term);
+  updatePromptAudioButton(word, hasWord && !mathBook && !casualBook);
+  if (word && !mathBook && !casualBook) prepareWordAudio(word.term);
+  if (nextWord && !mathBook && !casualBook) prepareWordAudio(nextWord.term);
   toggleReviewControls(hasWord);
   flashReviewCard();
   maybeAutoPlayWordAudio();
@@ -2934,6 +3073,11 @@ function renderCurrentCard() {
         els.queueLabel.textContent = `今日复习已完成 · ${completed} / ${total}`;
         els.promptText.textContent = `今天的 ${completed} 个已经背完`;
         els.promptHint.textContent = "可以切换到未掌握单词或未学单词继续背。";
+      } else if (casualBook) {
+        // 随手复习本：整本书都是队列，只有空书才会走到这里
+        els.queueLabel.textContent = "目录为空";
+        els.promptText.textContent = "这本电子书还没有题目";
+        els.promptHint.textContent = "可以到词库页添加题目，或补充数据文件。";
       } else {
       els.queueLabel.textContent = "没有待复习单词";
       els.promptText.textContent = "当前队列清空了";
@@ -2942,7 +3086,7 @@ function renderCurrentCard() {
     els.answerBox.classList.add("is-hidden");
     // v115：无词状态下答案框是 visibility 占位（不再 display:none），
     // 必须清掉上一张卡残留的释义，否则卡片中间会悬一块不可见的空白。
-    renderCardFace(els.answerText, "", mathBook, "text");
+    renderCardFace(els.answerText, "", renderKind, "text");
     // v116：无词时词典链接彻底移除（不占位），避免空带
     if (els.dictionaryLink) els.dictionaryLink.classList.add("is-removed");
     els.feedbackText.textContent = "";
@@ -2966,9 +3110,11 @@ function renderCurrentCard() {
   } else {
     els.feedbackText.classList.remove("is-skipped-notice");
   }
-  renderCardFace(els.promptText, word.term, mathBook, "display");
-  renderCardFace(els.promptHint, word.example || "根据英文回忆中文释义。", mathBook, "text");
-  renderCardFace(els.answerText, word.meaning || "（没有释义）", mathBook, "display");
+  renderCardFace(els.promptText, word.term, renderKind, "display");
+  // 随手复习本的 example 位是「章节 · 原书页 N」，正好当提示行；单词本才用「根据英文回忆中文释义」
+  const hintFallback = casualBook ? "根据题目回忆答案，轻点任意处显示。" : "根据英文回忆中文释义。";
+  renderCardFace(els.promptHint, word.example || hintFallback, renderKind, "text");
+  renderCardFace(els.answerText, word.meaning || "（没有释义）", renderKind, "display");
   if (els.dictionaryLink && dictionaryAllowed) {
     els.dictionaryLink.href = buildDictionaryUrl(word.term);
   }
@@ -2984,9 +3130,10 @@ function renderCurrentCard() {
   // 这类复现安排说明（用户反馈多余）。getHardReviewFeedback() 保留但不参与渲染。
   els.showAnswerButton.classList.remove("is-hidden");
   if (els.immersiveLabel) els.immersiveLabel.textContent = els.queueLabel.textContent;
-  if (els.showAnswerButton) els.showAnswerButton.textContent = "轻点任意处显示释义";
-  if (els.promptText) els.promptText.classList.add("is-word");
-  if (!mathBook) fitPromptTextToWidth();
+  if (els.showAnswerButton) els.showAnswerButton.textContent = casualBook ? "轻点任意处显示答案" : "轻点任意处显示释义";
+  // v140：随手复习本的题干是中英混排长文本，不当「单词态」处理（不锁单行、不超大字）
+  if (els.promptText) els.promptText.classList.toggle("is-word", !casualBook);
+  if (!mathBook && !casualBook) fitPromptTextToWidth();
 }
 
 // 卡片切换动画只在「真的换了一张卡」时播放（v112）。
@@ -3059,6 +3206,14 @@ function toggleReviewControls(enabled) {
 
 function getCurrentQueueLabel() {
   const position = currentIndex + 1;
+  // 随手复习本：没有「今日 N/M」，只有「第 N / M 张 · 章名」——目录式阅读位置
+  if (isNoRatingBook()) {
+    const casualWord = currentQueue[currentIndex];
+    const total = currentQueue.length;
+    if (total <= 0) return "还没有题目";
+    const chapter = casualWord ? casualChapterOf(casualWord) : "";
+    return `第 ${position} / ${total} 张${chapter ? ` · ${chapter}` : ""}`;
+  }
   if (currentQueueType === "due") {
     const word = currentQueue[currentIndex];
     const session = getTodaySession();
@@ -3133,7 +3288,8 @@ function buildDictionaryUrl(term) {
 }
 
 function shouldShowWordAudio(book = ensureCurrentBook()) {
-  return !isMathBook(book);
+  // 随手复习本的题面是中文题干，没有「发音」可放
+  return !isMathBook(book) && !isNoRatingBook(book);
 }
 
 function renderAudioButton(term) {
@@ -3156,7 +3312,7 @@ function renderAudioButton(term) {
 function maybeAutoPlayWordAudio() {
   if (!autoPlayWordAudio || !els.promptAudioButton) return;
   const word = currentQueue[currentIndex];
-  if (!word || isMathBook()) return;
+  if (!word || isMathBook() || isNoRatingBook()) return;
   const key = `${currentQueueType}:${currentIndex}:${word.id}`;
   if (key === lastAutoPlayedKey) return;
   lastAutoPlayedKey = key;
@@ -3293,6 +3449,8 @@ function stopWordAudio() {
 }
 
 function rateCurrent(rating) {
+  // 随手复习本没有评分系统（按钮已隐藏），任何残留调用直接忽略
+  if (isNoRatingBook()) return;
   const word = currentQueue[currentIndex];
   if (!word) return;
 
@@ -3603,14 +3761,100 @@ function getProgress(id, book = state.books[state.currentBookId] || ensureCurren
 }
 
 function renderAll() {
+  syncCasualControls();
   syncReviewLimitSelect();
   renderStats();
+  renderCatalog();
   renderWordList();
   renderProgress();
   updateDailyStatsInfo();
 }
 
+// v140 随手复习本的界面切换：目录页签上场、每日任务控件退场、评分按钮换成 上一张/下一张。
+// 挂在 renderAll() 上（切词本、切视图、刷新、同步落地都会走它），保证任何路径下状态都一致。
+function syncCasualControls() {
+  const casual = isNoRatingBook();
+  document.body.classList.toggle("casual-book", casual);
+  if (els.catalogTab) els.catalogTab.classList.toggle("is-hidden", !casual);
+  // 随手复习本只保留 复习 / 目录 / 词库：共建与进度是纯 SRS 功能，对它没有意义
+  if (els.submitTab) els.submitTab.classList.toggle("is-hidden", casual);
+  if (els.progressTab) els.progressTab.classList.toggle("is-hidden", casual);
+  if (els.reviewActions) els.reviewActions.classList.toggle("is-casual", casual);
+}
+
+// v140 目录页：按章节列出随手复习本的全部题目，支持搜索，点哪张从哪张开始背。
+// 章名来自词条 example 位（「章节 · 原书页 N」），无需另存一份目录数据。
+function renderCatalog() {
+  if (!els.catalogList) return;
+  const book = ensureCurrentBook();
+  if (!isNoRatingBook(book)) {
+    els.catalogList.innerHTML = "";
+    return;
+  }
+  const query = els.catalogSearch ? normalizeText(els.catalogSearch.value) : "";
+  const currentWordId = book.words[getCasualCursor(book)]?.id;
+  const groups = [];
+  const byChapter = new Map();
+  book.words.forEach((word, index) => {
+    const chapter = casualChapterOf(word);
+    if (query) {
+      const haystack = `${word.term} ${word.meaning} ${chapter}`.toLowerCase();
+      if (!haystack.includes(query)) return;
+    }
+    let group = byChapter.get(chapter);
+    if (!group) {
+      group = { chapter, items: [] };
+      byChapter.set(chapter, group);
+      groups.push(group);
+    }
+    group.items.push({ word, index });
+  });
+  const matched = groups.reduce((sum, group) => sum + group.items.length, 0);
+  els.catalogList.innerHTML = matched === 0
+    ? `<p class="subtle-text">没有匹配的题目，换个关键词试试。</p>`
+    : groups
+        .map((group) => `
+          <section class="catalog-chapter">
+            <h3 class="catalog-chapter-title">
+              <span>${escapeHtml(group.chapter)}</span>
+              <small>${group.items.length} 题</small>
+            </h3>
+            <div class="catalog-rows">
+              ${group.items
+                .map(
+                  ({ word, index }) => `
+                <button
+                  class="catalog-row${word.id === currentWordId ? " is-current" : ""}"
+                  type="button"
+                  data-catalog-word-id="${escapeHtml(word.id)}"
+                  title="第 ${index + 1} 张 · ${escapeHtml(casualChapterOf(word))}"
+                >
+                  <span class="catalog-row-index">${index + 1}</span>
+                  <span class="catalog-row-term">${renderMixedContent(word.term, true)}</span>
+                </button>`
+                )
+                .join("")}
+            </div>
+          </section>`)
+        .join("");
+}
+
+// 目录页点题 → 从这张开始背：游标落盘，随后 上一张/下一张 都从它接着走
+function openCasualCard(wordId) {
+  const book = ensureCurrentBook();
+  const position = book.words.findIndex((word) => word.id === wordId);
+  if (position < 0) return;
+  saveCasualCursor(position, book);
+  switchView("studyView");
+  startSession();
+}
+
 function renderStats() {
+  // 随手复习本没有「今日待复习 / 掌握词数 / 正确率」——换成题目总数、当前章节、阅读位置
+  if (isNoRatingBook()) {
+    renderCasualStats();
+    return;
+  }
   const today = Date.now();
   const book = ensureCurrentBook();
   const reviewLimit = getReviewLimit();
@@ -3646,6 +3890,28 @@ function renderStats() {
   updateAccuracyRing();
 }
 
+// v140 随手复习本统计条：四个格子全部改成与「电子书」相关的量，不留 SRS 数字
+function renderCasualStats() {
+  const book = ensureCurrentBook();
+  const chapters = new Set(book.words.map((word) => casualChapterOf(word)));
+  const cursor = getCasualCursor(book);
+  const current = book.words[cursor];
+  if (els.dueLabel) els.dueLabel.textContent = "题目总数";
+  if (els.dueCount) els.dueCount.textContent = book.words.length;
+  if (els.dueTotalCount) {
+    els.dueTotalCount.textContent = book.words.length
+      ? `共 ${chapters.size} 章 · 随手复习 · 不评分`
+      : "还没有题目";
+  }
+  if (els.totalLabel) els.totalLabel.textContent = "当前章节";
+  if (els.totalCount) els.totalCount.textContent = current ? casualChapterOf(current) : "—";
+  if (els.masteredLabel) els.masteredLabel.textContent = "看到第几张";
+  if (els.masteredCount) els.masteredCount.textContent = book.words.length ? `${cursor + 1} / ${book.words.length}` : "—";
+  if (els.accuracyLabel) els.accuracyLabel.textContent = "复习方式";
+  if (els.accuracyToday) els.accuracyToday.textContent = "随手翻卡";
+  updateAccuracyRing();
+}
+
 // v135 顽固词徽章：累计错误达到阈值的词在词表行里显示「错 N · M%」。
 // 放在 .word-term（flex 容器）里，不占 grid 列，无需改 .word-row 的网格定义。
 // title 里给完整数字，徽章本身只放浓缩信息，避免行宽被撑爆。
@@ -3678,11 +3944,11 @@ function renderWordList() {
       const row = `
         <article class="word-row${expanded ? " is-expanded" : ""}${inlineOpen ? " is-inline-open" : ""}" data-word-id="${escapeHtml(word.id)}">
           <div class="word-term">
-            <span class="word-term-text">${formatInlineContent(word.term, isMathBook())}</span>
+            <span class="word-term-text">${formatInlineContent(word.term, getCardRenderKind())}</span>
             ${renderAudioButton(word.term)}
             ${renderWrongBadge(progress)}
           </div>
-          <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, isMathBook())}</div>
+          <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, getCardRenderKind())}</div>
           <span class="status-dot ${status.dotClass}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}" role="img"></span>
           <button
             class="meaning-toggle-button"
@@ -3711,31 +3977,38 @@ function renderLibraryFooter(totalCount, visibleCount) {
 }
 
 function renderInlineReviewCard(word) {
-  const mathBook = isMathBook();
+  const renderKind = getCardRenderKind();
+  const casualBook = isNoRatingBook();
   const dictionaryAllowed = shouldShowDictionaryLink();
   const answerHiddenClass = inlineReviewAnswerVisible ? "" : " is-hidden";
   const linkHiddenClass = dictionaryAllowed && inlineReviewAnswerVisible ? "" : " is-hidden";
   const hardLabel = inlineReviewPendingHard ? "下一个" : "忘了";
   const hardClass = inlineReviewPendingHard ? " next" : "";
-  return `
-    <article class="inline-review-card" data-inline-word-id="${escapeHtml(word.id)}">
-      <p class="queue-label">单词复习</p>
-      <h3 class="inline-review-term">
-        <span class="inline-review-term-text">${formatInlineContent(word.term, mathBook)}</span>
-        ${renderAudioButton(word.term)}
-      </h3>
-      <p class="subtle-text">${formatInlineContent(word.example || "根据英文回忆中文释义。", mathBook)}</p>
-      <div class="answer-box inline-answer${answerHiddenClass}">
-        <span>${formatInlineContent(word.meaning, mathBook)}</span>
-      </div>
-      ${dictionaryAllowed ? `<a class="dictionary-link inline-dictionary${linkHiddenClass}" href="${escapeHtml(buildDictionaryUrl(word.term))}" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>` : ""}
-      <p class="feedback">${inlineReviewPendingHard ? "已加入重点复习，先看一下释义。" : ""}</p>
-      <div class="inline-review-actions">
+  // 随手复习本：题面 + 显示答案/收起，没有评分按钮
+  const actions = casualBook
+    ? `
+        <button class="ghost-button inline-show-answer" type="button"${inlineReviewAnswerVisible ? " disabled" : ""}>显示答案</button>
+        <button class="ghost-button inline-close-review" type="button">收起</button>`
+    : `
         <button class="ghost-button inline-show-answer" type="button"${inlineReviewAnswerVisible || inlineReviewPendingHard ? " disabled" : ""}>显示答案</button>
         <button class="rate-button medium inline-rate-button" type="button" data-rating="medium"${inlineReviewPendingHard ? " disabled" : ""}>模糊</button>
         <button class="rate-button mastered inline-rate-button" type="button" data-rating="mastered"${inlineReviewPendingHard ? " disabled" : ""}>掌握</button>
         <button class="rate-button hard inline-rate-button${hardClass}" type="button" data-rating="hard">${hardLabel}</button>
-        <button class="rate-button easy inline-rate-button" type="button" data-rating="easy"${inlineReviewPendingHard ? " disabled" : ""}>记住</button>
+        <button class="rate-button easy inline-rate-button" type="button" data-rating="easy"${inlineReviewPendingHard ? " disabled" : ""}>记住</button>`;
+  return `
+    <article class="inline-review-card" data-inline-word-id="${escapeHtml(word.id)}">
+      <p class="queue-label">${casualBook ? "简答题" : "单词复习"}</p>
+      <h3 class="inline-review-term">
+        <span class="inline-review-term-text">${formatInlineContent(word.term, renderKind)}</span>
+        ${renderAudioButton(word.term)}
+      </h3>
+      <p class="subtle-text">${formatInlineContent(word.example || (casualBook ? "" : "根据英文回忆中文释义。"), renderKind)}</p>
+      <div class="answer-box inline-answer${answerHiddenClass}">
+        <span>${formatInlineContent(word.meaning, renderKind)}</span>
+      </div>
+      ${dictionaryAllowed ? `<a class="dictionary-link inline-dictionary${linkHiddenClass}" href="${escapeHtml(buildDictionaryUrl(word.term))}" target="_blank" rel="noopener noreferrer">Cambridge 词典</a>` : ""}
+      <p class="feedback">${inlineReviewPendingHard ? "已加入重点复习，先看一下释义。" : ""}</p>
+      <div class="inline-review-actions">${actions}
       </div>
     </article>
   `;
@@ -3865,6 +4138,13 @@ function handleWordListClick(event) {
     return;
   }
 
+  // 随手复习本的词表行内卡片：收起按钮
+  const inlineCloseButton = target ? target.closest(".inline-close-review") : null;
+  if (inlineCloseButton && els.wordList.contains(inlineCloseButton)) {
+    closeInlineReview();
+    return;
+  }
+
   const inlineRateButton = target ? target.closest(".inline-rate-button") : null;
   if (inlineRateButton && els.wordList.contains(inlineRateButton)) {
     rateInlineReview(inlineRateButton.dataset.rating);
@@ -3899,6 +4179,8 @@ function revealInlineAnswer() {
 }
 
 function rateInlineReview(rating) {
+  // 随手复习本没有评分：卡片上也不会出现评分按钮，这里只是兜底
+  if (isNoRatingBook()) return;
   const book = ensureCurrentBook();
   const word = book.words.find((item) => item.id === inlineReviewWordId);
   if (!word || !rating) return;
@@ -4205,6 +4487,20 @@ function setTodayQueueStatus(message, type) {
 // 只重排「今天先看哪些词」，不触碰 progress / history / dueAt。
 function resetTodayQueue() {
   const book = ensureCurrentBook();
+  // 随手复习本没有「今日队列」：这个按钮对它 = 回到第 1 张
+  if (isNoRatingBook(book)) {
+    const confirmed = window.confirm("将回到第 1 张卡片。继续吗？");
+    if (!confirmed) return;
+    saveCasualCursor(0, book);
+    if (currentQueueType === "all") {
+      currentQueue = buildCasualQueue();
+      currentIndex = 0;
+    }
+    renderAll();
+    renderCurrentCard();
+    setTodayQueueStatus("已回到第 1 张。", "success");
+    return;
+  }
   const confirmed = window.confirm(
     "将按当前进度重建今天的复习队列，并把队列进度归零。\n\n不会改动学习进度、复习记录和到期时间。继续吗？"
   );
@@ -4725,7 +5021,11 @@ function applyCloudSyncSnapshot(snapshot) {
       // （v109 修复：表现为「还没点，下一张自己跳过去了」）。
       // 这里取并集，保证「本地已发生的复习」永远不会因为一次同步而消失。
       book.history = mergeCloudHistory(book.history, cloudBook.history).map((item) => ({ ...item }));
-      book.todaySession = cloudBook.todaySession
+      // 随手复习本的 todaySession 只存「翻到第几张」，过不了云端归一（没有 date 字段）。
+      // 同步时保留本地游标，不被云端的空会话覆盖 —— 否则一同步就跳回第 1 张。
+      book.todaySession = isNoRatingBook(book)
+        ? book.todaySession
+        : cloudBook.todaySession
         ? {
             ...cloudBook.todaySession,
             queueIds: [...cloudBook.todaySession.queueIds],
@@ -4888,9 +5188,15 @@ function isMathBook(book = ensureCurrentBook()) {
   return MATH_BOOK_IDS.has(book.id);
 }
 
-function renderCardFace(element, value, mathBook, mode) {
-  if (!mathBook) {
+// renderKind：plain=纯文本 / math=整段 LaTeX / mixed=文字与 $...$ 混排
+function renderCardFace(element, value, renderKind, mode) {
+  if (renderKind === "plain") {
     element.textContent = value;
+    return;
+  }
+  if (renderKind === "mixed") {
+    // 随手复习本：题面/答按 Obsidian 约定分段渲染，$...$ 行内、$$...$$ 行间
+    element.innerHTML = renderMixedContent(value, mode !== "display");
     return;
   }
   if (mode === "text") {
@@ -4900,9 +5206,47 @@ function renderCardFace(element, value, mathBook, mode) {
   element.innerHTML = renderMathBlock(value);
 }
 
-function formatInlineContent(value, mathBook) {
-  if (!mathBook) return escapeHtml(value);
+function formatInlineContent(value, renderKind) {
+  if (renderKind === "plain") return escapeHtml(value);
+  if (renderKind === "mixed") return renderMixedContent(value, true);
   return renderMathBlock(value, true);
+}
+
+// v140：随手复习本的混排渲染。把 $...$ / $$...$$ 之间的内容交给 KaTeX，其余文字原样转义
+// （\n 变 <br>，保留笔记里的分段）。没有 $ 的内容等价于 escape+换行，不会碰其它词本的渲染路径。
+function renderMixedContent(value, forceInline = false) {
+  const text = String(value ?? "");
+  if (!text.trim()) return "";
+  const segments = [];
+  const mathPattern = /\$\$[\s\S]*?\$\$|\$[^$\n]*\$/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = mathPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) segments.push({ math: false, text: text.slice(lastIndex, match.index) });
+    const token = match[0];
+    // $$...$$ 要削掉两侧各两个 $，$...$ 只削一个 —— 削错长度会啃掉公式首尾字符
+    const isDisplay = token.startsWith("$$");
+    segments.push({ math: true, text: token.slice(isDisplay ? 2 : 1, isDisplay ? -2 : -1), display: isDisplay });
+    lastIndex = mathPattern.lastIndex;
+  }
+  if (lastIndex < text.length) segments.push({ math: false, text: text.slice(lastIndex) });
+  return segments
+    .map((segment) => {
+      if (!segment.math) return escapeHtml(segment.text).replaceAll("\n", "<br>");
+      if (!window.katex) {
+        const raw = segment.display ? `$$${segment.text}$$` : `$${segment.text}$`;
+        return `<span class="math-fallback">${escapeHtml(raw)}</span>`;
+      }
+      try {
+        return window.katex.renderToString(segment.text, {
+          throwOnError: false,
+          displayMode: segment.display && !forceInline
+        });
+      } catch {
+        return `<span class="math-fallback">${escapeHtml(segment.text)}</span>`;
+      }
+    })
+    .join("");
 }
 
 function renderMathBlock(value, inline = false) {
