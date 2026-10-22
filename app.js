@@ -1320,7 +1320,41 @@ const STARTER_WORDS = [
   ["concise", "adj. 简洁的；简明的", "Keep your answer short and concise."],
   ["grocery", "n. 食品杂货店；杂货", "I shop at the grocery every Friday."],
   ["scenery", "n. 风景；景色；舞台布景", "The mountain scenery is breathtaking."],
-  ["landscape", "n. 风景；地貌；v. 美化环境", "The desert landscape stretches for miles."]
+  ["landscape", "n. 风景；地貌；v. 美化环境", "The desert landscape stretches for miles."],
+  ["litter", "v. 乱扔（垃圾）；使凌乱；n. 垃圾；杂物", "People who litter in the park are fined."],
+  ["crack", "v. 裂开；破裂；n. 裂缝；爆裂声", "The ice cracked under his weight."],
+  ["frizzle", "v. 使卷曲；（煎炸时）发出吱吱声", "The bacon frizzled in the pan."],
+  ["weep", "v. 哭泣；流泪；渗（水）", "She wept when she heard the news."],
+  ["additive", "n. 添加剂；adj. 添加的", "The label lists every additive in the drink."],
+  ["sludge", "n. 淤泥；烂泥；污泥", "The river bottom was covered in sludge."],
+  ["dizzying", "adj. 令人眩晕的；使人眼花缭乱的", "The roller coaster reached a dizzying speed."],
+  ["avant-garde", "adj. 前卫的；先锋派的；n. 先锋派", "Her paintings are distinctly avant-garde."],
+  ["polymer", "n. 聚合物；高分子", "This polymer conducts electricity."],
+  ["rectangle", "n. 矩形；长方形", "The garden is laid out as a long rectangle."],
+  ["crumble", "v. 破碎；崩塌；瓦解", "The old wall is beginning to crumble."],
+  ["split", "v. 裂开；分裂；分担；n. 裂缝；分歧", "The party split into two factions."],
+  ["consolidate", "v. 加固；合并；巩固", "The company consolidated its three offices."],
+  ["infuse", "v. 注入；使具有（某种特质）；泡（茶）", "She infused the team with new energy."],
+  ["albeit", "conj. 虽然；尽管", "He accepted the job, albeit reluctantly."],
+  ["disintegrate", "v. 分解；瓦解；碎裂", "The plane disintegrated in midair."],
+  ["decent", "adj. 相当不错的；体面的；正派的", "He earns a decent salary."],
+  ["committed", "adj. 尽心尽力的；坚定的；承诺的", "She is committed to finishing the project."],
+  ["mindset", "n. 思想倾向；心态；思维方式", "Success depends on the right mindset."],
+  ["scrap", "v. 抛弃；取消；n. 碎片；废料", "They scrapped the plan at the last minute."],
+  ["generalist", "n. 全才；通才", "The firm hires generalists rather than specialists."],
+  ["trajectory", "n. 轨道；轨迹；发展路径", "The rocket's trajectory was calculated precisely."],
+  ["geographer", "n. 地理学家；地理学者", "The geographer mapped the river's course."],
+  ["respondent", "n. 受访者；调查对象；回答者", "Most respondents supported the proposal."],
+  ["score", "n. 分数；总谱；配乐；v. 得分", "The film's score won an award."],
+  ["immersed", "adj. 专心致志的；沉浸其中的", "She was immersed in her research."],
+  ["provision", "n. 条款；规定；供应；准备", "The contract contains a provision on overtime."],
+  ["Long gone are the days when", "……的日子一去不复返了", "Long gone are the days when we wrote letters."],
+  ["attest", "v. 证实；证明；作为……的证明", "The results attest to the value of the method."],
+  ["mediocrity", "n. 平庸；平庸之人", "He refused to settle for mediocrity."],
+  ["immune", "adj. 免疫的；不受影响的；免除的", "No one is immune to criticism."],
+  ["marginal", "adj. 边缘的；非主体的；微小的", "The change had only a marginal effect."],
+  ["stringent", "adj. 严格的；严厉的", "The rules on waste disposal are stringent."],
+  ["adversely", "adv. 不利地；有害地", "High costs adversely affect small firms."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1328,7 +1362,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "140";
+const APP_VERSION = "141";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2301,6 +2335,26 @@ function seedBookWords(book, definition) {
       changed = true;
     }
   });
+
+  // 词条改名（term 修正）后 id 会变，而 seeding 只「加新词、改旧词文案」，
+  // 不会删掉旧 id 的词条——用户会同时看到错题旧版和更正新版（casual 本 159 题里混 3 道错题特别显眼）。
+  // 别名表里「旧 id → 新 id」且新词已就位的，把旧词条删掉；
+  // progress / history 的搬迁由上面的 inheritLegacyProgress 负责（每个内置词都会调用）。
+  const legacyAlias = window.LEGACY_ID_ALIAS;
+  if (legacyAlias && typeof legacyAlias === "object") {
+    const currentIds = new Set(book.words.map((word) => word.id));
+    Object.keys(legacyAlias).forEach((oldId) => {
+      const aliasNewId = legacyAlias[oldId];
+      if (!aliasNewId || aliasNewId === oldId) return;
+      if (!currentIds.has(aliasNewId)) return; // 新词没就位就不删，避免误删
+      const staleIndex = book.words.findIndex((word) => word.id === oldId);
+      if (staleIndex >= 0) {
+        book.words.splice(staleIndex, 1);
+        changed = true;
+        needsOrdering = true;
+      }
+    });
+  }
   if (needsOrdering && orderBookWords(book, definition)) changed = true;
   return changed;
 }
