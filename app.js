@@ -1362,7 +1362,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "142";
+const APP_VERSION = "143";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2434,23 +2434,38 @@ function syncBookSelect() {
   els.bookSelect.value = state.currentBookId;
 }
 
-function switchBook(bookId) {
-  if (!state.books[bookId]) return;
+// v143：换词本（或整体换数据）后，所有「跟着上一本书走」的界面状态都要清：
+// 队列/游标/待前进标记/答案态/行内复习/词库冻结顺序与分批上限/词库搜索词。
+// 之前 switchBook 与备份导入各写一份，导入那份漏了行内复习和冻结顺序，容易越改越漏。
+function resetBookScopedUiState() {
   stopWordAudio();
   clearInlineReview();
   clearLibraryOrderFreeze();
   resetLibraryVisibleLimit();
-  state.currentBookId = bookId;
+  if (els.searchInput) els.searchInput.value = "";
   currentQueue = [];
   currentIndex = -1;
   currentQueueType = "due";
   awaitingHardAdvance = false;
   reviewAnswerWordId = null;
-  els.queueType.value = "due";
+  if (els.queueType) els.queueType.value = "due";
+}
+
+function switchBook(bookId) {
+  if (!state.books[bookId]) return;
+  resetBookScopedUiState();
+  state.currentBookId = bookId;
   saveState();
   syncBookSelect();
   startSession();
   renderAll();
+  normalizeActiveViewForBook();
+  // 词库是长页面：换本后还停在上一本书的滚动位置，看起来就像「卡在列表中间」。
+  try {
+    if (typeof window.scrollTo === "function") window.scrollTo({ top: 0, behavior: "auto" });
+  } catch (error) {
+    /* 沙箱/预览环境不支持时忽略 */
+  }
 }
 
 function mergeStarterWords() {
@@ -2524,6 +2539,37 @@ function switchView(viewId) {
   renderAll();
 }
 
+// v143：只有学习页才进沉浸态。
+// switchBook() 也会调用 startSession()——若照旧无条件加 body.immersive，
+// 从词库页切个词本，顶栏（词本下拉）、统计条、页签会被整片隐藏，
+// 用户停在一个没有任何导航的页面上（点不动、退不出，只能刷新）。
+function enterImmersiveIfStudyView() {
+  const activeViews = document.querySelectorAll(".view.is-active");
+  const activeId = activeViews && activeViews.length ? activeViews[0].id : "";
+  const study = document.querySelector("#studyView");
+  const onStudyView = activeId
+    ? activeId === "studyView"
+    : Boolean(study && study.classList.contains("is-active"));
+  if (!onStudyView) return false;
+  document.body.classList.add("immersive");
+  pushImmersiveHistoryEntry();
+  startSessionTimer();
+  return true;
+}
+
+// v143：页签要与词本类型匹配——目录页只有随手本有，共建/进度只有普通词本有。
+// 停在目录页直接切到普通词本，目录页签被隐藏、内容区被清空，顶上没有任何高亮页签；
+// 反向从进度页切到随手本同理。切本后统一把激活页归一到学习页。
+function normalizeActiveViewForBook() {
+  const casual = isNoRatingBook();
+  const activeViews = document.querySelectorAll(".view.is-active");
+  const activeId = activeViews && activeViews.length ? activeViews[0].id : "";
+  if (!activeId || activeId === "studyView") return;
+  const hiddenForCasual = casual && (activeId === "progressView" || activeId === "submitView");
+  const hiddenForNormal = !casual && activeId === "catalogView";
+  if (hiddenForCasual || hiddenForNormal) switchView("studyView");
+}
+
 function startSession() {
   // 随手复习本：不看队列下拉，直接从上次翻到的位置继续
   if (isNoRatingBook()) {
@@ -2538,9 +2584,7 @@ function startSession() {
     const opt = els.queueType && els.queueType.selectedOptions ? els.queueType.selectedOptions[0] : null;
     els.immersiveLabel.textContent = opt ? opt.textContent.trim() : "复习中";
   }
-  document.body.classList.add("immersive");
-  pushImmersiveHistoryEntry();
-  startSessionTimer();
+  enterImmersiveIfStudyView();
   updateAccuracyRing();
   renderCurrentCard();
 }
@@ -2706,6 +2750,12 @@ function exitImmersive(options) {
   stopSessionTimer();
   if (!fromPopstate) popImmersiveHistoryEntry();
   // 退出全屏背词后自动回到开始界面：清空队列/游标/答案态，界面复位
+  showStartScreen();
+}
+
+// 回到「轻点任意处开始」的空闲界面：退出全屏、导入备份后都用它，
+// 否则卡片会继续显示上一份数据的单词（导入后那个 id 可能已经不存在）。
+function showStartScreen() {
   currentQueue = [];
   currentIndex = 0;
   reviewAnswerWordId = null;
@@ -2848,9 +2898,7 @@ function startCasualSession() {
   currentIndex = book.words.length ? getCasualCursor(book) : -1;
   reviewAnswerWordId = null;
   awaitingHardAdvance = false;
-  document.body.classList.add("immersive");
-  pushImmersiveHistoryEntry();
-  startSessionTimer();
+  enterImmersiveIfStudyView();
   updateAccuracyRing();
   renderCurrentCard();
 }
@@ -3529,8 +3577,13 @@ function rateCurrent(rating) {
     return;
   }
 
-  const demoteToUnmastered = rating === "hard" && getProgress(word.id).level >= 4;
-  recordRating(word, rating, { demoteToUnmastered, render: rating !== "hard" });
+  // v143：demoteToUnmastered 参数已废除——scheduleNext 从未使用它，
+  // 「已降为未掌握」的提示改按真实掉级结果判断：只有真正掉出 L4+ 掌握带
+  // （即 L4→L3）时才提示。旧逻辑「评分前 ≥L4 就提示」在 v143 之前尚准确
+  // （L4+ 全被 min(3,·) 压回 L3），hard 改线性降级后 L5→L4、L4.5→L3.5
+  // 仍在掌握带内，再那么提示就是假提示。
+  const levelBefore = getProgress(word.id).level || 0;
+  recordRating(word, rating, { render: rating !== "hard" });
 
   if (rolledOver) {
     // 这次评分照常写入进度，但新的一天要从队首重新开始
@@ -3550,7 +3603,10 @@ function rateCurrent(rating) {
     awaitingHardAdvance = true;
     renderAll();
     if (currentQueueType === "due") renderCurrentCard();
-    els.feedbackText.textContent = demoteToUnmastered ? "已降为未掌握。" : "";
+    els.feedbackText.textContent =
+      rating === "hard" && levelBefore >= 4 && (getProgress(word.id).level || 0) < 4
+        ? "已降为未掌握。"
+        : "";
     toggleReviewControls(true);
     return;
   }
@@ -3625,9 +3681,8 @@ function recordRating(word, rating, options = {}) {
   const progress = getProgress(word.id);
   const correct = rating !== "hard";
   const reviewedAt = Date.now();
-  const next = scheduleNext(progress, rating, {
-    demoteToUnmastered: options.demoteToUnmastered === true
-  });
+  // v143：demoteToUnmastered 参数废除（scheduleNext 不再接收任何 options）
+  const next = scheduleNext(progress, rating);
   Object.assign(progress, next, {
     seen: progress.seen + 1,
     correct: progress.correct + (correct ? 1 : 0),
@@ -3798,9 +3853,15 @@ function scheduleNext(progress, rating, options = {}) {
     easy: Math.min(EXAM_MAX_INTERVAL_DAYS, currentLevel === 0 ? 1 : Math.max(2, Math.round((progress.interval || 1) * 2.6))),
     mastered: Math.min(EXAM_MAX_INTERVAL_DAYS, Math.max(EXAM_MASTERED_MIN_INTERVAL_DAYS, Math.round((progress.interval || 1) * 4)))
   };
+  // v143：hard 统一降一级（L5→L4、L4→L3、L3→L2…）。
+  // 旧实现是 Math.min(3, currentLevel - 1)——L4+ 一律精准落回 L3，
+  // L5 一个 hard 直接掉两级。实测 10/26 一天 8 个 L5→L3，其中 2 个是
+  // 人生第一次错（legislature、mere），代价与「一次遗忘」不匹配。
+  // 改为线性降一级后：L5 连错两次才掉出掌握带（L5→L4→L3），
+  // 「忘了」的惩罚仍在（interval=0 当天复现 3 次 + 明天继续到期）。
   const level =
     rating === "hard"
-      ? Math.max(0, Math.min(3, currentLevel - 1))
+      ? Math.max(0, currentLevel - 1)
       : rating === "mastered"
         ? 5
         : Math.min(5, currentLevel + (rating === "easy" ? 1 : 0.5));
@@ -3903,12 +3964,23 @@ function openCasualCard(wordId) {
   startSession();
 }
 
+// 统计条四个标签：普通词本走 SRS 口径，随手复习本走电子书口径。
+// 两条分支都必须显式写一遍——只写 casual 分支的话，从随手复习本切回普通词本时
+// 数值换成了 SRS 的，标题却还留着「题目总数 / 当前章节」那套（v143 修复）。
+function applyStatLabels(casual) {
+  if (els.dueLabel) els.dueLabel.textContent = casual ? "题目总数" : "今日待复习";
+  if (els.totalLabel) els.totalLabel.textContent = casual ? "当前章节" : "词库总数";
+  if (els.masteredLabel) els.masteredLabel.textContent = casual ? "看到第几张" : "掌握词数";
+  if (els.accuracyLabel) els.accuracyLabel.textContent = casual ? "复习方式" : "今日正确率";
+}
+
 function renderStats() {
   // 随手复习本没有「今日待复习 / 掌握词数 / 正确率」——换成题目总数、当前章节、阅读位置
   if (isNoRatingBook()) {
     renderCasualStats();
     return;
   }
+  applyStatLabels(false);
   const today = Date.now();
   const book = ensureCurrentBook();
   const reviewLimit = getReviewLimit();
@@ -3950,18 +4022,15 @@ function renderCasualStats() {
   const chapters = new Set(book.words.map((word) => casualChapterOf(word)));
   const cursor = getCasualCursor(book);
   const current = book.words[cursor];
-  if (els.dueLabel) els.dueLabel.textContent = "题目总数";
+  applyStatLabels(true);
   if (els.dueCount) els.dueCount.textContent = book.words.length;
   if (els.dueTotalCount) {
     els.dueTotalCount.textContent = book.words.length
       ? `共 ${chapters.size} 章 · 随手复习 · 不评分`
       : "还没有题目";
   }
-  if (els.totalLabel) els.totalLabel.textContent = "当前章节";
   if (els.totalCount) els.totalCount.textContent = current ? casualChapterOf(current) : "—";
-  if (els.masteredLabel) els.masteredLabel.textContent = "看到第几张";
   if (els.masteredCount) els.masteredCount.textContent = book.words.length ? `${cursor + 1} / ${book.words.length}` : "—";
-  if (els.accuracyLabel) els.accuracyLabel.textContent = "复习方式";
   if (els.accuracyToday) els.accuracyToday.textContent = "随手翻卡";
   updateAccuracyRing();
 }
@@ -4514,14 +4583,14 @@ async function handleBackupImport(event) {
 
     replaceState(importedState);
     ensureBooks();
-    currentQueue = [];
-    currentIndex = -1;
-    currentQueueType = "due";
-    awaitingHardAdvance = false;
-    reviewAnswerWordId = null;
+    // 备份里记的当前词本可能是随手本：导入后页签同样要按词本类型归一，
+    // 否则停在进度/共建页却切到了随手本，页签隐藏、内容成空壳。
+    resetBookScopedUiState();
     saveState();
     syncBookSelect();
     renderAll();
+    showStartScreen();
+    normalizeActiveViewForBook();
     closeDataSheet();
     setDataStatus("导入完成。", "success");
   } catch (error) {
@@ -4918,8 +4987,13 @@ function mergeCloudProgress(local, remote, localHistory, remoteHistory, wordId) 
   const remoteEvents = getCloudWordHistory(remoteHistory, wordId);
   const localKeys = new Set(localEvents.map(getCloudEventKey));
   const remoteKeys = new Set(remoteEvents.map(getCloudEventKey));
-  const localOldest = getOldestCloudEventAt(localEvents);
-  const remoteOldest = getOldestCloudEventAt(remoteEvents);
+  // cutoff 必须取「两侧历史环形缓冲的全局最旧事件」，不能取每个词自己的最旧事件：
+  // 任一侧缓冲把某词的事件全部挤出时，该词在这一侧的 localOldest 为 null，
+  // cutoff 会退化成另一侧的最旧事件 → 那一侧的老事件全量通过筛选被当成
+  // 「对方独有」再加一遍，而它们的计数早已并入两侧计数器（重复计数）。
+  // 实测（2026-10-26）：单机每日同步一次，321 个词 seen/correct/wrong 被虚增。
+  const localOldest = getOldestCloudEventAt(localHistory);
+  const remoteOldest = getOldestCloudEventAt(remoteHistory);
   const cutoff = Math.max(localOldest || 0, remoteOldest || 0);
   const localOnly = localEvents.filter(
     (event) => !remoteKeys.has(getCloudEventKey(event)) && (!cutoff || event.at >= cutoff)
@@ -4939,9 +5013,12 @@ function mergeCloudProgress(local, remote, localHistory, remoteHistory, wordId) 
 
   return {
     ...latest,
+    // localOnly 是「本机有、云端无」的事件——它们本来就是本机自己记录的，
+    // 早已计入 local.seen，再加一遍 localOnly.length 就是重复计数（每次同步
+    // 给每个当天复习过的词 seen +1）。正确基数：local.seen 只加 remoteOnly。
     seen: Math.max(
-      local.seen + localOnly.length,
-      remote.seen + remoteOnly.length,
+      local.seen + remoteOnly.length,
+      remote.seen + localOnly.length,
       mergedCorrect + mergedWrong
     ),
     correct: mergedCorrect,
