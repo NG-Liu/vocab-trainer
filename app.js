@@ -1362,7 +1362,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "143";
+const APP_VERSION = "144";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1596,6 +1596,8 @@ const SUBMISSION_MAX_FILE_SIZE = 1024 * 1024;
 const KATEX_CSS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 const KATEX_JS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js";
 let isReloadingForUpdate = false;
+// 上次检查 SW 更新的时间（手机上 App 常被挂在后台，靠 load 事件等不到更新，回到前台补查）
+let lastServiceWorkerCheck = 0;
 
 const state = loadState();
 let cloudSyncConnection = loadCloudSyncConnection();
@@ -1958,7 +1960,30 @@ function registerServiceWorker() {
     isReloadingForUpdate = true;
     window.location.reload();
   });
+  // v144：手机上的 PWA / 标签页常被挂在后台好几天，`load` 只在冷启动时触发一次，
+  // 于是版本更新永远查不到（表现为「手机上还是 1xx」）。回到前台时补一次检查：
+  // 有新 SW 就 skipWaiting，controllerchange 再触发一次 reload，用户下次切回来就是新版。
+  const checkForUpdate = () => {
+    const now = Date.now();
+    if (now - lastServiceWorkerCheck < 30 * 60 * 1000) return;
+    lastServiceWorkerCheck = now;
+    navigator.serviceWorker
+      .getRegistration()
+      .then((registration) => {
+        if (!registration) return;
+        registration.update();
+        if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      })
+      .catch(() => {
+        // 离线或浏览器不支持时忽略
+      });
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkForUpdate();
+  });
+  window.addEventListener("focus", checkForUpdate);
   window.addEventListener("load", () => {
+    lastServiceWorkerCheck = Date.now();
     navigator.serviceWorker
       .register(`./sw.js?v=${APP_VERSION}`)
       .then((registration) => registration.update())

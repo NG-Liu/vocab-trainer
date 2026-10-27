@@ -1,17 +1,17 @@
-const CACHE_NAME = "word-trainer-v143";
+const CACHE_NAME = "word-trainer-v144";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=143",
-  "./cloud-sync.js?v=143",
-  "./core-book-data.js?v=143",
-  "./cet4-book-data.js?v=143",
-  "./cet6-book-data.js?v=143",
-  "./microelectronics-book-data.js?v=143",
-  "./app.js?v=143",
-  "./submission-config.js?v=143",
-  "./manifest.webmanifest?v=143",
-  "./icon.svg?v=143",
+  "./style.css?v=144",
+  "./cloud-sync.js?v=144",
+  "./core-book-data.js?v=144",
+  "./cet4-book-data.js?v=144",
+  "./cet6-book-data.js?v=144",
+  "./microelectronics-book-data.js?v=144",
+  "./app.js?v=144",
+  "./submission-config.js?v=144",
+  "./manifest.webmanifest?v=144",
+  "./icon.svg?v=144",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
@@ -32,6 +32,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
+});
+
+// v144：页面在「回到前台」时会 postMessage 让等待中的 SW 立即接管，
+// 否则手机后台挂着的旧页面要等到全部关闭才换新版。
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
