@@ -642,6 +642,60 @@ body.casual-book .review-card .answer-box {
   overscroll-behavior: contain;
 }
 
+/* ---------- v148 随手复习本：答案不再盖住题面 ----------
+   v140~v147 答案是个 absolute 的「底部抽屉」，答案越长往上长得越多，
+   成篇模板（政治本几乎每题、微电子本长题）一揭示就把题面整块盖掉。
+   现在改纵向排布：题面钉在上方，答案占满剩余高度、自己在框内滚动。
+   未揭示时 reveal 区整体收起，题面仍旧垂直居中（和普通单词本观感一致）。 */
+body.casual-book .review-card .review-reveal {
+  flex: 0 0 auto;
+  min-height: 0;
+  width: 100%;
+  align-items: stretch;
+}
+
+body.casual-book .review-card:not(.is-revealed) .review-reveal {
+  display: none;
+}
+
+body.casual-book .review-card.is-revealed .review-body {
+  /* 揭示后题面不再上移 13%（那是给抽屉让位的动作，会把题面顶到顶栏） */
+  flex: 0 0 auto;
+  max-height: 38dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: none;
+}
+
+body.casual-book .review-card.is-revealed .review-reveal {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 揭示后「轻点任意处显示答案」这行已无意义：淡出仍占一行高度，直接收掉，把空间还给答案 */
+body.casual-book .review-card.is-revealed .reveal-hint {
+  display: none;
+}
+
+body.casual-book .review-card .answer-box {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  align-self: center;
+  width: min(540px, 100%);
+  /* 高度跟着内容走，最长也只到可用区（flex-shrink 收窄后内部滚动）——
+     短答案（如 3.5（3）一句指引）不该撑成一个空板子 */
+  flex: 0 1 auto;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body.casual-book .review-card.is-revealed .answer-box {
+  transform: none;
+}
+
 .dictionary-link {
   display: inline-flex;
   align-items: center;

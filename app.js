@@ -1390,7 +1390,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "147";
+const APP_VERSION = "148";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1612,6 +1612,9 @@ let sessionStartedAt = 0;
 let sessionTimerId = 0;
 let copyToastTimer = 0;
 let lastAutoPlayedKey = null;
+// v148：答案框是可滚动的（随手本成篇答案），换卡时必须把滚动位置归零，
+// 否则下一题会带着上一题的阅读进度打开（看起来像「答案从中间开始」）。
+let lastAnswerScrollWordId = null;
 let autoPlayWordAudio = loadAutoPlayWordAudio();
 const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
 
@@ -3233,6 +3236,11 @@ function renderCurrentCard() {
   const word = currentQueue[currentIndex];
   const nextWord = currentQueue[currentIndex + 1];
   const hasWord = Boolean(word);
+  // v148：换卡时把答案框滚回顶部（同一张卡重复渲染不动，免得读到一半被弹回开头）
+  if (els.answerBox && (!word || word.id !== lastAnswerScrollWordId)) {
+    els.answerBox.scrollTop = 0;
+    lastAnswerScrollWordId = word ? word.id : null;
+  }
   const mathBook = isMathBook();
   const casualBook = isNoRatingBook();
   // 随手复习本走 mixed 渲染（文字 + $...$），数学本走 math（整段 LaTeX），其余纯文本
