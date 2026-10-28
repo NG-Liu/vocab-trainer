@@ -1354,7 +1354,35 @@ const STARTER_WORDS = [
   ["immune", "adj. 免疫的；不受影响的；免除的", "No one is immune to criticism."],
   ["marginal", "adj. 边缘的；非主体的；微小的", "The change had only a marginal effect."],
   ["stringent", "adj. 严格的；严厉的", "The rules on waste disposal are stringent."],
-  ["adversely", "adv. 不利地；有害地", "High costs adversely affect small firms."]
+  ["adversely", "adv. 不利地；有害地", "High costs adversely affect small firms."],
+  ["inscribe", "v. 题写；铭刻；在…上刻（字）；题献", "She inscribed her name on the inside cover of the book."],
+  ["ascribe", "v. 把…归因于；把…归属于", "People often ascribe their failures to bad luck."],
+  ["script", "n. 剧本；脚本；笔迹；文字体系；v. 编写剧本；写脚本", "The actor read the script twice before the first rehearsal."],
+  ["prescribe", "v. 开（药）；处方；规定；指示", "The doctor prescribed some medicine and told me to rest."],
+  ["graduate", "v. 毕业；授予学位；n. 毕业生；adj. 研究生的；毕业的", "She will graduate from college next June and move abroad."],
+  ["gradual", "adj. 逐渐的；渐进的；（坡度）平缓的", "The improvement was gradual, but after a year it was obvious."],
+  ["postgraduate", "n. 研究生；adj. 研究生阶段的；大学毕业后的", "He is doing postgraduate study in microelectronics at that university."],
+  ["sophomore", "n. （美国大学或高中）二年级学生；大二学生", "As a sophomore, she still had no idea what to major in."],
+  ["pursue", "v. 追求；从事；继续进行；追赶", "He decided to pursue a career in chip design."],
+  ["chase", "v. 追逐；追赶；追求；n. 追逐；追捕", "The dog chased the cat across the whole yard."],
+  ["trail", "n. 小径；踪迹；尾部；v. 拖；跟踪；落后", "We followed a narrow trail through the woods for hours."],
+  ["kidnap", "v. 绑架；劫持", "The businessman was kidnapped and held for three days."],
+  ["boycott", "v. 抵制；联合拒绝；n. 抵制", "Many customers boycotted the brand after the scandal."],
+  ["resist", "v. 抵抗；抵制；忍住；抗（腐蚀、诱惑等）", "I could not resist buying another cup of coffee."],
+  ["persist", "v. 坚持；持续；固执", "The problem will persist unless we change our approach."],
+  ["persevere", "v. 坚持不懈；锲而不舍", "If you persevere with your review, the results will come."],
+  ["consist", "v. 由…组成；在于；一致", "The team consists of six students and one teacher."],
+  ["stock", "n. 存货；储备；股票；v. 储备；adj. 常备的；老套的", "The shop has run out of stock again."],
+  ["disrupt", "v. 扰乱；打断；使中断；颠覆", "A sudden power cut disrupted the whole experiment."],
+  ["rot", "v. 腐烂；腐朽；衰败；n. 腐烂；腐朽", "The wooden floor began to rot after the flood."],
+  ["rotate", "v. 旋转；转动；轮换；轮作", "The earth rotates once every twenty four hours."],
+  ["bribe", "n. 贿赂；行贿物；v. 贿赂；行贿", "He was arrested for offering a bribe to an official."],
+  ["interrupt", "v. 打断；中断；打扰", "Sorry to interrupt, but the meeting starts in five minutes."],
+  ["interfere", "v. 干涉；妨碍；干扰", "Do not let outside noise interfere with your study plan."],
+  ["intervene", "v. 干预；介入；调停；发生（于其间）", "The teacher had to intervene before the argument got worse."],
+  ["interval", "n. 间隔；间歇；幕间休息", "Take a short break in the interval between two sessions."],
+  ["interview", "n. 面试；采访；v. 面试；采访", "She has an interview with a chip company tomorrow morning."],
+  ["journal", "n. 期刊；杂志；日志；日记", "He keeps a journal of what he reviews every day."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1362,7 +1390,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "145";
+const APP_VERSION = "146";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
