@@ -1394,7 +1394,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "150";
+const APP_VERSION = "151";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
