@@ -1390,7 +1390,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "146";
+const APP_VERSION = "147";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1552,6 +1552,12 @@ const CET6_BOOK_WORDS = (window.CET6_BOOK_ENTRIES || []).map(([term, meaning, ex
 const MICRO_DEVICES_BOOK_ID = "micro-devices";
 const MICRO_DEVICES_BOOK_NAME = "微电子器件 · 简答题";
 const MICRO_DEVICES_BOOK_WORDS = (window.MICROELECTRONICS_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+// v147 政治 · 分析题模板：第二本随手复习本，机制与微电子器件完全相同（只换数据与卡片标签）。
+// 数据在 politics-book-data.js，词条格式 [题号+标题, 模板原文, 章 · 模板 N.N]；
+// 第三个字段落 example 位：目录页按章分组，卡片提示行顺带显示它是哪一节。
+const POLITICS_BOOK_ID = "politics-templates";
+const POLITICS_BOOK_NAME = "政治 · 分析题模板";
+const POLITICS_BOOK_WORDS = (window.POLITICS_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: CORE_BOOK_ID, name: CORE_BOOK_NAME, words: CORE_BOOK_WORDS, sortMode: "sequence" },
@@ -1561,12 +1567,20 @@ const BOOK_DEFINITIONS = [
   { id: THEOREM_BOOK_ID, name: THEOREM_BOOK_NAME, words: THEOREM_BOOK_WORDS },
   { id: TAYLOR_BOOK_ID, name: TAYLOR_BOOK_NAME, words: TAYLOR_BOOK_WORDS },
   { id: MICRO_DEVICES_BOOK_ID, name: MICRO_DEVICES_BOOK_NAME, words: MICRO_DEVICES_BOOK_WORDS, sortMode: "sequence", noRating: true },
+  { id: POLITICS_BOOK_ID, name: POLITICS_BOOK_NAME, words: POLITICS_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 // noRating = 随手复习本：整本书按原顺序翻卡，没有 忘了/模糊/记住/掌握，没有今日队列与每日复习量。
 // 这类词本的 todaySession 不存每日会话，只存「翻到第几张」（见 getCasualCursor/saveCasualCursor）。
-const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID]);
+const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID, POLITICS_BOOK_ID]);
+// v147：随手复习本的卡片标签（词库页内联复习里那一行小字）按本取名。
+// 之前写死「简答题」，第二本随手复习本（政治分析题模板）上来就不对了。
+// 这张表必须留在 init() 之前——模块级 const 落在 init() 之后会撞暂时性死区。
+const CASUAL_CARD_LABELS = {
+  [MICRO_DEVICES_BOOK_ID]: "简答题",
+  [POLITICS_BOOK_ID]: "分析题模板"
+};
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
 const DEFAULT_REVIEW_LIMIT = 50;
@@ -2933,10 +2947,16 @@ function getCardRenderKind(book = ensureCurrentBook()) {
   return "plain";
 }
 
-// 随手复习本的「章」：example 位存的是「章节 · 原书页 N」，取分号前那段当章名
+// 随手复习本的「章」：example 位存的是「章节 · 原书页 N」/「章 · 模板 N.N」，取分号前那段当章名
 function casualChapterOf(word) {
   const chapter = String(word?.example || "").split("·")[0].trim();
   return chapter || "其他";
+}
+
+// v147：随手复习本的卡片标签（词库页内联复习里那一行小字）按本取名。
+// 表本身声明在文件前部（init() 之前），这里只留取值函数，避免暂时性死区。
+function casualCardLabel(book = ensureCurrentBook()) {
+  return CASUAL_CARD_LABELS[book.id] || "题目";
 }
 
 function getCasualCursor(book = ensureCurrentBook()) {
@@ -4216,7 +4236,7 @@ function renderInlineReviewCard(word) {
         <button class="rate-button easy inline-rate-button" type="button" data-rating="easy"${inlineReviewPendingHard ? " disabled" : ""}>记住</button>`;
   return `
     <article class="inline-review-card" data-inline-word-id="${escapeHtml(word.id)}">
-      <p class="queue-label">${casualBook ? "简答题" : "单词复习"}</p>
+      <p class="queue-label">${casualBook ? escapeHtml(casualCardLabel()) : "单词复习"}</p>
       <h3 class="inline-review-term">
         <span class="inline-review-term-text">${formatInlineContent(word.term, renderKind)}</span>
         ${renderAudioButton(word.term)}
