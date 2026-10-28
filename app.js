@@ -1390,7 +1390,11 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "149";
+// v142：同步失败后的退避（30s → 60s → 2min → 5min 封顶）。workers.dev 在国内被墙时，
+// 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
+const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
+const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
+const APP_VERSION = "150";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1650,6 +1654,7 @@ let cloudSyncTimer = null;
 let cloudSyncPollTimer = null;
 let cloudSyncPromise = null;
 let cloudSyncDirty = false;
+let cloudSyncBackoffMs = 0;
 let isApplyingCloudSync = false;
 Object.defineProperties(state, {
   words: {
@@ -2003,6 +2008,8 @@ function bindEvents() {
   if (els.disconnectSyncButton) els.disconnectSyncButton.addEventListener("click", disconnectCloudSync);
 
   window.addEventListener("online", () => {
+    // v142：网络恢复（比如刚连上 VPN）时清零退避，立刻补一次同步
+    cloudSyncBackoffMs = 0;
     if (cloudSyncConnection.code) scheduleCloudSync(0);
   });
   document.addEventListener("visibilitychange", () => {
@@ -4944,17 +4951,31 @@ async function syncCloudProgress({ silent = false, allowCreate = false, throwOnE
     cloudSyncConnection.revision = result.revision;
     cloudSyncConnection.lastSyncedAt = Date.now();
     saveCloudSyncConnection();
+    cloudSyncBackoffMs = 0;
     setCloudSyncStatus(result.changed ? "同步完成，进度已更新。" : "进度已是最新。", "success", silent);
     return result;
   } catch (error) {
-    const message = error?.code === "not_found" ? "没有找到这个同步码，请核对后重试。" : error.message || "同步失败，请稍后再试。";
-    setCloudSyncStatus(message, "error");
+    // v142：网络类失败（被墙、超时）在静默模式下只做弱提示，不标红不打扰；
+    // 真正的数据类错误（同步码不存在等）仍然标红。失败后按退避间隔重试，不再每 1.8s 撞墙。
+    const offline = error?.code === "network_error";
+    const message = error?.code === "not_found"
+      ? "没有找到这个同步码，请核对后重试。"
+      : offline
+        ? "网络不通，稍后会自动重试。"
+        : error.message || "同步失败，请稍后再试。";
+    setCloudSyncStatus(message, offline && silent ? "" : "error", silent);
+    cloudSyncBackoffMs = Math.min(
+      cloudSyncBackoffMs ? cloudSyncBackoffMs * 2 : CLOUD_SYNC_BACKOFF_START,
+      CLOUD_SYNC_BACKOFF_MAX
+    );
     if (throwOnError) throw error;
     return null;
   } finally {
     cloudSyncPromise = null;
     renderCloudSyncControls();
-    if (cloudSyncDirty && cloudSyncConnection.code === code) scheduleCloudSync();
+    if (cloudSyncDirty && cloudSyncConnection.code === code) {
+      scheduleCloudSync(cloudSyncBackoffMs || CLOUD_SYNC_DELAY);
+    }
   }
 }
 

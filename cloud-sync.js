@@ -121,14 +121,25 @@
     }
 
     let response;
+    // v142：加 8 秒超时 —— workers.dev 在国内被墙时默认要卡很久（甚至几分钟）才失败，
+    // 会让「同步」看起来像卡死。快速失败 + 退避重试，体验好很多。
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
       response = await fetch(`${baseUrl}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: controller.signal
       });
-    } catch {
-      throw new CloudSyncError("无法连接同步服务，请检查网络。", 0, "network_error");
+    } catch (error) {
+      throw new CloudSyncError(
+        error && error.name === "AbortError" ? "同步超时，网络可能不通。" : "无法连接同步服务，请检查网络。",
+        0,
+        "network_error"
+      );
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     const result = await readJson(response);
