@@ -1362,7 +1362,7 @@ const CLOUD_SYNC_STORAGE_KEY = "wordTrainer.cloudSync.v1";
 const CLOUD_SYNC_SCHEMA_VERSION = 1;
 const CLOUD_SYNC_DELAY = 1800;
 const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
-const APP_VERSION = "144";
+const APP_VERSION = "145";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1651,6 +1651,8 @@ let inlineReviewAnswerVisible = false;
 let inlineReviewPendingHard = false;
 let libraryOrderFreeze = null;
 let libraryVisibleLimit = LIBRARY_BATCH_SIZE;
+// v145：这一程是不是从随手复习本的目录页点进来的（退出沉浸态时据此回目录页）
+let casualReturnToCatalog = false;
 let activeWordAudio = null;
 let wordAudioRequestId = 0;
 const preparedWordAudio = new Map();
@@ -1756,6 +1758,16 @@ function renderAppVersion() {
 
 function init() {
   ensureBooks();
+  // v145：滚动位置由 App 自己管。从目录页点题时页面切到学习页、目录被隐藏，
+  // 文档高度塌陷会把该历史条目的滚动位置记成 0；返回时浏览器再"恢复"到 0，
+  // 就把目录页的浏览位置抹掉了。关掉自动恢复，改由 returnToCasualCatalogIfNeeded 对齐。
+  try {
+    if (window.history && "scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+  } catch (error) {
+    /* 沙箱/不支持时忽略 */
+  }
   syncBookSelect();
   bindEvents();
   ensureKatex();
@@ -2776,6 +2788,8 @@ function exitImmersive(options) {
   if (!fromPopstate) popImmersiveHistoryEntry();
   // 退出全屏背词后自动回到开始界面：清空队列/游标/答案态，界面复位
   showStartScreen();
+  // v145：从目录页点进来的，复位完再切回目录页（并滚到当前那题）
+  returnToCasualCatalogIfNeeded();
 }
 
 // 回到「轻点任意处开始」的空闲界面：退出全屏、导入备份后都用它，
@@ -3984,9 +3998,38 @@ function openCasualCard(wordId) {
   const book = ensureCurrentBook();
   const position = book.words.findIndex((word) => word.id === wordId);
   if (position < 0) return;
+  // v145：记下这一程是从目录页进来的 —— 退出沉浸态时要回到目录页，而不是
+  // 停在「轻点任意处开始」的学习页（那等于把用户在目录里的浏览位置弄丢了）。
+  casualReturnToCatalog = Boolean(
+    document.querySelector("#catalogView")?.classList.contains("is-active")
+  );
   saveCasualCursor(position, book);
   switchView("studyView");
   startSession();
+}
+
+// 退出沉浸态时，如果这一程是从目录页点进来的，回到目录页并把当前那题滚到视野中央。
+// 「正在看」的高亮由 renderCatalog() 按游标自动标（点题时游标已经落到该题）。
+function returnToCasualCatalogIfNeeded() {
+  if (!casualReturnToCatalog) return;
+  casualReturnToCatalog = false;
+  if (!isNoRatingBook()) return;
+  switchView("catalogView");
+  const scrollToCurrent = () => {
+    const current = document.querySelector(".catalog-row.is-current");
+    if (current && typeof current.scrollIntoView === "function") {
+      current.scrollIntoView({ block: "center", behavior: "auto" });
+    }
+  };
+  scrollToCurrent();
+  // 有些浏览器在 popstate 之后还会补一次滚动恢复（记的是塌陷时的 0），
+  // 下一帧再对一次，保证「回到点题位置」不被覆盖。
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => {
+      scrollToCurrent();
+      window.requestAnimationFrame(scrollToCurrent);
+    });
+  }
 }
 
 // 统计条四个标签：普通词本走 SRS 口径，随手复习本走电子书口径。
