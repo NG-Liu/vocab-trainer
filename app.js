@@ -1394,7 +1394,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "151";
+const APP_VERSION = "152";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2641,9 +2641,30 @@ function enterImmersiveIfStudyView() {
     : Boolean(study && study.classList.contains("is-active"));
   if (!onStudyView) return false;
   document.body.classList.add("immersive");
+  // v152：进入沉浸态后文档塌成一屏高，浏览器会把原来在目录/词库页的 scrollY
+  // 夹成一个非零值（桌面实测：目录滚到 900 再点题，进来还剩 64），
+  // 整张卡片被顶上去——题面顶到顶栏、答案区被压扁，看起来就是「挤在一起」。
+  // 这里显式归零；下一帧再来一次，防浏览器在布局完成后重新夹一次。
+  resetPageScroll();
   pushImmersiveHistoryEntry();
   startSessionTimer();
   return true;
+}
+
+// v152：把文档滚动位置归零（沉浸态切换、视图切换后用）
+function resetPageScroll() {
+  const apply = () => {
+    try {
+      if (typeof window.scrollTo === "function") window.scrollTo(0, 0);
+    } catch (error) {
+      /* 预览/沙箱环境不支持时忽略 */
+    }
+    const scroller = document.scrollingElement || document.documentElement;
+    if (scroller) scroller.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  };
+  apply();
+  if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(apply);
 }
 
 // v143：页签要与词本类型匹配——目录页只有随手本有，共建/进度只有普通词本有。

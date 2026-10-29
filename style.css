@@ -696,6 +696,25 @@ body.casual-book .review-card.is-revealed .answer-box {
   transform: none;
 }
 
+/* 随手本没有复现/跳过提示，反馈行常年为空 —— 空着仍占 24px（矮窗口里这 24px 值钱） */
+body.casual-book .review-card .feedback:empty {
+  display: none;
+}
+
+/* v152：矮窗口（桌面半屏、笔记本 768 高以下）把沉浸态底部给拇指留的空白收回来。
+   606px 高的窗口里原来要吃掉 121px 底边距，答案区只剩两百来像素；
+   手机上（高度 > 640px）保持 v126 的「按钮抬到 80% 高度」不动。 */
+@media (max-height: 640px) {
+  body.casual-book.immersive .review-card {
+    padding-top: 56px;
+    padding-bottom: clamp(16px, 8dvh, 96px);
+  }
+
+  body.casual-book .review-card.is-revealed .review-body {
+    max-height: 30dvh;
+  }
+}
+
 .dictionary-link {
   display: inline-flex;
   align-items: center;
