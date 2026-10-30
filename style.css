@@ -1298,7 +1298,8 @@ textarea {
   display: grid;
   gap: var(--sp-2);
   align-content: start;
-  padding-bottom: 76px;
+  /* v153：底部留够「全部显示」浮动按钮的高度，否则最后一行被盖住 */
+  padding-bottom: 104px;
 }
 
 .word-row {
@@ -1312,7 +1313,6 @@ textarea {
   background: var(--panel-veil);
   transition: border-color 140ms ease, background 140ms ease;
 }
-
 .word-row[data-word-id] {
   cursor: pointer;
 }
@@ -1343,8 +1343,13 @@ textarea {
   background: var(--row-open-bg);
 }
 
-.word-row.is-expanded {
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) 14px 76px;
+/* v153：展开态不再把释义挤成右侧一列 —— 那样单词列只剩 ~100px，
+   长单词（conspicuous 这类）会被压成 1 个字符宽、逐字母竖排。
+   现在单词保持收起态的列宽，释义单独占满第二行。 */
+.word-row.is-expanded .word-meaning {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  padding-top: var(--sp-1);
 }
 
 .word-term {
@@ -1359,16 +1364,12 @@ textarea {
 }
 
 .word-term-text {
-  min-width: 0;
+  /* v153：最少留 6 个字符宽 —— 否则列宽不够时会被压成 1 字符、逐字母竖排 */
+  min-width: 6ch;
   overflow-wrap: anywhere;
 }
 
-.word-row .audio-button {
-  width: 34px;
-  min-height: 34px;
-  font-size: 0.95rem;
-  border-radius: var(--r-sm);
-}
+/* v153：词库列表不再显示发音按钮（用户要求）—— 单词卡片里的 🔊 保留 */
 
 /* v136 每日统计说明行（数据面板「本地备份」内） */
 .backup-note {
@@ -1387,14 +1388,15 @@ textarea {
 }
 
 /* v135 顽固词徽章：词表行内显示「错 N · M%」，跟着 .word-term 的 flex 排列 */
+/* v153：底色提一点、字号略大 —— 暗色主题下原来太淡，扫一眼看不出是"错了几次" */
 .word-wrong-badge {
   flex: none;
   padding: 1px 7px;
   border-radius: var(--r-full);
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(239, 68, 68, 0.14);
   color: #b91c1c;
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
   cursor: default;
@@ -1853,12 +1855,8 @@ textarea {
     grid-template-columns: minmax(0, 1fr) 12px 70px;
   }
 
-  .word-row.is-expanded {
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr) 12px 70px;
-  }
-
   .word-list {
-    padding-bottom: 92px;
+    padding-bottom: 104px;
   }
 
   .inline-dictionary {
@@ -2009,10 +2007,6 @@ textarea {
     padding: 11px var(--sp-3);
   }
 
-  .word-row.is-expanded {
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr) 12px 66px;
-  }
-
   .status-dot {
     width: 9px;
     height: 9px;
@@ -2062,6 +2056,7 @@ textarea {
 /* v135 顽固词徽章暗色配色：换成 300 级亮红，与评分按钮的暗色方案一致 */
 :root[data-theme="dark"] .word-wrong-badge {
   color: #fca5a5;
+  background: rgba(248, 113, 113, 0.18);
 }
 
 /* 评分按钮：白底彩字方案在暗色下换成 300 级亮文字，色条保持 500 级 */

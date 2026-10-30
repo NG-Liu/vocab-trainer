@@ -1394,7 +1394,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "152";
+const APP_VERSION = "153";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -4220,7 +4220,6 @@ function renderWordList() {
         <article class="word-row${expanded ? " is-expanded" : ""}${inlineOpen ? " is-inline-open" : ""}" data-word-id="${escapeHtml(word.id)}">
           <div class="word-term">
             <span class="word-term-text">${formatInlineContent(word.term, getCardRenderKind())}</span>
-            ${renderAudioButton(word.term)}
             ${renderWrongBadge(progress)}
           </div>
           <div class="word-meaning${expanded ? "" : " is-hidden"}" id="${escapeHtml(meaningId)}">${formatInlineContent(word.meaning, getCardRenderKind())}</div>
