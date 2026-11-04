@@ -1382,7 +1382,36 @@ const STARTER_WORDS = [
   ["intervene", "v. 干预；介入；调停；发生（于其间）", "The teacher had to intervene before the argument got worse."],
   ["interval", "n. 间隔；间歇；幕间休息", "Take a short break in the interval between two sessions."],
   ["interview", "n. 面试；采访；v. 面试；采访", "She has an interview with a chip company tomorrow morning."],
-  ["journal", "n. 期刊；杂志；日志；日记", "He keeps a journal of what he reviews every day."]
+  ["journal", "n. 期刊；杂志；日志；日记", "He keeps a journal of what he reviews every day."],
+  ["assert", "v. 断言；坚称；维护（权利）", "She asserted that the report was wrong."],
+  ["desert", "n. 沙漠；荒漠；v. 遗弃；离开", "The desert stretches for hundreds of miles."],
+  ["dessert", "n. 甜点；餐后甜食", "We had ice cream for dessert."],
+  ["exsert", "v. 使突出；伸出（生僻，多用于生物学）", "The larva exserts its head from the shell."],
+  ["insert", "v. 插入；嵌入；n. 插入物", "Insert the card into the slot."],
+  ["insect", "n. 昆虫", "An insect landed on the window."],
+  ["worm", "n. 蠕虫；蚯蚓；v. 蠕动；钻营", "The worm crawled into the soil."],
+  ["reclaim", "v. 收回；开垦；回收利用", "The city plans to reclaim the abandoned land."],
+  ["exclaim", "v. 惊叫；大声说", "She exclaimed in surprise when she saw the mess."],
+  ["acclaim", "n. 赞扬；v. 称赞；欢呼", "The film won critical acclaim."],
+  ["declaim", "v. 慷慨陈词；朗诵；痛斥", "He declaimed against the new policy."],
+  ["declare", "v. 宣布；声明；申报", "The government declared a state of emergency."],
+  ["announce", "v. 宣布；通告；播报", "They announced the results this morning."],
+  ["confess", "v. 承认；坦白；忏悔", "He confessed to taking the money."],
+  ["occupation", "n. 职业；占领；消遣", "Please state your name and occupation."],
+  ["occupy", "v. 占据；占用；使忙碌", "The books occupy most of the shelf."],
+  ["amateur", "n. 业余爱好者；adj. 业余的", "He plays tennis as an amateur."],
+  ["layman", "n. 门外汉；外行；普通信徒", "The book explains physics for the layman."],
+  ["veteran", "n. 老兵；老手；adj. 经验丰富的", "She is a veteran of the publishing industry."],
+  ["sophisticated", "adj. 复杂的；精密的；老练的", "The system uses sophisticated software."],
+  ["sane", "adj. 理智的；神志正常的；合理的", "It was the only sane choice."],
+  ["renaissance", "n. 文艺复兴；复兴；新生", "The city is enjoying a cultural renaissance."],
+  ["lecture", "n. 讲座；讲课；v. 训斥", "The professor gave a lecture on genetics."],
+  ["dialect", "n. 方言；土话", "The villagers speak a local dialect."],
+  ["veto", "n. 否决权；v. 否决", "The president vetoed the bill."],
+  ["reserve", "v. 预订；保留；n. 储备；保护区", "I reserved a table for two."],
+  ["observe", "v. 观察；遵守；评论", "She observed the birds through binoculars."],
+  ["deserve", "v. 应得；值得", "You deserve a break."],
+  ["conserve", "v. 保护；节约；保存", "We should conserve water in summer."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1394,7 +1423,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "153";
+const APP_VERSION = "154";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
