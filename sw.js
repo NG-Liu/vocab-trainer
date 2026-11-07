@@ -1,19 +1,20 @@
-const CACHE_NAME = "word-trainer-v156";
+const CACHE_NAME = "word-trainer-v157";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=156",
-  "./cloud-sync.js?v=156",
-  "./core-book-data.js?v=156",
-  "./cet4-book-data.js?v=156",
-  "./cet6-book-data.js?v=156",
-  "./microelectronics-book-data.js?v=156",
-  "./politics-book-data.js?v=156",
-  "./english-writing-book-data.js?v=156",
-  "./app.js?v=156",
-  "./submission-config.js?v=156",
-  "./manifest.webmanifest?v=156",
-  "./icon.svg?v=156",
+  "./style.css?v=157",
+  "./cloud-sync.js?v=157",
+  "./core-book-data.js?v=157",
+  "./cet4-book-data.js?v=157",
+  "./cet6-book-data.js?v=157",
+  "./microelectronics-book-data.js?v=157",
+  "./politics-book-data.js?v=157",
+  "./english-writing-book-data.js?v=157",
+  "./english-writing-sample-data.js?v=157",
+  "./app.js?v=157",
+  "./submission-config.js?v=157",
+  "./manifest.webmanifest?v=157",
+  "./icon.svg?v=157",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
@@ -57,6 +58,7 @@ self.addEventListener("fetch", (event) => {
       url.pathname.endsWith("/microelectronics-book-data.js") ||
       url.pathname.endsWith("/politics-book-data.js") ||
       url.pathname.endsWith("/english-writing-book-data.js") ||
+      url.pathname.endsWith("/english-writing-sample-data.js") ||
       url.pathname.endsWith("/submission-config.js") ||
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/manifest.webmanifest") ||
