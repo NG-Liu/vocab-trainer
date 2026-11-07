@@ -622,6 +622,14 @@ body.casual-book #promptText {
   box-shadow: var(--shadow-soft);
 }
 
+/* v155：随手本答案里的 **加粗**（原书用加粗标功能句骨架）—— 加粗并染主色，
+   这样「固定框架 / 可替换内容」一眼能分开 */
+.review-card .answer-box strong,
+.inline-review-card .answer-box strong {
+  font-weight: 700;
+  color: var(--accent);
+}
+
 .review-card.is-revealed .answer-box {
   opacity: 1;
   visibility: visible;
