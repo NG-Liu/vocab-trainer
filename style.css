@@ -675,6 +675,24 @@ body.casual-book .review-card.is-revealed .review-body {
   transform: none;
 }
 
+/* v158：随手本的题面可能很长（材料题、长题干），必须能滚。
+   ⚠️ 不能保留 justify-content: center —— flex 居中 + overflow: auto 时，
+   溢出内容的「上部」会跑到滚动区之外，怎么划都划不上去（用户反馈的正是这个）。
+   改成 flex-start + 首尾 auto 外边距：内容不满时仍然居中，超长时能滚到最上面。 */
+body.casual-book .review-card .review-body {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+body.casual-book .review-card .review-body > :first-child {
+  margin-top: auto;
+}
+
+body.casual-book .review-card .review-body > :last-child {
+  margin-bottom: auto;
+}
+
 body.casual-book .review-card.is-revealed .review-reveal {
   flex: 1 1 auto;
   min-height: 0;
