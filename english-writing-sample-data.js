@@ -1,10 +1,9 @@
-// 考研英语一作文 · 范文 —— 随手复习词本数据（第 12 本，v157 新增）。
-// 内容来源：《石雷鹏 考研英语一作文冲刺背诵 20 篇》第一、二章（小作文 10 篇 + 大作文 10 篇，教材转写 md）。
-// 转换器：.workbuddy/_parse_topics.js（解析）+ .workbuddy/_gen_topics.js（生成本文件）。
-// 词条格式：[中文, 英文/原文, 小作文|大作文 · Topic NN · 块序号]。
-// 每篇包含：题目 / 题目解读 / 结构 / 词汇 / 各段（中→英）/ 相关表达 / 好句，书上的每个板块都在。
-window.ENGLISH_SAMPLE_BOOK_ENTRIES = [
-  ["大作文章节导语", "2024年考研英语（一）大作文第一次考查了“图画+图表”作文，2025年又第一次考查了图表作文。结合真题的这一考查趋势以及最新的大纲，本章预测了2篇图表作文、2篇“图画+图表”作文、5篇图画作文和1篇材料作文。所有范文都使用功能句写成，便于大家背诵和模仿写作。掌握了本章内容，无论考研英语（一）大作文怎么考，相信大家都能从容应对。", "大作文 · 章导语"],
+// 考研英语一作文 · 范文 —— 随手复习词本数据（第 12、13 本，v157/v159）。
+// 内容来源：《石雷鹏 考研英语一作文冲刺背诵 20 篇》第一、二章（教材转写 md）。
+// 生成：.workbuddy/_parse_topics.js（解析）→ .workbuddy/_gen_topics.js（出本文件）。
+// 词条格式：[中文, 英文/原文, 小作文|大作文 · Topic NN]。
+// 每篇含：题目 / 题目解读 / 结构 / 词汇 / 各段（中→英）/ 相关表达 / 好句，书上每个板块都在。
+window.ENGLISH_SAMPLE_SMALL_ENTRIES = [
   ["01 通知/告示：介绍 + 邀请｜题目", "**Directions:**\nSuppose your university is going to host a welcome party for new international students. Write a notice (or an announcement) in the name of the Students' Union to\n(1) briefly introduce the party, and\n(2) invite the international students to attend it.\nWrite your answer in about 100 words on the ANSWER SHEET.\n**Do not** use your own name in your notice; use “The Students' Union” instead. (10 points)\n### 范文背诵", "小作文 · Topic 01"],
   ["01 通知/告示：介绍 + 邀请｜词汇（11）", "1. attend *v.* 参加，出席\n2. schedule *v.* 为……安排时间\n3. approximately *adv.* 大约\n4. characterize *v.* 使……具有特点\n5. a variety of 各种各样的，多种的\n6. snack *n.* 点心，小吃\n7. advisable *adj.* 明智的，可取的\n8. participate *v.* 参加\n9. opportunity *n.* 机会\n10. arouse *v.* 激起，引起\n11. campus *n.*（大学）校园，校区", "小作文 · Topic 01"],
   ["通知/告示", "**Notice/Announcement**", "小作文 · Topic 01"],
@@ -77,6 +76,10 @@ window.ENGLISH_SAMPLE_BOOK_ENTRIES = [
   ["会议于 6 月 20 日 14:00 在 201 教室举行，持续时长为 2 小时。斯凯教授提出了这一问题，并指出，与过去相比，我们的生活更加富裕，于是越来越多的年轻人不珍惜食物。接着，全班同学一致同意这一现象非常值得关注。大家认为，我们不仅很有必要杜绝食物浪费，还要避免浪费时间、电、水以及其他类似资源。", "The meeting **began** at 14:00 on June 20 in Classroom 201 **and lasted for** two hours. Professor Sky raised the question and pointed out that **compared to** the past years, we enjoy a **richer** life and thus an increasing number of youngsters do not cherish food. Then, all classmates agreed that this phenomenon **is particularly worth attention**. **We deemed that it is of great necessity for** us **to** stop wasting not only food, but also time, electricity, water, and the like.", "小作文 · Topic 10"],
   ["结论是，我们应该立刻采取行动来避免日常生活中的食物浪费，例如只买需要的，以及不扔掉剩饭剩菜。", "The conclusion is that we **are supposed to** take immediate actions to prevent food waste in daily life, **such as** only buying what we need and not throwing away leftovers.", "小作文 · Topic 10"],
   ["记录人：李明", "Minutes recorder: Li Ming\n\n（141 words）", "小作文 · Topic 10"],
+];
+
+window.ENGLISH_SAMPLE_BIG_ENTRIES = [
+  ["大作文章节导语", "2024年考研英语（一）大作文第一次考查了“图画+图表”作文，2025年又第一次考查了图表作文。结合真题的这一考查趋势以及最新的大纲，本章预测了2篇图表作文、2篇“图画+图表”作文、5篇图画作文和1篇材料作文。所有范文都使用功能句写成，便于大家背诵和模仿写作。掌握了本章内容，无论考研英语（一）大作文怎么考，相信大家都能从容应对。", "大作文 · 章导语"],
   ["01 图表：燃油车与新能源汽车国内销量｜题目", "**Directions:**\nWrite an essay based on the table below. In your essay,\nyou should\n(1) describe the table briefly,\n(2) interpret the table, and\n(3) give your comments.\nWrite your answer in 160-200 words on the ANSWER\nSHEET. (20 points)\n2025年上半年燃油车和新能源汽车国内销量变化\n（单位：百万辆）\n| 车型／月份 | 1月 | 2月 | 3月 | 4月 | 5月 | 6月 |\n| --- | --- | --- | --- | --- | --- | --- |\n| 燃油车 | 1.05 | 1.16 | 1.33 | 1.04 | 1.04 | 1.18 |\n| 新能源汽车 | 0.79 | 0.89 | 1.07 | 1.02 | 1.09 | 1.12 |", "大作文 · Topic 01"],
   ["01 图表：燃油车与新能源汽车国内销量｜结构", "**首段（3~4句话）**\n概述图表+数据上升+数据稳定+值得注意\n**中间段（4~6句话）**\n图表联系主旨+引出原因+原因1+原因2\n**尾段（1~3句话）**\n建议1+建议2+举例", "大作文 · Topic 01"],
   ["01 图表：燃油车与新能源汽车国内销量｜词汇（22）", "1. illustrate *v.* 说明，解释\n2. domestic *adj.* 本国的，国内的\n3. gasoline *n.* 汽油\n4. vehicle *n.* 车辆\n5. fluctuate *v.* 波动\n6. noteworthy *adj.* 值得注意的\n7. surpass *v.* 超过，胜过\n8. statistics *n.* 统计数字\n9. apparently *adv.* 显然\n10. associate *v.* 联想，联系\n11. fierce *adj.* 激烈的\n12. boom *n.* 繁荣\n13. prosperity *n.* 兴旺，繁荣\n14. a host of 许多，大量\n15. additional *adj.* 额外的\n16. eco-friendly *adj.* 生态友好的，对环境无害的\n17. maintenance *n.* 保养\n18. manufacturer *n.* 生产商\n19. potential *n.* 潜力\n20. comprehensive *adj.* 综合的\n21. strategy *n.* 策略\n22. solar-powered *adj.* 太阳能驱动的", "大作文 · Topic 01"],
