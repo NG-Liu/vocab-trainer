@@ -1411,7 +1411,62 @@ const STARTER_WORDS = [
   ["reserve", "v. 预订；保留；n. 储备；保护区", "I reserved a table for two."],
   ["observe", "v. 观察；遵守；评论", "She observed the birds through binoculars."],
   ["deserve", "v. 应得；值得", "You deserve a break."],
-  ["conserve", "v. 保护；节约；保存", "We should conserve water in summer."]
+  ["conserve", "v. 保护；节约；保存", "We should conserve water in summer."],
+  ["reservoir", "n. 水库；蓄水池；储备", "The city draws its water from a reservoir."],
+  ["undercut", "v. 削价竞争；削弱；从底部切", "The chain undercut local shops by cutting prices."],
+  ["undertake", "v. 承担；着手；承诺", "She undertook the task without hesitation."],
+  ["overtake", "v. 超过；赶上；（不快的事）突然降临", "Electric cars may overtake petrol models in sales."],
+  ["overpass", "n. 立交桥；天桥", "A pedestrian overpass crosses the highway."],
+  ["outline", "n. 轮廓；提纲；v. 概述", "He outlined the plan in three points."],
+  ["outset", "n. 开始；开端", "She warned us at the outset."],
+  ["outlet", "n. 出口；发泄途径；经销店", "Music is an outlet for his stress."],
+  ["outweigh", "v. 比……更重要；超过", "The benefits outweigh the risks."],
+  ["outcome", "n. 结果；成果", "No one could predict the outcome."],
+  ["forth", "adv. 向前；向外；离去", "He stepped forth to answer the question."],
+  ["forehead", "n. 前额", "She wiped the sweat from her forehead."],
+  ["foremost", "adj. 最重要的；最前的；adv. 首先", "He is one of the country's foremost economists."],
+  ["cast", "v. 投掷；投射（目光、阴影）；n. 演员阵容", "The tree cast a long shadow."],
+  ["broadcast", "v. 广播；播送；n. 广播节目", "The match was broadcast live."],
+  ["import", "v. 进口；输入；n. 进口；进口货", "The country imports most of its oil."],
+  ["export", "v. 出口；输出；n. 出口；出口商品", "China exports electronics worldwide."],
+  ["portion", "n. 部分；一份；v. 分配", "A large portion of the budget goes to education."],
+  ["portable", "adj. 便携的；轻便的；n. 便携设备", "She carries a portable charger."],
+  ["depict", "v. 描绘；描写；刻画", "The painting depicts a quiet village."],
+  ["trait", "n. 特征；特点；品质", "Patience is a useful trait in teaching."],
+  ["item", "n. 项目；条款；一件商品", "Every item on the list was checked."],
+  ["legislation", "n. 立法；法规", "New legislation limits plastic waste."],
+  ["mandate", "n. 授权；命令；v. 强制执行", "The government has a mandate to reform."],
+  ["statute", "n. 法规；成文法", "The statute protects consumers."],
+  ["sketch", "n. 素描；草图；v. 概述", "He sketched the layout on paper."],
+  ["drift", "v. 漂流；漂移；n. 趋势；大意", "The boat drifted out to sea."],
+  ["float", "v. 漂浮；浮动；n. 浮子", "Leaves floated on the pond."],
+  ["constitute", "v. 构成；组成；设立", "These three parts constitute the whole."],
+  ["institute", "n. 研究所；学院；v. 设立；实行", "The institute funds basic research."],
+  ["substitute", "n. 替代品；v. 代替；替换", "Honey can substitute for sugar."],
+  ["displace", "v. 取代；使离开原位；迫使迁移", "Machines have displaced many workers."],
+  ["obedient", "adj. 服从的；顺从的", "The dog is well trained and obedient."],
+  ["comply", "v. 遵守；服从；应允", "All staff must comply with the rules."],
+  ["valid", "adj. 有效的；正当的；有根据的", "Your ticket is valid for one month."],
+  ["solid", "adj. 固体的；坚实的；可靠的；n. 固体", "The bridge rests on solid rock."],
+  ["testify", "v. 作证；证明；表明", "Two witnesses testified at the trial."],
+  ["testimony", "n. 证词；证言；证明", "Her testimony changed the case."],
+  ["plea", "n. 恳求；抗辩；借口", "He made a plea for help."],
+  ["verify", "v. 核实；证明；查证", "Please verify your email address."],
+  ["simplify", "v. 简化；使简明", "The app simplifies the process."],
+  ["clarify", "v. 澄清；阐明；使清楚", "Could you clarify what you mean?"],
+  ["clarity", "n. 清晰；明确；清楚", "She explained the idea with great clarity."],
+  ["appeal", "v. 呼吁；上诉；有吸引力；n. 吸引力；申诉", "The design appeals to young buyers."],
+  ["convict", "v. 定罪；宣判有罪；n. 罪犯", "He was convicted of fraud."],
+  ["verdict", "n. 裁决；判决；定论", "The jury reached a verdict."],
+  ["sue", "v. 起诉；控告；请求", "They threatened to sue the company."],
+  ["jury", "n. 陪审团；评审团", "The jury found him innocent."],
+  ["justify", "v. 证明……正当；为……辩护", "Nothing can justify such cruelty."],
+  ["penalty", "n. 处罚；罚款；点球", "There is a heavy penalty for late payment."],
+  ["executive", "n. 主管；行政人员；adj. 行政的；执行的", "She is a senior executive at the firm."],
+  ["discriminate", "v. 歧视；区分；辨别", "It is illegal to discriminate by age."],
+  ["surrender", "v. 投降；放弃；交出；n. 投降", "The rebels surrendered at dawn."],
+  ["percent", "n. 百分之……；百分比", "Prices rose by five percent."],
+  ["lest", "conj. 以免；唯恐；免得", "Speak quietly lest you wake the baby."]
 ].map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 
 const STORAGE_KEY = "wordTrainer.v1";
@@ -1423,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "159";
+const APP_VERSION = "160";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
