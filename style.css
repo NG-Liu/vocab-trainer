@@ -637,6 +637,24 @@ body.casual-book #promptText {
   pointer-events: auto;
 }
 
+/* v166：点答案文本即可复制整段纯文本。随手本的答案是成篇文字（范文、简答、模板句），最需要这个。
+   提示画成伪元素、不占 DOM —— 随手本的答案区布局很敏感（v148 踩过），能不动结构就不动。
+   只对主卡片 #answerBox 生效（词库页的内联卡没绑这个点击，避免给出「点了没反应」的误导）。 */
+#answerBox {
+  cursor: copy;
+}
+
+body.casual-book .review-card.is-revealed .answer-box::before {
+  content: "轻点这段话即可复制全文";
+  display: block;
+  margin: 0 0 var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px dashed var(--line);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
 /* v140：随手复习本的答案是成篇文章（最长一千多字 + 公式），抽屉限高内滚、左对齐、正文档 */
 body.casual-book .review-card .answer-box {
   max-height: min(52dvh, 480px);

@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "165";
+const APP_VERSION = "166";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2125,6 +2125,8 @@ function bindEvents() {
   });
   // v134：点单词文本 → 复制到剪贴板（点击继续冒泡到卡片，所以「点任意处揭示」照旧生效）
   if (els.promptText) els.promptText.addEventListener("click", copyCurrentWord);
+  // v166：点答案文本 → 复制整段答案的纯文本（复制要 stopPropagation，见 copyCurrentAnswer）
+  if (els.answerBox) els.answerBox.addEventListener("click", copyCurrentAnswer);
   // v135：自动发音开关（存 localStorage；打开时立刻试播当前卡，关闭时停掉正在播的）
   if (els.autoAudioToggle) {
     els.autoAudioToggle.checked = autoPlayWordAudio;
@@ -2942,6 +2944,48 @@ function copyCurrentWord() {
   copyTextToClipboard(word.term)
     .then(() => showCopyToast(`已复制 ${word.term}`))
     .catch(() => showCopyToast("复制失败"));
+}
+
+// v166：点答案文本 → 把整段答案的**纯文本**复制走（范文全文、简答、模板句都能一键取用）。
+// 两处必须注意：
+//   1) stopPropagation —— 卡片 click 在非沉浸态会 startSession()，不拦住就会「复制一次顺手重开一轮」；
+//   2) 复制原文去标记后的文本，不是渲染后的 innerHTML —— 否则换行会变成 <br>、加粗变成 <strong>。
+// 用户在答案里已经选了字时不复制，让系统原生的选择/复制生效。
+function copyCurrentAnswer(event) {
+  const selection = window.getSelection ? window.getSelection() : null;
+  if (selection && String(selection).trim()) return;
+  const word = currentQueue[currentIndex];
+  if (!word) return;
+  const text = plainAnswerText(word.meaning);
+  if (!text) return;
+  if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+  copyTextToClipboard(text)
+    .then(() => showCopyToast(describeCopiedText(text)))
+    .catch(() => showCopyToast("复制失败"));
+}
+
+// 答案的纯文本形态：去掉 **加粗** 标记，保留原有换行。
+// 公式的 $...$ 原样留着 —— 粘进 Obsidian 正好还是 LaTeX 行内式。
+// 范文卡片末尾有「—— 199 词（57 / 86 / 56）」这类只有卡片自用的标注，
+// 复制出去只要正文，所以整行剥掉（标注本里的「该题坑：…」是给自己的提醒，保留）。
+function plainAnswerText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/^[ \t]*——[ \t]*\d+[ \t]*词[（(][^\n）)]*[）)][ \t]*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .trim();
+}
+
+// 长文不把全文塞进 toast（那会把提示条撑成一堵墙），只报个量。
+function describeCopiedText(text) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const letters = (text.match(/[A-Za-z]/g) || []).length;
+  const dense = text.replace(/\s/g, "").length;
+  // 英文长句报词数（范文用得上），中文与短词条报字数
+  if (words.length >= 8 && letters / Math.max(1, dense) > 0.5) return `已复制全文 · ${words.length} 词`;
+  if (dense > 24) return `已复制全文 · ${dense} 字`;
+  return `已复制 ${text}`;
 }
 
 function copyTextToClipboard(text) {
