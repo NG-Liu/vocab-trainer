@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "160";
+const APP_VERSION = "161";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1662,6 +1662,11 @@ const ENGLISH_SMALL_BOOK_WORDS = (window.ENGLISH_SAMPLE_SMALL_ENTRIES || []).map
 const ENGLISH_BIG_BOOK_ID = "english-writing-big";
 const ENGLISH_BIG_BOOK_NAME = "英语作文 · 大作文";
 const ENGLISH_BIG_BOOK_WORDS = (window.ENGLISH_SAMPLE_BIG_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+// v161 英语作文 · 主题词：第五本随手复习本，书里第四章 9 类 132 条表达，按子类切成 15 张速查卡。
+// 用途是「写大作文前扫一眼对应主题」，不是背诵卡（条目太多，逐条背性价比低）。
+const ENGLISH_THEME_BOOK_ID = "english-writing-theme";
+const ENGLISH_THEME_BOOK_NAME = "英语作文 · 主题词";
+const ENGLISH_THEME_BOOK_WORDS = (window.ENGLISH_THEME_BOOK_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: CORE_BOOK_ID, name: CORE_BOOK_NAME, words: CORE_BOOK_WORDS, sortMode: "sequence" },
@@ -1675,12 +1680,13 @@ const BOOK_DEFINITIONS = [
   { id: ENGLISH_WRITING_BOOK_ID, name: ENGLISH_WRITING_BOOK_NAME, words: ENGLISH_WRITING_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: ENGLISH_SMALL_BOOK_ID, name: ENGLISH_SMALL_BOOK_NAME, words: ENGLISH_SMALL_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: ENGLISH_BIG_BOOK_ID, name: ENGLISH_BIG_BOOK_NAME, words: ENGLISH_BIG_BOOK_WORDS, sortMode: "sequence", noRating: true },
+  { id: ENGLISH_THEME_BOOK_ID, name: ENGLISH_THEME_BOOK_NAME, words: ENGLISH_THEME_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 // noRating = 随手复习本：整本书按原顺序翻卡，没有 忘了/模糊/记住/掌握，没有今日队列与每日复习量。
 // 这类词本的 todaySession 不存每日会话，只存「翻到第几张」（见 getCasualCursor/saveCasualCursor）。
-const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID, POLITICS_BOOK_ID, ENGLISH_WRITING_BOOK_ID, ENGLISH_SMALL_BOOK_ID, ENGLISH_BIG_BOOK_ID]);
+const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID, POLITICS_BOOK_ID, ENGLISH_WRITING_BOOK_ID, ENGLISH_SMALL_BOOK_ID, ENGLISH_BIG_BOOK_ID, ENGLISH_THEME_BOOK_ID]);
 // v147：随手复习本的卡片标签（词库页内联复习里那一行小字）按本取名。
 // 之前写死「简答题」，第二本随手复习本（政治分析题模板）上来就不对了。
 // 这张表必须留在 init() 之前——模块级 const 落在 init() 之后会撞暂时性死区。
@@ -1689,7 +1695,8 @@ const CASUAL_CARD_LABELS = {
   [POLITICS_BOOK_ID]: "分析题模板",
   [ENGLISH_WRITING_BOOK_ID]: "功能句",
   [ENGLISH_SMALL_BOOK_ID]: "小作文",
-  [ENGLISH_BIG_BOOK_ID]: "大作文"
+  [ENGLISH_BIG_BOOK_ID]: "大作文",
+  [ENGLISH_THEME_BOOK_ID]: "主题词"
 };
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
