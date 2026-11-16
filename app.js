@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "164";
+const APP_VERSION = "165";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1678,6 +1678,15 @@ const MY_ESSAYS_BOOK_WORDS = (window.MY_ESSAYS_ENTRIES || []).map(([term, meanin
 const ENGLISH_SKELETON_BOOK_ID = "english-writing-skeleton";
 const ENGLISH_SKELETON_BOOK_NAME = "英语作文 · 背诵卡";
 const ENGLISH_SKELETON_BOOK_WORDS = (window.ENGLISH_SKELETON_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+// v165 英语作文 · 真题范文 / 范文标注：第八、九本随手复习本（随手本共 10 本）。
+// 同一个数据文件里的两个数组：前者是干净全文（可直接拄），后者逐句带 [句位] 标注。
+// 数据由 .workbuddy/_gen_essays.js 生成（17 篇 2010–2026），句子只来自 08-背诵总表。
+const ENGLISH_ESSAY_TEXT_BOOK_ID = "english-writing-essays";
+const ENGLISH_ESSAY_TEXT_BOOK_NAME = "英语作文 · 真题范文";
+const ENGLISH_ESSAY_TEXT_BOOK_WORDS = (window.ENGLISH_ESSAY_TEXT_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
+const ENGLISH_ESSAY_MARKED_BOOK_ID = "english-writing-essays-marked";
+const ENGLISH_ESSAY_MARKED_BOOK_NAME = "英语作文 · 范文标注";
+const ENGLISH_ESSAY_MARKED_BOOK_WORDS = (window.ENGLISH_ESSAY_MARKED_ENTRIES || []).map(([term, meaning, example]) => ({ id: makeId(term), term, meaning, example }));
 const BOOK_DEFINITIONS = [
   { id: DEFAULT_BOOK_ID, name: DEFAULT_BOOK_NAME, words: STARTER_WORDS },
   { id: CORE_BOOK_ID, name: CORE_BOOK_NAME, words: CORE_BOOK_WORDS, sortMode: "sequence" },
@@ -1694,12 +1703,14 @@ const BOOK_DEFINITIONS = [
   { id: ENGLISH_THEME_BOOK_ID, name: ENGLISH_THEME_BOOK_NAME, words: ENGLISH_THEME_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: MY_ESSAYS_BOOK_ID, name: MY_ESSAYS_BOOK_NAME, words: MY_ESSAYS_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: ENGLISH_SKELETON_BOOK_ID, name: ENGLISH_SKELETON_BOOK_NAME, words: ENGLISH_SKELETON_BOOK_WORDS, sortMode: "sequence", noRating: true },
+  { id: ENGLISH_ESSAY_TEXT_BOOK_ID, name: ENGLISH_ESSAY_TEXT_BOOK_NAME, words: ENGLISH_ESSAY_TEXT_BOOK_WORDS, sortMode: "sequence", noRating: true },
+  { id: ENGLISH_ESSAY_MARKED_BOOK_ID, name: ENGLISH_ESSAY_MARKED_BOOK_NAME, words: ENGLISH_ESSAY_MARKED_BOOK_WORDS, sortMode: "sequence", noRating: true },
   { id: TEST_BOOK_ID, name: TEST_BOOK_NAME, words: TEST_BOOK_WORDS }
 ];
 const MATH_BOOK_IDS = new Set([INTEGRAL_BOOK_ID, THEOREM_BOOK_ID, TAYLOR_BOOK_ID]);
 // noRating = 随手复习本：整本书按原顺序翻卡，没有 忘了/模糊/记住/掌握，没有今日队列与每日复习量。
 // 这类词本的 todaySession 不存每日会话，只存「翻到第几张」（见 getCasualCursor/saveCasualCursor）。
-const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID, POLITICS_BOOK_ID, ENGLISH_WRITING_BOOK_ID, ENGLISH_SMALL_BOOK_ID, ENGLISH_BIG_BOOK_ID, ENGLISH_THEME_BOOK_ID, MY_ESSAYS_BOOK_ID, ENGLISH_SKELETON_BOOK_ID]);
+const NO_RATING_BOOK_IDS = new Set([MICRO_DEVICES_BOOK_ID, POLITICS_BOOK_ID, ENGLISH_WRITING_BOOK_ID, ENGLISH_SMALL_BOOK_ID, ENGLISH_BIG_BOOK_ID, ENGLISH_THEME_BOOK_ID, MY_ESSAYS_BOOK_ID, ENGLISH_SKELETON_BOOK_ID, ENGLISH_ESSAY_TEXT_BOOK_ID, ENGLISH_ESSAY_MARKED_BOOK_ID]);
 // v147：随手复习本的卡片标签（词库页内联复习里那一行小字）按本取名。
 // 之前写死「简答题」，第二本随手复习本（政治分析题模板）上来就不对了。
 // 这张表必须留在 init() 之前——模块级 const 落在 init() 之后会撞暂时性死区。
@@ -1711,7 +1722,9 @@ const CASUAL_CARD_LABELS = {
   [ENGLISH_BIG_BOOK_ID]: "大作文",
   [ENGLISH_THEME_BOOK_ID]: "主题词",
   [MY_ESSAYS_BOOK_ID]: "我的范文",
-  [ENGLISH_SKELETON_BOOK_ID]: "背诵卡"
+  [ENGLISH_SKELETON_BOOK_ID]: "背诵卡",
+  [ENGLISH_ESSAY_TEXT_BOOK_ID]: "真题范文",
+  [ENGLISH_ESSAY_MARKED_BOOK_ID]: "范文标注"
 };
 const DAY = 24 * 60 * 60 * 1000;
 const REVIEW_LIMIT_OPTIONS = [50, 100, 150, 200];
