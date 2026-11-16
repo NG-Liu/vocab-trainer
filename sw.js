@@ -1,22 +1,23 @@
-const CACHE_NAME = "word-trainer-v163";
+const CACHE_NAME = "word-trainer-v164";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=163",
-  "./cloud-sync.js?v=163",
-  "./core-book-data.js?v=163",
-  "./cet4-book-data.js?v=163",
-  "./cet6-book-data.js?v=163",
-  "./microelectronics-book-data.js?v=163",
-  "./politics-book-data.js?v=163",
-  "./english-writing-book-data.js?v=163",
-  "./english-writing-sample-data.js?v=163",
-  "./english-writing-theme-data.js?v=163",
-  "./my-essays-data.js?v=163",
-  "./app.js?v=163",
-  "./submission-config.js?v=163",
-  "./manifest.webmanifest?v=163",
-  "./icon.svg?v=163",
+  "./style.css?v=164",
+  "./cloud-sync.js?v=164",
+  "./core-book-data.js?v=164",
+  "./cet4-book-data.js?v=164",
+  "./cet6-book-data.js?v=164",
+  "./microelectronics-book-data.js?v=164",
+  "./politics-book-data.js?v=164",
+  "./english-writing-book-data.js?v=164",
+  "./english-writing-sample-data.js?v=164",
+  "./english-writing-theme-data.js?v=164",
+  "./my-essays-data.js?v=164",
+  "./english-writing-skeleton-data.js?v=164",
+  "./app.js?v=164",
+  "./submission-config.js?v=164",
+  "./manifest.webmanifest?v=164",
+  "./icon.svg?v=164",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
@@ -63,6 +64,7 @@ self.addEventListener("fetch", (event) => {
       url.pathname.endsWith("/english-writing-sample-data.js") ||
       url.pathname.endsWith("/english-writing-theme-data.js") ||
       url.pathname.endsWith("/my-essays-data.js") ||
+      url.pathname.endsWith("/english-writing-skeleton-data.js") ||
       url.pathname.endsWith("/submission-config.js") ||
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/manifest.webmanifest") ||
