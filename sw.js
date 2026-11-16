@@ -1,21 +1,22 @@
-const CACHE_NAME = "word-trainer-v161";
+const CACHE_NAME = "word-trainer-v162";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=161",
-  "./cloud-sync.js?v=161",
-  "./core-book-data.js?v=161",
-  "./cet4-book-data.js?v=161",
-  "./cet6-book-data.js?v=161",
-  "./microelectronics-book-data.js?v=161",
-  "./politics-book-data.js?v=161",
-  "./english-writing-book-data.js?v=161",
-  "./english-writing-sample-data.js?v=161",
-  "./english-writing-theme-data.js?v=161",
-  "./app.js?v=161",
-  "./submission-config.js?v=161",
-  "./manifest.webmanifest?v=161",
-  "./icon.svg?v=161",
+  "./style.css?v=162",
+  "./cloud-sync.js?v=162",
+  "./core-book-data.js?v=162",
+  "./cet4-book-data.js?v=162",
+  "./cet6-book-data.js?v=162",
+  "./microelectronics-book-data.js?v=162",
+  "./politics-book-data.js?v=162",
+  "./english-writing-book-data.js?v=162",
+  "./english-writing-sample-data.js?v=162",
+  "./english-writing-theme-data.js?v=162",
+  "./my-essays-data.js?v=162",
+  "./app.js?v=162",
+  "./submission-config.js?v=162",
+  "./manifest.webmanifest?v=162",
+  "./icon.svg?v=162",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
@@ -61,7 +62,7 @@ self.addEventListener("fetch", (event) => {
       url.pathname.endsWith("/english-writing-book-data.js") ||
       url.pathname.endsWith("/english-writing-sample-data.js") ||
       url.pathname.endsWith("/english-writing-theme-data.js") ||
-      url.pathname.endsWith("/english-writing-theme-data.js") ||
+      url.pathname.endsWith("/my-essays-data.js") ||
       url.pathname.endsWith("/submission-config.js") ||
       url.pathname.endsWith("/style.css") ||
       url.pathname.endsWith("/manifest.webmanifest") ||
