@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "167";
+const APP_VERSION = "168";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -1768,6 +1768,11 @@ let lastAutoPlayedKey = null;
 // v148：答案框是可滚动的（随手本成篇答案），换卡时必须把滚动位置归零，
 // 否则下一题会带着上一题的阅读进度打开（看起来像「答案从中间开始」）。
 let lastAnswerScrollWordId = null;
+// v168：随手本朗读的世代号与播放态。必须声明在 init() 之前——
+// init → renderAll → renderCurrentCard → stopCasualSpeech 会读它，晚声明就撞暂时性死区。
+let casualSpeechRun = 0;
+let casualSpeechActive = false;
+let casualSpeechTimer = 0;
 let autoPlayWordAudio = loadAutoPlayWordAudio();
 const RATE_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
 
@@ -1933,6 +1938,7 @@ const els = {
   // v140 随手复习本（微电子器件 · 简答题）：翻卡按钮 / 目录页 / 统计条标签
   casualPrevButton: document.querySelector("#casualPrevButton"),
   casualNextButton: document.querySelector("#casualNextButton"),
+  casualSpeakButton: document.querySelector("#casualSpeakButton"),
   reviewActions: document.querySelector("#reviewActions"),
   catalogTab: document.querySelector("#catalogTab"),
   libraryTab: document.querySelector("#libraryTab"),
@@ -2064,6 +2070,10 @@ function bindEvents() {
   }
   if (els.casualNextButton) {
     els.casualNextButton.addEventListener("click", () => advanceCasualCard(1));
+  }
+  // v168：随手本朗读（读题面 + 答案；再点一次停）
+  if (els.casualSpeakButton) {
+    els.casualSpeakButton.addEventListener("click", () => toggleCasualSpeech());
   }
   // v140：目录页 —— 搜索 + 点题开背
   if (els.catalogSearch) {
@@ -2770,6 +2780,7 @@ function todayKey(date = new Date()) {
 
 function switchView(viewId) {
   stopWordAudio();
+  stopCasualSpeech();
   clearInlineReview();
   clearLibraryOrderFreeze();
   els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === viewId));
@@ -3061,6 +3072,7 @@ function exitImmersive(options) {
 // 回到「轻点任意处开始」的空闲界面：退出全屏、导入备份后都用它，
 // 否则卡片会继续显示上一份数据的单词（导入后那个 id 可能已经不存在）。
 function showStartScreen() {
+  stopCasualSpeech();
   currentQueue = [];
   currentIndex = 0;
   reviewAnswerWordId = null;
@@ -3453,6 +3465,7 @@ function skipReviewedCardsAhead({ allowSkip = false } = {}) {
 
 function renderCurrentCard() {
   stopWordAudio();
+  stopCasualSpeech();
   skipReviewedCardsAhead();
   const word = currentQueue[currentIndex];
   const nextWord = currentQueue[currentIndex + 1];
@@ -3473,6 +3486,7 @@ function renderCurrentCard() {
   // v128：没有当前单词（未开始/队列清空）时收起评分按钮 —— 开始界面下那四个按钮用不上（用户反馈）
   if (els.reviewCard) els.reviewCard.classList.toggle("is-empty", !hasWord);
   updatePromptAudioButton(word, hasWord && !mathBook && !casualBook);
+  updateCasualSpeakButton();
   if (word && !mathBook && !casualBook) prepareWordAudio(word.term);
   if (nextWord && !mathBook && !casualBook) prepareWordAudio(nextWord.term);
   toggleReviewControls(hasWord);
@@ -3864,6 +3878,204 @@ function stopWordAudio() {
   if (activeWordAudio?.cleanup) activeWordAudio.cleanup();
   if (activeWordAudio?.button) setAudioButtonState(activeWordAudio.button, "idle");
   activeWordAudio = null;
+}
+
+/* ============================================================
+   v168 随手复习本朗读 —— 政治模板 / 简答 / 范文都靠它「听」
+   用浏览器自带的 speechSynthesis：不联网、不要 key，手机和桌面都能用。
+   · 念什么：题面 + 答案纯文本（复用 plainAnswerText 去掉 ** 与词数标注）
+   · 公式段（$...$ / $$...$$）与 ______ 留空不逐字念，换成停顿
+   · 长文按句切成 ≤ 90 字的块逐块念（Chrome 单条过长会中途断）
+   · 语言按中英字符比例判定：中文 zh-CN、英文 en-US
+   · 换卡 / 切视图 / 退出沉浸态一律 stopCasualSpeech()
+   ============================================================ */
+function shouldShowCasualSpeech(book = ensureCurrentBook()) {
+  return (
+    isNoRatingBook(book) &&
+    typeof window !== "undefined" &&
+    Boolean(window.speechSynthesis) &&
+    typeof SpeechSynthesisUtterance !== "undefined"
+  );
+}
+
+// 只给「念」用的清洗：公式与留空变成停顿，不给 TTS 念出一串符号
+function speechTextOf(text) {
+  return String(text ?? "")
+    .replace(/\$\$[\s\S]*?\$\$/g, "，")
+    .replace(/\$[^$\n]*\$/g, "，")
+    .replace(/_{3,}/g, "……")
+    .replace(/[，,]{2,}/g, "，")
+    .replace(/[（(]\s*[）)]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function buildSpeechText(word) {
+  if (!word) return "";
+  const title = speechTextOf(word.term);
+  const body = speechTextOf(plainAnswerText(word.meaning));
+  return [title, body].filter(Boolean).join("。\n");
+}
+
+// 按句号/分号/换行切句，再合并成 ≤ maxLen 的块：既不一口气念太长，也不碎成单词。
+// 不用正则的 lookbehind —— 老 Safari（< 16.4）不认，逐个字符扫一遍更稳。
+function splitSpeechChunks(text, maxLen = 90) {
+  const clean = String(text || "").replace(/\r\n/g, "\n").trim();
+  if (!clean) return [];
+  const stops = "。！？；!?;：:";
+  const sentences = [];
+  let buffer = "";
+  const flush = () => {
+    const piece = buffer.trim();
+    if (piece) sentences.push(piece);
+    buffer = "";
+  };
+  Array.from(clean).forEach((ch) => {
+    if (ch === "\n") {
+      flush();
+      return;
+    }
+    buffer += ch;
+    if (stops.includes(ch)) flush();
+  });
+  flush();
+
+  const chunks = [];
+  let merged = "";
+  sentences.forEach((sentence) => {
+    let rest = sentence;
+    // 一口气没有标点的超长段：先按 maxLen 硬切，别指望浏览器念完
+    while (rest.length > maxLen) {
+      if (merged) {
+        chunks.push(merged);
+        merged = "";
+      }
+      chunks.push(rest.slice(0, maxLen));
+      rest = rest.slice(maxLen);
+    }
+    if (!rest) return;
+    if (merged && merged.length + rest.length > maxLen) {
+      chunks.push(merged);
+      merged = "";
+    }
+    merged += rest;
+  });
+  if (merged) chunks.push(merged);
+  return chunks;
+}
+
+function detectSpeechLang(text) {
+  const cjk = (String(text).match(/[\u3400-\u9fff]/g) || []).length;
+  const latin = (String(text).match(/[A-Za-z]/g) || []).length;
+  return cjk >= latin * 0.5 ? "zh-CN" : "en-US";
+}
+
+function pickSpeechVoice(lang) {
+  const synth = window.speechSynthesis;
+  if (!synth || typeof synth.getVoices !== "function") return null;
+  const voices = synth.getVoices() || [];
+  const norm = (value) => String(value || "").toLowerCase().replace("_", "-");
+  const exact = voices.find((voice) => norm(voice.lang) === lang.toLowerCase());
+  if (exact) return exact;
+  const prefix = lang.slice(0, 2).toLowerCase();
+  return voices.find((voice) => norm(voice.lang).startsWith(prefix)) || null;
+}
+
+function updateCasualSpeakButton() {
+  const button = els.casualSpeakButton;
+  if (!button) return;
+  const supported = shouldShowCasualSpeech();
+  const hasWord = Boolean(currentQueue[currentIndex]);
+  button.classList.toggle("is-hidden", !supported);
+  button.disabled = !supported || !hasWord;
+  button.classList.toggle("is-speaking", casualSpeechActive);
+  button.textContent = casualSpeechActive ? "停止" : "朗读";
+  button.setAttribute("aria-label", casualSpeechActive ? "停止朗读" : "朗读这张卡");
+}
+
+function toggleCasualSpeech() {
+  if (casualSpeechActive) {
+    stopCasualSpeech();
+    return;
+  }
+  startCasualSpeech();
+}
+
+function startCasualSpeech() {
+  const word = currentQueue[currentIndex];
+  if (!word || !shouldShowCasualSpeech()) return;
+  const text = buildSpeechText(word);
+  const chunks = splitSpeechChunks(text);
+  if (!chunks.length) return;
+  stopCasualSpeech(); // 保险：先清掉上一段（此时 active=false，不会递归）
+  const run = ++casualSpeechRun;
+  const synth = window.speechSynthesis;
+  const lang = detectSpeechLang(text);
+  const voice = pickSpeechVoice(lang);
+  casualSpeechActive = true;
+  updateCasualSpeakButton();
+  const clearTimer = () => {
+    if (!casualSpeechTimer) return;
+    window.clearTimeout(casualSpeechTimer);
+    casualSpeechTimer = 0;
+  };
+  const speakAt = (index) => {
+    if (run !== casualSpeechRun || !casualSpeechActive) return;
+    clearTimer();
+    if (index >= chunks.length) {
+      casualSpeechActive = false;
+      updateCasualSpeakButton();
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    utterance.lang = lang;
+    if (voice) utterance.voice = voice;
+    utterance.rate = lang === "zh-CN" ? 1 : 0.94;
+    utterance.pitch = 1;
+    const next = () => speakAt(index + 1);
+    utterance.onend = next;
+    utterance.onerror = next;
+    try {
+      synth.speak(utterance);
+    } catch (error) {
+      casualSpeechActive = false;
+      updateCasualSpeakButton();
+      return;
+    }
+    // 兜底：无语音包 / 被静音的环境里 onend 永远不来，按钮会一直卡在「停止」。
+    // 按字数估个上限，到点还没在念就跳下一块（最后一块则收尾）。
+    casualSpeechTimer = window.setTimeout(
+      () => {
+        casualSpeechTimer = 0;
+        if (run !== casualSpeechRun || !casualSpeechActive) return;
+        if (synth.speaking || synth.pending) return;
+        next();
+      },
+      Math.max(2000, chunks[index].length * 300)
+    );
+  };
+  speakAt(0);
+}
+
+function stopCasualSpeech() {
+  casualSpeechRun += 1;
+  if (casualSpeechTimer) {
+    window.clearTimeout(casualSpeechTimer);
+    casualSpeechTimer = 0;
+  }
+  if (!casualSpeechActive) {
+    updateCasualSpeakButton();
+    return;
+  }
+  casualSpeechActive = false;
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (error) {
+      /* 某些浏览器没有 cancel，忽略 */
+    }
+  }
+  updateCasualSpeakButton();
 }
 
 function rateCurrent(rating) {

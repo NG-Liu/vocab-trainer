@@ -835,7 +835,19 @@ body.casual-book .review-card .feedback:empty {
 }
 
 .review-actions.is-casual {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* v168：上一张 / 朗读 / 下一张 —— 三颗钮等分；朗读在中间，拇指左右都够得着 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.review-actions.is-casual .casual-speak-button.is-speaking {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.review-actions.is-casual .casual-speak-button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .review-actions.is-casual .rate-button {
