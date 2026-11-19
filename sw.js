@@ -1,4 +1,4 @@
-const CACHE_NAME = "word-trainer-v169";
+const CACHE_NAME = "word-trainer-v170";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -15,8 +15,8 @@ const APP_SHELL = [
   "./my-essays-data.js?v=168",
   "./english-writing-skeleton-data.js?v=168",
   "./english-writing-essays-data.js?v=168",
-  "./english-writing-essays-new-data.js?v=169",
-  "./app.js?v=169",
+  "./english-writing-essays-new-data.js?v=170",
+  "./app.js?v=170",
   "./submission-config.js?v=168",
   "./manifest.webmanifest?v=168",
   "./icon.svg?v=168",

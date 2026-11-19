@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "169";
+const APP_VERSION = "170";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -2989,6 +2989,7 @@ function copyCurrentAnswer(event) {
 // 复制出去只要正文，所以整行剥掉（标注本里的「该题坑：…」是给自己的提醒，保留）。
 function plainAnswerText(value) {
   return String(value ?? "")
+    .replace(/—— 参考译文 ——[\s\S]*$/, "")   // v170：复制/朗读只要英文正文，译文留在卡片上
     .replace(/\r\n/g, "\n")
     .replace(/^[ \t]*——[ \t]*\d+[ \t]*词[（(][^\n）)]*[）)][ \t]*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
