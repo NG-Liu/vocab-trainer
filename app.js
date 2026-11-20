@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "171";
+const APP_VERSION = "172";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -3905,8 +3905,12 @@ function speechTextOf(text) {
     .replace(/\$\$[\s\S]*?\$\$/g, "，")
     .replace(/\$[^$\n]*\$/g, "，")
     .replace(/_{3,}/g, "……")
-    .replace(/[，,]{2,}/g, "，")
+    // v172：①②③ 这类枚举标记后面补逗号，否则 TTS 会把「①降低热阻 ②降低…」连成一串
+    .replace(/([①-⑳])/g, "$1，")
+    // v172：「（1）定义」念成「第 1，定义」，比干念「括号一括号」自然（只认 1~2 位数字，避开年份）
+    .replace(/[（(]\s*(\d{1,2})\s*[）)]/g, "第 $1，")
     .replace(/[（(]\s*[）)]/g, "")
+    .replace(/[，,]{2,}/g, "，")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
@@ -3920,46 +3924,79 @@ function buildSpeechText(word) {
 
 // 按句号/分号/换行切句，再合并成 ≤ maxLen 的块：既不一口气念太长，也不碎成单词。
 // 不用正则的 lookbehind —— 老 Safari（< 16.4）不认，逐个字符扫一遍更稳。
-function splitSpeechChunks(text, maxLen = 90) {
+// v172：断句重写 —— 先按句末切，长句优先在逗号/顿号处断，实在没有标点才硬切，
+// 硬切也要退到英文单词/数字的边界上，免得把 "constitution" 劈成 "consti / tution"。
+// 块长按语种给：中文 60 字 ≈ 12 秒，英文 150 字符；太长的块 Chrome 会念到一半就停。
+function splitSpeechChunks(text, maxLen = 60) {
   const clean = String(text || "").replace(/\r\n/g, "\n").trim();
   if (!clean) return [];
-  const stops = "。！？；!?;：:";
+  const sentenceStops = "。！？；!?;";
+  const softStops = "，、：:,—…";
   const sentences = [];
   let buffer = "";
-  const flush = () => {
+  const flushSentence = () => {
     const piece = buffer.trim();
     if (piece) sentences.push(piece);
     buffer = "";
   };
   Array.from(clean).forEach((ch) => {
     if (ch === "\n") {
-      flush();
+      flushSentence();
       return;
     }
     buffer += ch;
-    if (stops.includes(ch)) flush();
+    if (sentenceStops.includes(ch)) flushSentence();
   });
-  flush();
+  flushSentence();
 
-  const chunks = [];
-  let merged = "";
+  const clauses = [];
   sentences.forEach((sentence) => {
     let rest = sentence;
-    // 一口气没有标点的超长段：先按 maxLen 硬切，别指望浏览器念完
     while (rest.length > maxLen) {
-      if (merged) {
-        chunks.push(merged);
-        merged = "";
+      const limit = Math.min(maxLen, rest.length - 1);
+      const floor = Math.max(8, Math.floor(maxLen * 0.45));
+      let cut = -1;
+      // ① 先找软停顿（逗号、顿号、冒号、破折号）
+      for (let i = limit; i >= floor; i -= 1) {
+        if (softStops.includes(rest[i])) {
+          cut = i + 1;
+          break;
+        }
       }
-      chunks.push(rest.slice(0, maxLen));
-      rest = rest.slice(maxLen);
+      // ② 没有标点：退到英文/数字边界
+      if (cut < 0) {
+        for (let i = limit; i >= floor; i -= 1) {
+          const before = rest[i - 1] || "";
+          const here = rest[i] || "";
+          if (/[A-Za-z0-9]/.test(before) && /[A-Za-z0-9]/.test(here)) continue;
+          cut = i;
+          break;
+        }
+      }
+      // ③ 还是没有：硬切
+      if (cut < 0) cut = limit;
+      const head = rest.slice(0, cut).trim();
+      if (head) clauses.push(head);
+      rest = rest.slice(cut);
     }
-    if (!rest) return;
-    if (merged && merged.length + rest.length > maxLen) {
-      chunks.push(merged);
-      merged = "";
+    const tail = rest.trim();
+    if (tail) clauses.push(tail);
+  });
+
+  // 相邻短句再拼回 maxLen 以内，避免一路机械地一句一停
+  const chunks = [];
+  let merged = "";
+  clauses.forEach((clause) => {
+    if (!merged) {
+      merged = clause;
+      return;
     }
-    merged += rest;
+    if (merged.length + clause.length <= maxLen) {
+      merged += clause;
+      return;
+    }
+    chunks.push(merged);
+    merged = clause;
   });
   if (merged) chunks.push(merged);
   return chunks;
@@ -4006,12 +4043,14 @@ function startCasualSpeech() {
   const word = currentQueue[currentIndex];
   if (!word || !shouldShowCasualSpeech()) return;
   const text = buildSpeechText(word);
-  const chunks = splitSpeechChunks(text);
+  // v169：块长跟语种走 —— 中文 60 字 ≈ 12 秒，英文 150 字符 ≈ 10 秒；
+  // 太长的块 Chrome 会念到一半就停（v168 的 90 字块偶尔被截断，听起来就像「断句乱」）。
+  const lang = detectSpeechLang(text);
+  const chunks = splitSpeechChunks(text, lang === "zh-CN" ? 60 : 150);
   if (!chunks.length) return;
   stopCasualSpeech(); // 保险：先清掉上一段（此时 active=false，不会递归）
   const run = ++casualSpeechRun;
   const synth = window.speechSynthesis;
-  const lang = detectSpeechLang(text);
   const voice = pickSpeechVoice(lang);
   casualSpeechActive = true;
   updateCasualSpeakButton();
