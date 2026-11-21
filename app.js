@@ -1478,7 +1478,7 @@ const CLOUD_SYNC_POLL_INTERVAL = 60 * 1000;
 // 原来失败后会按默认 1.8s 立刻重试，等于每两秒撞一次墙 —— 费电、费流量、日志噪音。
 const CLOUD_SYNC_BACKOFF_START = 30 * 1000;
 const CLOUD_SYNC_BACKOFF_MAX = 5 * 60 * 1000;
-const APP_VERSION = "172";
+const APP_VERSION = "173";
 const DICTIONARY_SEARCH_URL = "https://dictionary.cambridge.org/search/english/direct/?q=";
 const WORD_AUDIO_URL = "https://dict.youdao.com/dictvoice?type=2&audio=";
 const DEFAULT_BOOK_ID = "default";
@@ -4028,7 +4028,9 @@ function updateCasualSpeakButton() {
   button.disabled = !supported || !hasWord;
   button.classList.toggle("is-speaking", casualSpeechActive);
   button.textContent = casualSpeechActive ? "停止" : "朗读";
-  button.setAttribute("aria-label", casualSpeechActive ? "停止朗读" : "朗读这张卡");
+  // v173：默认就是循环朗读，按钮上说明白「点一下开始，再点停止」
+  button.title = casualSpeechActive ? "循环朗读中，点此停止" : "循环朗读这张卡（再点停止）";
+  button.setAttribute("aria-label", casualSpeechActive ? "停止朗读" : "循环朗读这张卡");
 }
 
 function toggleCasualSpeech() {
@@ -4052,6 +4054,8 @@ function startCasualSpeech() {
   const run = ++casualSpeechRun;
   const synth = window.speechSynthesis;
   const voice = pickSpeechVoice(lang);
+  // v173：一轮念完到下一轮之间的停顿（给耳朵留个换气口，也让「停止」好按）
+  const loopPauseMs = 600;
   casualSpeechActive = true;
   updateCasualSpeakButton();
   const clearTimer = () => {
@@ -4059,27 +4063,59 @@ function startCasualSpeech() {
     window.clearTimeout(casualSpeechTimer);
     casualSpeechTimer = 0;
   };
+  // v173：收尾统一走这里 —— 除了改状态，还要清掉引擎队列。
+  // 有的浏览器会把重复/残留的 utterance 留在队列里继续念，听起来就是「不按停止就一直循环」。
+  const finishCasualSpeech = () => {
+    clearTimer();
+    casualSpeechActive = false;
+    try {
+      synth.cancel();
+    } catch (error) {
+      /* 没有 cancel 的环境忽略 */
+    }
+    updateCasualSpeakButton();
+  };
+  // 兜底上限：一轮里每块只念一次，真出现异常重入也不能无限念下去（每轮重置）
+  const maxSpeaks = chunks.length + 2;
+  let roundSpeaks = 0;
   const speakAt = (index) => {
     if (run !== casualSpeechRun || !casualSpeechActive) return;
     clearTimer();
     if (index >= chunks.length) {
-      casualSpeechActive = false;
-      updateCasualSpeakButton();
+      // v173：念完一轮不收尾 —— 停 0.6 秒后从头再来，直到用户按「停止」。
+      // 循环不等于「重复念某一块」：块级仍由 advanced 保证只念一次，循环只发生在轮末。
+      casualSpeechTimer = window.setTimeout(() => {
+        casualSpeechTimer = 0;
+        if (run !== casualSpeechRun || !casualSpeechActive) return;
+        roundSpeaks = 0;
+        speakAt(0);
+      }, loopPauseMs);
       return;
     }
+    roundSpeaks += 1;
+    if (roundSpeaks > maxSpeaks) {
+      finishCasualSpeech();
+      return;
+    }
+    // v173：这一块只许「推进」一次 —— onend / onerror / 看门狗 谁先到算谁。
+    // 重复触发会让下一块被 speak 两遍，两边再各自触发两遍，指数级叠成停不下来的循环。
+    let advanced = false;
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
+      speakAt(index + 1);
+    };
     const utterance = new SpeechSynthesisUtterance(chunks[index]);
     utterance.lang = lang;
     if (voice) utterance.voice = voice;
     utterance.rate = lang === "zh-CN" ? 1 : 0.94;
     utterance.pitch = 1;
-    const next = () => speakAt(index + 1);
-    utterance.onend = next;
-    utterance.onerror = next;
+    utterance.onend = advance;
+    utterance.onerror = advance;
     try {
       synth.speak(utterance);
     } catch (error) {
-      casualSpeechActive = false;
-      updateCasualSpeakButton();
+      finishCasualSpeech();
       return;
     }
     // 兜底：无语音包 / 被静音的环境里 onend 永远不来，按钮会一直卡在「停止」。
@@ -4088,8 +4124,9 @@ function startCasualSpeech() {
       () => {
         casualSpeechTimer = 0;
         if (run !== casualSpeechRun || !casualSpeechActive) return;
+        if (advanced) return;
         if (synth.speaking || synth.pending) return;
-        next();
+        advance();
       },
       Math.max(2000, chunks[index].length * 300)
     );
